@@ -567,6 +567,15 @@ extern CSSData* mnCharSel_804D6CB0;
  * them, then leave (onExitCss goes to the match). */
 int QA_CssAuto(void)
 {
+    extern int qa_ui_mode;
+    if (qa_ui_mode) {
+        /* Menu tests: port 1 plays Marth; the script drives the panel. */
+        if (mnCharSel_804D6CB0) {
+            mnCharSel_804D6CB0->vs.start.players[0].ckind = 9;
+            mnCharSel_804D6CB0->vs.start.players[0].slot_type = 0;
+        }
+        return 0;
+    }
     if (!started) next_match();
     if (sweep_over) return 1;
     if (mnCharSel_804D6CB0) {

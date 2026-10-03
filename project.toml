@@ -5,7 +5,7 @@ name = "BuildAMelee"
 # The release version. Players see it on the character select screen, and
 # online play only exchanges builds between identical builds of the same
 # version (tools/bam.py release bumps it).
-version = "1.1"
+version = "1.2"
 
 [overlay]
 # The overlay sits at the very top of the arena, which the apploader sets to

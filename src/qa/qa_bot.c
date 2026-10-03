@@ -18,6 +18,7 @@ typedef struct QaStep { unsigned start, end, buttons; signed char x, y, cx, cy; 
 #include "qa_script.inc"     /* static const QaStep qa_script[]; QA_SCRIPT_LEN */
 
 static unsigned qa_frame;
+int qa_ui_mode = QA_SCRIPT_UI;
 /* qa_moves.c: inputs computed by the move sweep for port 1. */
 extern int qa_drive_on;
 extern u32 qa_drive_buttons;

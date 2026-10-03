@@ -2,8 +2,10 @@
  * both use the retail CSS, mnCharSel).
  *
  *   Z (character chosen) -> the panel opens for that controller's port.
- *   Three pages: specials and aerials; jab, dash attack, tilts and smash
- *   attacks; throws.
+ *   Tabs: specials, aerials, ground attacks, smash attacks, throws, and
+ *   Saved (three saved builds and the build's share code; build_store.c,
+ *   build_code.c). On Saved: A loads a slot (saves into an empty one), X
+ *   saves, Y deletes; A on the code types a code in.
  *   Up/Down     -> row (past the last row of a page: the buttons; past
  *                  the buttons: the next page).
  *   L/R         -> previous / next page.
@@ -20,11 +22,15 @@
  * read, before the CSS and its GObj procs run), BAM_CssExit at
  * mnCharSel_Scene_OnExit entry.
  */
+/* Menu code: smaller beats faster (the overlay has a fixed size). */
+#pragma optimize_for_size on
+#pragma auto_inline off
 #include <bam/bam.h>
 #include <engine/special_internal.h>
 #include <engine/special_catalog.h>
 #include <engine/aerial_catalog.h>
 #include "ui_text.h"
+#include "build_store.h"
 #include <melee/mn/types.h>
 #include <melee/lb/lbdvd.h>
 #include <melee/lb/types.h>
@@ -34,6 +40,7 @@
 #include <dolphin/gx.h>
 #include <sysdolphin/baselib/memory.h>
 #include <string.h>
+#include <stdio.h>
 
 extern CSSData* mnCharSel_804D6CB0;
 
@@ -42,15 +49,18 @@ extern CSSData* mnCharSel_804D6CB0;
 static int FONT = 4;
 extern SIS* HSD_SisLib_804D1124[5];
 /* Rows: specials, aerials, ground attacks and throws (BamNormalSlot
- * order), then the two buttons. */
+ * order), the saved-build slots and the share code, then the two buttons. */
 #define FIRST_AERIAL BAM_SPECIAL_SLOTS
 #define FIRST_NORMAL (BAM_SPECIAL_SLOTS + BAM_AERIAL_SLOTS)
 #define MOVE_ROWS (FIRST_NORMAL + BAM_NORMAL_SLOTS)
-#define ROWS (MOVE_ROWS + 2)
-#define ROW_RANDOM (ROWS - 2)
-#define ROW_LOCK (ROWS - 1)
+#define ROW_SLOT0 MOVE_ROWS
+#define ROW_CODE (ROW_SLOT0 + BAM_SAVE_SLOTS)
+#define ROW_RANDOM (ROW_CODE + 1)
+#define ROW_LOCK (ROW_CODE + 2)
+#define ROWS (ROW_LOCK + 1)
 /* Tabs down the left of the panel, one group of rows each. */
-#define PAGES 5
+#define PAGES 6
+#define PAGE_SAVED 5
 typedef struct PanelTab { const char* tab; const char* sub; const char* title; unsigned char first, count; } PanelTab;
 static const PanelTab tabs[PAGES] = {
     { "SPECIALS", 0, "Special Moves", 0, BAM_SPECIAL_SLOTS },
@@ -58,6 +68,7 @@ static const PanelTab tabs[PAGES] = {
     { "GROUND", "JAB / DASH / TILTS", "Ground Attacks", FIRST_NORMAL + BAM_NORMAL_JAB, 5 },
     { "SMASH", "ATTACKS", "Smash Attacks", FIRST_NORMAL + BAM_NORMAL_FSMASH, 3 },
     { "THROWS", 0, "Throws", FIRST_NORMAL + BAM_NORMAL_FTHROW, 4 },
+    { "SAVED", 0, "Saved Builds", ROW_SLOT0, BAM_SAVE_SLOTS + 1 },
 };
 /* Layout, in the CSS's 640 x 480 screen space: a header, tabs down the
  * left, the tab's moves on the right, two buttons and a key strip. */
@@ -112,6 +123,12 @@ static const char* const row_labels[MOVE_ROWS] = {
 
 static int ui_ready, ui_tried, canvas, first_frame;
 static int open_port = -1, row, page, ckind, just_opened;
+/* Share-code entry (on the Saved tab): the symbols being typed, the cursor. */
+static int entry_on, entry_at;
+static unsigned char entry_code[BAM_CODE_LEN];
+/* A short message in the panel's title line ("Saved to slot 2"). */
+static const char* toast;
+static unsigned toast_rgb, toast_frames;
 /* Port whose build was locked in last: the local player's build online. */
 int bam_css_port = 0;
 static s8 last_ckind[4] = { -1, -1, -1, -1 };
@@ -123,7 +140,7 @@ static BamText hint, shapes, body;
  * scene-heap block taken when the CSS opens (static buffers would sit in the
  * overlay, which has no room to spare). */
 typedef struct PanelQuad { s16 x, y, w, h; u8 kind, pad[3]; u32 rgba; } PanelQuad;
-#define MAX_QUADS 112
+#define MAX_QUADS 200
 typedef struct MenuMem {
     u32 hint[1024 / 4], body[4096 / 4], shapes[128 / 4];
     PanelQuad quads[MAX_QUADS];
@@ -243,6 +260,7 @@ static void ui_create(void)
     canvas = HSD_SisLib_803A611C(FONT, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
     BamText_Create(&hint, FONT, canvas, hint_buf, sizeof(hint_buf));
     ui_ready = 1;
+    Bam_StoreInit(); /* saved builds from the memory card, once per boot */
 }
 
 /* ---- shapes ----------------------------------------------------------
@@ -556,11 +574,105 @@ static void draw_row(unsigned i, float y)
     else put_center(right - tag, tag, cy, 0.5f, 0x566078, "OWN");
 }
 
+static unsigned saved_count(void)
+{
+    unsigned i, n = 0;
+    for (i = 0; i < BAM_SAVE_SLOTS; ++i) n += bam_saved[i].used;
+    return n;
+}
+
+/* The character a borrowed move in row r comes from, or -1. */
+static int row_donor(const BamLoadout* l, unsigned r)
+{
+    unsigned id = row_value(l, r);
+    if (!id) return -1;
+    if (r < FIRST_AERIAL) { const RogueSpecialDef* d = RogueSpecial_Find(id); return d ? (int) d->character : -1; }
+    if (r < FIRST_NORMAL) { const RogueAerialDef* d = RogueAerial_Find(id); return d ? (int) d->character : -1; }
+    return (int) id - 1;
+}
+
+/* A slot's summary: "12 moves  Marth Falcon Fox" (first donors, row order). */
+static void slot_summary(const BamLoadout* l, char* out)
+{
+    unsigned r, n = 0, shown = 0;
+    u8 seen[26];
+    char* o = out;
+    memset(seen, 0, sizeof(seen));
+    n = custom_count(l, 0, MOVE_ROWS);
+    o += sprintf(o, "%u move%s ", n, n == 1 ? "" : "s");
+    for (r = 0; r < MOVE_ROWS; ++r) {
+        int who = row_donor(l, r);
+        if (who < 0 || who >= 26 || seen[who]) continue;
+        seen[who] = 1;
+        if (shown < 3) { o += sprintf(o, " %s", ckind_short[who]); ++shown; }
+    }
+}
+
+/* Saved tab: three slots, then the share code of the build being edited. */
+static void draw_saved_row(unsigned i, float y)
+{
+    int selected = row == (int) i;
+    float cy = y + ROW_H * 0.5f, x = CONT_X + 14, right = CONT_X + CONT_W - 12, vx = x + 70;
+    char buf[48];
+    rbox(CONT_X, y, CONT_W, ROW_H, selected ? CARD_ON : CARD, 255, 2);
+    if (selected) quad(CONT_X, y + 6, 3, ROW_H - 12, GOLD, 255);
+    if (i == ROW_CODE) {
+        unsigned char code[BAM_CODE_LEN];
+        put(x, cy, ROW_TEXT, selected ? WHITE : DIM, "Code");
+        Bam_CodeFromLoadout(&bam_loadouts[open_port], code);
+        Bam_CodeText(code, buf);
+        put_fit(vx, cy, ROW_TEXT, right - vx - 60, BLUE, buf);
+        if (selected) pill(right, cy, "A ENTER", GOLD, INK);
+        return;
+    }
+    {
+        const BamSavedSlot* sv = &bam_saved[i - ROW_SLOT0];
+        BamLoadout l;
+        buf[0] = 'S'; buf[1] = 'l'; buf[2] = 'o'; buf[3] = 't'; buf[4] = ' ';
+        buf[5] = (char) ('1' + i - ROW_SLOT0); buf[6] = 0;
+        put(x, cy, ROW_TEXT, selected ? WHITE : DIM, buf);
+        if (sv->used && Bam_LoadoutFromCode(sv->code, &l)) {
+            slot_summary(&l, buf);
+            put_fit(vx, cy, ROW_TEXT, right - vx - text_w("A LOAD", 0.5f) - 24, WHITE, buf);
+            if (selected) pill(right, cy, "A LOAD", GOLD, INK);
+        } else {
+            put(vx, cy, ROW_TEXT, 0x566078, "Empty");
+            if (selected) pill(right, cy, "A SAVE", GOLD, INK);
+        }
+    }
+}
+
+/* Share-code entry: one box per symbol, in the code's groups. */
+static void draw_entry(void)
+{
+    static const unsigned char groups[] = { 4, 5, 5, 3, 5 };
+    float x = CONT_X + 4, y = ROW_Y + 40, w = 13, h = 24;
+    unsigned g, k = 0, i;
+    put(CONT_X + 2, ROW_Y + 8, 0.6f, SOFT, "Up/Down picks a letter. A goes to the next one.");
+    for (g = 0; g < sizeof(groups); ++g) {
+        for (i = 0; i < groups[g]; ++i, ++k) {
+            char c[2];
+            int on = (int) k == entry_at;
+            c[0] = bam_code_alphabet[entry_code[k] & 31]; c[1] = 0;
+            rframe(x, y, w, h, on ? CARD_ON : CARD, on ? GOLD : 0x3A4258, on ? 2 : 1);
+            put_center(x, w, y + h * 0.5f, 0.62f, on ? GOLD : WHITE, c);
+            if (on) {
+                shape(x + 3, y - 9, 7, 6, GOLD, 255, 0);
+                shape(x + 3, y + h + 3, 7, 6, GOLD, 255, 0);
+            }
+            x += w + 2;
+        }
+        x += 6;
+    }
+    put(CONT_X + 2, ROW_Y + 96, 0.6f, SOFT, "Start loads the code.  B cancels.");
+    if (toast_frames) put(CONT_X + 2, ROW_Y + 128, 0.6f, toast_rgb, toast);
+}
+
 static void draw_tab(int t, float y)
 {
     const PanelTab* tb = &tabs[t];
     int on = page == t;
-    unsigned n = custom_count(&bam_loadouts[open_port], tb->first, tb->count);
+    unsigned n = t == PAGE_SAVED ? saved_count() : custom_count(&bam_loadouts[open_port], tb->first, tb->count);
     float cy = y + TAB_H * 0.5f;
     if (on) {
         rbox(SIDE_X, y, SIDE_W, TAB_H, CARD_ON, 255, 2);
@@ -589,8 +701,13 @@ static void draw_button(float x, float w, const char* label, int on, int primary
 /* Key strip: "key action" pairs, centred under the panel's contents. */
 static void draw_keys(void)
 {
-    static const char* const keys[] = { "L/R", "Tab", "Left/Right", "Change", "X", "Random", "Y", "Reset",
-                                        "Start", "Done" };
+    static const char* const move_keys[] = { "L/R", "Tab", "Left/Right", "Change", "X", "Random", "Y", "Reset",
+                                             "Start", "Done" };
+    static const char* const saved_keys[] = { "L/R", "Tab", "A", "Load", "X", "Save", "Y", "Delete",
+                                              "Start", "Done" };
+    static const char* const entry_keys[] = { "Up/Down", "Letter", "Left/Right", "Move", "A", "Next", "B", "Cancel",
+                                              "Start", "Load" };
+    const char* const* keys = entry_on ? entry_keys : page == PAGE_SAVED ? saved_keys : move_keys;
     const float s = 0.54f, gap = 6, spread = 18;
     float total = 0, x, cy = FOOT_Y + 22;
     unsigned i;
@@ -632,15 +749,30 @@ static void draw_panel(void)
     for (t = 0; t < PAGES; ++t) draw_tab(t, TAB_Y + TAB_STEP * t);
     quad(CONT_X - 8, TITLE_Y, 1, BTN_Y + BTN_H - TITLE_Y, LINE, 255);
 
-    /* The tab's moves. */
-    put(CONT_X + 2, TITLE_Y + 12, 0.76f, WHITE, tb->title);
-    memcpy(buf, "0 of 0 borrowed", 16);
-    buf[0] = (char) ('0' + n); buf[5] = (char) ('0' + tb->count);
-    put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, n ? GOLD : DIM, buf);
-    for (i = 0; i < tb->count; ++i) draw_row(tb->first + i, ROW_Y + ROW_STEP * i);
-
-    draw_button(CONT_X, (CONT_W - 10) * 0.5f, "RANDOMIZE", row == ROW_RANDOM, 0);
-    draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, "LOCK IN", row == ROW_LOCK, 1);
+    /* The tab's moves (or slots, or the code being typed). */
+    put(CONT_X + 2, TITLE_Y + 12, 0.76f, WHITE, entry_on ? "Enter a Share Code" : tb->title);
+    if (toast_frames) --toast_frames;
+    if (toast_frames && !entry_on) {
+        put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, toast_rgb, toast);
+    } else if (entry_on) {
+    } else if (page == PAGE_SAVED) {
+        put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, DIM,
+                  bam_store_on_card ? "On memory card" : "Kept until you quit");
+    } else {
+        memcpy(buf, "0 of 0 borrowed", 16);
+        buf[0] = (char) ('0' + n); buf[5] = (char) ('0' + tb->count);
+        put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, n ? GOLD : DIM, buf);
+    }
+    if (entry_on) {
+        draw_entry();
+    } else {
+        for (i = 0; i < tb->count; ++i) {
+            if (page == PAGE_SAVED) draw_saved_row(tb->first + i, ROW_Y + ROW_STEP * i);
+            else draw_row(tb->first + i, ROW_Y + ROW_STEP * i);
+        }
+        draw_button(CONT_X, (CONT_W - 10) * 0.5f, "RANDOMIZE", row == ROW_RANDOM, 0);
+        draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, "LOCK IN", row == ROW_LOCK, 1);
+    }
 
     quad(PANEL_X + 12, FOOT_Y, PANEL_W - 24, 1, LINE, 255);
     draw_keys();
@@ -709,6 +841,8 @@ static void open_panel(int port, int kind)
     ckind = kind;
     row = 0;
     page = 0;
+    entry_on = 0;
+    toast_frames = 0;
     loadout_fix(&bam_loadouts[port]);
     if (!panel_create()) { open_port = -1; return; }
     just_opened = 1; /* ignore the input of the frame that opened it */
@@ -727,6 +861,7 @@ static void close_panel(void)
             l->normals[6], l->normals[7], l->normals[8], l->normals[9], l->normals[10], l->normals[11]);
     bam_css_port = open_port;
     open_port = -1;
+    entry_on = 0;
     panel_destroy();
 }
 
@@ -780,11 +915,75 @@ static void clear_row(BamLoadout* l, unsigned r)
     else if (r < MOVE_ROWS) l->normals[r - FIRST_NORMAL] = 0;
 }
 
+static void say(const char* msg, unsigned rgb)
+{
+    BAM_LOG("css: %s\n", msg);
+    toast = msg;
+    toast_rgb = rgb;
+    toast_frames = 150;
+}
+
+static const char* const slot_saved_msg[BAM_SAVE_SLOTS] = { "Saved to slot 1", "Saved to slot 2", "Saved to slot 3" };
+static const char* const slot_loaded_msg[BAM_SAVE_SLOTS] = { "Loaded slot 1", "Loaded slot 2", "Loaded slot 3" };
+
+/* After the slots changed: write them to the card, if there is one. */
+static void store(const char* done)
+{
+    switch (Bam_StoreSave()) {
+    case BAM_STORE_NOMEM: say("Card busy: kept until you quit", WARN); break;
+    case BAM_STORE_ERROR: say("Memory card error: kept until you quit", WARN); break;
+    default: say(done, GOLD); break;
+    }
+}
+
+/* A / X / Y on a slot row. */
+static void slot_input(BamLoadout* l, unsigned slot, u32 t)
+{
+    BamSavedSlot* sv = &bam_saved[slot];
+    BamLoadout saved;
+    int save = (t & HSD_PAD_X) || ((t & HSD_PAD_A) && !sv->used);
+    if (save) {
+        loadout_fix(l);
+        if (!custom_count(l, 0, MOVE_ROWS)) { say("No borrowed moves to save", WARN); return; }
+        Bam_CodeFromLoadout(l, sv->code);
+        sv->used = 1;
+        store(slot_saved_msg[slot]);
+    } else if (t & HSD_PAD_A) {
+        if (!Bam_LoadoutFromCode(sv->code, &saved)) { say("This slot is damaged", WARN); return; }
+        *l = saved;
+        loadout_fix(l);
+        say(slot_loaded_msg[slot], GOLD);
+    } else if ((t & HSD_PAD_Y) && sv->used) {
+        sv->used = 0;
+        store("Slot deleted");
+    }
+}
+
+static void entry_input(BamLoadout* l, int dir, u32 t)
+{
+    if (t & HSD_PAD_B) { entry_on = 0; return; }
+    if (dir == DIR_UP) entry_code[entry_at] = (unsigned char) ((entry_code[entry_at] + 1) & 31);
+    if (dir == DIR_DOWN) entry_code[entry_at] = (unsigned char) ((entry_code[entry_at] + 31) & 31);
+    if (dir == DIR_LEFT && entry_at > 0) --entry_at;
+    if (dir == DIR_RIGHT && entry_at < BAM_CODE_LEN - 1) ++entry_at;
+    if (t & HSD_PAD_Y) entry_code[entry_at] = 0;
+    if ((t & HSD_PAD_A) && entry_at < BAM_CODE_LEN - 1) { ++entry_at; return; }
+    if (t & (HSD_PAD_START | HSD_PAD_A)) {
+        BamLoadout got;
+        if (!Bam_LoadoutFromCode(entry_code, &got)) { say("Not a valid code: check each letter", WARN); return; }
+        *l = got;
+        loadout_fix(l);
+        entry_on = 0;
+        say("Code loaded", GOLD);
+    }
+}
+
 static void panel_input(HSD_PadStatus* pad)
 {
     BamLoadout* l = &bam_loadouts[open_port];
     int dir = read_dir(open_port, pad);
     u32 t = pad->trigger;
+    if (entry_on) { entry_input(l, dir, t); return; }
     /* L/R: turn the page. */
     if (t & (HSD_PAD_L | HSD_PAD_R)) {
         page = (page + ((t & HSD_PAD_R) ? 1 : PAGES - 1)) % PAGES;
@@ -807,13 +1006,25 @@ static void panel_input(HSD_PadStatus* pad)
         if (dir == DIR_DOWN) row = row == page_last(page) ? ROW_RANDOM : row + 1;
     }
     if (row < ROW_RANDOM) page = page_of(row);
+    if (row >= ROW_SLOT0 && row < ROW_CODE) {
+        slot_input(l, (unsigned) (row - ROW_SLOT0), t);
+        t &= ~(HSD_PAD_A | HSD_PAD_X | HSD_PAD_Y);
+    } else if (row == ROW_CODE) {
+        if (t & HSD_PAD_A) {
+            Bam_CodeFromLoadout(l, entry_code); /* start from the current build's code */
+            entry_at = 0;
+            entry_on = 1;
+            return;
+        }
+        t &= ~(HSD_PAD_X | HSD_PAD_Y);
+    }
     if (t & HSD_PAD_X) randomize(l);
-    if ((dir == DIR_LEFT || dir == DIR_RIGHT) && row < ROW_RANDOM) {
+    if ((dir == DIR_LEFT || dir == DIR_RIGHT) && row < MOVE_ROWS) {
         set_row_value(l, (unsigned) row, dir == DIR_LEFT ? -1 : 1);
         loadout_fix(l);
     }
     if (t & HSD_PAD_Y) {
-        if (row < ROW_RANDOM) clear_row(l, (unsigned) row);
+        if (row < MOVE_ROWS) clear_row(l, (unsigned) row);
         else memset(l, 0, sizeof(*l)); /* on the buttons: reset everything */
         loadout_fix(l);
     }

@@ -31,6 +31,7 @@
 #include <dolphin/os.h>
 #include <string.h>
 #include <sysdolphin/baselib/memory.h>
+#include "build_code.h"
 
 /* Slippi's static helpers (slippi-ssbm-asm Common.s). */
 #define FN_EXITransferBuffer ((void (*)(void*, u32, u32)) 0x800055F0)
@@ -221,48 +222,11 @@ static unsigned get_bits(const u8* syms, unsigned* pos, unsigned bits)
 }
 
 /* Moves travel as their position among the catalog's moves for that slot
- * (1-based; 0 = own move), which fits 5 bits. */
-static unsigned special_index(unsigned slot, unsigned id)
-{
-    unsigned i, n = 0;
-    if (!id) return 0;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (rogue_specials[i].slot == slot) {
-            ++n;
-            if (rogue_specials[i].id == id) return n < 32 ? n : 0;
-        }
-    return 0;
-}
-
-static unsigned special_from_index(unsigned slot, unsigned idx)
-{
-    unsigned i, n = 0;
-    if (!idx) return 0;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (rogue_specials[i].slot == slot && ++n == idx) return rogue_specials[i].id;
-    return 0;
-}
-
-static unsigned aerial_index(unsigned slot, unsigned id)
-{
-    unsigned i, n = 0;
-    if (!id) return 0;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (rogue_aerials[i].slot == slot) {
-            ++n;
-            if (rogue_aerials[i].id == id) return n < 32 ? n : 0;
-        }
-    return 0;
-}
-
-static unsigned aerial_from_index(unsigned slot, unsigned idx)
-{
-    unsigned i, n = 0;
-    if (!idx) return 0;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (rogue_aerials[i].slot == slot && ++n == idx) return rogue_aerials[i].id;
-    return 0;
-}
+ * (1-based; 0 = own move), which fits 5 bits (build_code.c). */
+#define special_index Bam_SpecialIndex
+#define special_from_index Bam_SpecialFromIndex
+#define aerial_index Bam_AerialIndex
+#define aerial_from_index Bam_AerialFromIndex
 
 static unsigned build_hash(void)
 {

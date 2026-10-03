@@ -30,5 +30,23 @@ the build panel.
   A                Next slot / press the selected button
   Start, B or Z    Lock in and close
 
+SAVED BUILDS AND SHARE CODES
+----------------------------
+The last tab of the build panel, SAVED, has three save slots and your
+build's share code.
+
+  A on a slot      Load it (on an empty slot: save into it)
+  X on a slot      Save your build into it
+  Y on a slot      Delete it
+  A on the code    Type in a friend's code (Up/Down letter, Left/Right
+                   move, Start to load, B to cancel)
+
+Share your build by posting its code, for example QSNM-FHEJ9-G4NBK-C7S-36KFJ.
+
+Saved slots are kept on a memory card in Slot A. Slippi has no memory card
+by default, so without one the slots last until you close the game. To keep
+them: open Slippi Dolphin's settings (Slippi Launcher, Settings, Netplay,
+Configure Dolphin), then Config, GameCube, and set Slot A to Memory Card.
+
 Patched ISO MD5: {md5}
 xdelta3.exe is xdelta 3.1.0 (https://github.com/jmacd/xdelta-gpl).

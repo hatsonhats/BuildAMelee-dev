@@ -1,9 +1,12 @@
 # Status
 
-**v1.1** - all 21 move slots borrowable on every character; local and
+**v1.2** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.2: three saved builds (on the memory card in Slot A when there is one,
+  otherwise until the game is closed) and share codes, on the build panel's
+  Saved tab.
 - 1.1: version shown on the character select screen; after an online
   match that played without builds, the screen says why (different version,
   no answer, quick chat off). The online build id is now the version plus a

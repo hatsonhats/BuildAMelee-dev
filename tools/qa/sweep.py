@@ -196,6 +196,8 @@ class Worker:
         if VIDEO:
             extra = ['-C', 'Dolphin.Core.GFXBackend=Software Renderer', '-C', 'Dolphin.Movie.DumpFrames=True',
                      '-C', 'GFX.Settings.DumpFramesAsImages=True']
+        import shlex
+        extra += shlex.split(os.environ.get('QA_DOLPHIN_ARGS', ''))  # e.g. -C Dolphin.Core.SlotA=1
         self.proc = subprocess.Popen([str(DOLPHIN), '-u', str(self.user), '-p', 'headless'] + extra + ['-e', str(self.iso)],
                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0,
                                      start_new_session=True, env=env, stdin=subprocess.DEVNULL)
