@@ -1,0 +1,52 @@
+# Extra settings for `bam.py build --qa SCRIPT` (QA builds only).
+# QA builds carry the test driver (64 KB more overlay) and run in stock
+# Dolphin, whose apploader puts the arena top at 0x817F8AC0 (a console's).
+[overlay]
+base = "0x81788000"
+reserve = "0x00070000"
+
+[slippi]
+ignore = true
+
+[sources]
+dirs = ["src/qa"]
+
+[defines]
+BAM_QA = 1
+
+[[hook]]
+id = "qa-pad-bot"
+kind = "call"
+at = "lb_800198E0+0xC"
+target = "BAM_QaPadMaster"
+note = "per-frame HSD_PadRenewMasterStatus; QA input bot"
+
+[[hook]]
+id = "qa-exit-css"
+kind = "override"
+at = "onExitCss"
+target = "QA_OnExitCss"
+note = "QA sweep: CSS goes straight into the first match"
+
+[[hook]]
+id = "qa-exit-vs"
+kind = "override"
+at = "onExitVs"
+target = "QA_OnExitVs"
+note = "QA sweep: no results screen, next match"
+
+[[hook]]
+id = "qa-boot-leave"
+kind = "override"
+at = "bootOnLeave"
+target = "QA_BootOnLeave"
+note = "QA sweep: boot straight into VS mode (no movie, no memory card prompts)"
+
+[[hook]]
+id = "qa-gfx-log"
+kind = "inject"
+at = "efAsync_Spawn"
+target = "QA_GfxLog"
+args = ["r3", "r6", "r7", "r5"]
+note = "QA: log gfx spawned by port 1 while borrowing"
+

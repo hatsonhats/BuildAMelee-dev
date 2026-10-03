@@ -1,0 +1,114 @@
+diff --git a/Source/Core/Common/MsgHandler.cpp b/Source/Core/Common/MsgHandler.cpp
+index 660782a..ac97b24 100644
+--- a/Source/Core/Common/MsgHandler.cpp
++++ b/Source/Core/Common/MsgHandler.cpp
+@@ -121,6 +121,10 @@ static bool ShowMessageAlert(std::string_view text, bool yes_no, Common::Log::Lo
+     std::abort();
+   }
+ 
++  // Headless QA: never block or abort on an alert; it is in the log.
++  if (std::getenv("DOLPHIN_NO_ALERTS") != nullptr)
++    return true;
++
+   // Don't ignore questions, especially AskYesNo, PanicYesNo could be ignored
+   if (s_msg_handler != nullptr &&
+       (s_alert_enabled || style == MsgType::Question || style == MsgType::Critical))
+diff --git a/Source/Core/Core/LibusbUtils.cpp b/Source/Core/Core/LibusbUtils.cpp
+index 1b1852d..9811356 100644
+--- a/Source/Core/Core/LibusbUtils.cpp
++++ b/Source/Core/Core/LibusbUtils.cpp
+@@ -23,7 +23,7 @@ public:
+   Impl()
+   {
+     const int ret = libusb_init(&m_context);
+-    ASSERT_MSG(IOS_USB, ret == LIBUSB_SUCCESS, "Failed to init libusb: {}", ErrorWrap(ret));
++    if (ret != LIBUSB_SUCCESS) WARN_LOG_FMT(IOS_USB, "Failed to init libusb: {}", ErrorWrap(ret));
+     if (ret != LIBUSB_SUCCESS)
+       return;
+ 
+diff --git a/Source/Core/Core/PowerPC/PowerPC.cpp b/Source/Core/Core/PowerPC/PowerPC.cpp
+index 3cc1112..0cbe1c8 100644
+--- a/Source/Core/Core/PowerPC/PowerPC.cpp
++++ b/Source/Core/Core/PowerPC/PowerPC.cpp
+@@ -5,7 +5,9 @@
+ 
+ #include <algorithm>
+ #include <bit>
++#include <cstdlib>
+ #include <cstring>
++#include <string>
+ #include <type_traits>
+ #include <vector>
+ 
+@@ -21,6 +23,7 @@
+ #include "Core/Core.h"
+ #include "Core/CoreTiming.h"
+ #include "Core/HW/CPU.h"
++#include "Core/HW/Memmap.h"
+ #include "Core/HW/SystemTimers.h"
+ #include "Core/Host.h"
+ #include "Core/PowerPC/CPUCoreBase.h"
+@@ -464,6 +467,24 @@ void PowerPCManager::CheckExceptions()
+ {
+   u32 exceptions = m_ppc_state.Exceptions;
+ 
++  // Headless QA: say where a crash came from (PC, LR and the back chain).
++  if ((exceptions & (EXCEPTION_ISI | EXCEPTION_DSI | EXCEPTION_PROGRAM)) &&
++      std::getenv("DOLPHIN_NO_ALERTS") != nullptr)
++  {
++    auto& memory = m_system.GetMemory();
++    u32 sp = m_ppc_state.gpr[1];
++    std::string chain;
++    for (int i = 0; i < 16 && sp >= 0x80000000 && sp < 0x81800000; ++i)
++    {
++      const u32 lr = memory.Read_U32((sp + 4) & 0x01FFFFFF);
++      chain += fmt::format(" {:08x}", lr);
++      sp = memory.Read_U32(sp & 0x01FFFFFF);
++    }
++    NOTICE_LOG_FMT(POWERPC, "QA-CRASH exc={:x} pc={:08x} npc={:08x} lr={:08x} dar={:08x} r3={:08x} r4={:08x} r31={:08x} chain:{}",
++                   exceptions, m_ppc_state.pc, m_ppc_state.npc, LR(m_ppc_state), m_ppc_state.spr[SPR_DAR],
++                   m_ppc_state.gpr[3], m_ppc_state.gpr[4], m_ppc_state.gpr[31], chain);
++  }
++
+   // Example procedure:
+   // Set SRR0 to either PC or NPC
+   // SRR0 = NPC;
+diff --git a/Source/Core/VideoBackends/Software/SWOGLWindow.cpp b/Source/Core/VideoBackends/Software/SWOGLWindow.cpp
+index a002e3e..cceb1bd 100644
+--- a/Source/Core/VideoBackends/Software/SWOGLWindow.cpp
++++ b/Source/Core/VideoBackends/Software/SWOGLWindow.cpp
+@@ -6,6 +6,8 @@
+ #include <memory>
+ 
+ #include "Common/GL/GLContext.h"
++
++#include <cstdlib>
+ #include "Common/GL/GLUtil.h"
+ #include "Common/Logging/Log.h"
+ #include "Common/MsgHandler.h"
+@@ -29,14 +31,14 @@ std::unique_ptr<SWOGLWindow> SWOGLWindow::Create(const WindowSystemInfo& wsi)
+ 
+ bool SWOGLWindow::IsHeadless() const
+ {
+-  return m_gl_context->IsHeadless();
++  return !m_gl_context || m_gl_context->IsHeadless();
+ }
+ 
+ bool SWOGLWindow::Initialize(const WindowSystemInfo& wsi)
+ {
+   m_gl_context = GLContext::Create(wsi);
+   if (!m_gl_context)
+-    return false;
++    return std::getenv("DOLPHIN_NO_ALERTS") != nullptr;  // headless QA: render, never present
+ 
+   // Init extension support.
+   if (!GLExtensions::Init(m_gl_context.get()))
+@@ -88,6 +90,8 @@ void SWOGLWindow::ShowImage(const AbstractTexture* image,
+                             const MathUtil::Rectangle<int>& xfb_region)
+ {
+   const SW::SWTexture* sw_image = static_cast<const SW::SWTexture*>(image);
++  if (!m_gl_context)
++    return;
+   m_gl_context->Update();  // just updates the render window position and the backbuffer size
+ 
+   GLsizei glWidth = (GLsizei)m_gl_context->GetBackBufferWidth();

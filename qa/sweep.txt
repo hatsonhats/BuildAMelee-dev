@@ -1,0 +1,2 @@
+# move sweep: inputs come from src/qa/qa_moves.c
+at 1 press B hold 1

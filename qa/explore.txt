@@ -1,0 +1,7 @@
+at 600 press B
+at 700 press B
+at 800 press DOWN            # Main Menu: down to VS. Mode
+at 880 press A                # VS. Mode
+at 960 press A                # Melee -> CSS
+at 1150 stick 0 80 hold 25    # CSS: cursor up into the roster
+at 1260 press A               # pick

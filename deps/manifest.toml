@@ -1,0 +1,18 @@
+# Pinned upstream revisions. `bam.py fetch` checks these out into .cache/melee.
+
+[[dependency]]
+name = "melee"
+url = "https://github.com/doldecomp/melee.git"
+rev = "11749c9ccbaf73bfc28a569650dfec5e18665a74"   # 2026-09-16, fully matching: reproduces retail main.dol
+role = "headers, retail symbol map, compiler flags, toolchain downloads"
+license = "No repository license; local build/reference only"
+redistribute = false
+
+[tools]
+# Versions the pinned decomp's configure.py expects (tools/download_tool.py).
+binutils = "2.42-2"
+compilers = "20251118"
+dtk = "v1.8.3"
+objdiff-cli = "v3.6.1"
+sjiswrap = "v1.2.2"
+wibo = "0.7.0"

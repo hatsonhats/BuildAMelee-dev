@@ -1,0 +1,13 @@
+build/
+.cache/
+.iso/
+*.iso
+*.gcm
+*.o
+*.elf
+__pycache__/
+config/local.toml
+src/qa/qa_script.inc
+build-qa/
+release/
+dist/

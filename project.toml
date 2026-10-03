@@ -1,0 +1,276 @@
+# BuildAMelee build manifest. See docs/ARCHITECTURE.md.
+
+[project]
+name = "BuildAMelee"
+# The release version. Players see it on the character select screen, and
+# online play only exchanges builds between identical builds of the same
+# version (tools/bam.py release bumps it).
+version = "0.1.1"
+
+[overlay]
+# The overlay sits at the very top of the arena, which the apploader sets to
+# the FST address: 0x81829800 in Slippi Dolphin for this disc. Every byte
+# between base and the arena top comes out of Melee's character preload
+# cache, and a smaller cache makes the Slippi Online CSS run out of memory,
+# so end the overlay exactly at the top (base + reserve = 0x81829800).
+# BAM_ReserveOverlay panics with a clear message if the top is lower (a real
+# console puts it at 0x817F8AC0; this build targets Slippi Dolphin).
+base = "0x817C9800"
+reserve = "0x00060000"
+# The apploader refuses DOL sections above 0x81200000 (0x80700000 on retail
+# consoles). The image ships at __ArenaLo (untouched until OSInit's
+# ClearArena) and a stub run from the ClearArena hook copies it to `base`.
+stage = "0x804F0C00"
+stage_hook = "boot-clear-arena"
+link_compiler = "GC/1.3.2"
+
+[sources]
+dirs = ["src/boot", "src/platform", "src/engine"]   # src/qa only via --qa
+compiler = "Wii/1.7"
+cflags = []
+
+[defines]
+BAM_DEBUG = 1
+BAM_TEST_LOADOUT = 0
+BAM_ENABLE_AERIALS = 1
+
+[slippi]
+# Slippi Dolphin's default code list; the build refuses patches that land on
+# the same instructions Slippi's codes inject into.
+ini = "slippi/GALE01r2.ini"
+# Slippi Dolphin's boot-time loader (Sys/bootloader.gct) injects too.
+gct = "slippi/bootloader.gct"
+
+# ---- boot: keep the overlay alive and move the heap above it ----------------
+
+[[hook]]
+id = "boot-clear-arena"
+kind = "override"
+at = "ClearArena"
+target = "BAM_ClearArena"
+note = "OSInit zeroes the arena; skip the overlay range"
+
+[[hook]]
+id = "boot-reserve-overlay"
+kind = "inject"
+at = "HSD_OSInit"
+target = "BAM_ReserveOverlay"
+note = "entry instruction; Slippi's bootloader.gct hooks HSD_OSInit+0x7C"
+
+# ---- fighters ----------------------------------------------------------------
+
+[[hook]]
+id = "fighter-alloc-size"
+kind = "inject"
+at = "Fighter_800679B0+0x10"
+target = "BAM_FighterAllocSize"
+args = ["r4"]
+ret = "r4"
+note = "after the size is chosen; Slippi's ExtendPlayerBlock writes +0xC"
+
+[[hook]]
+id = "fighter-created"
+kind = "inject"
+at = "Fighter_Create+0x4F0"
+target = "BAM_OnFighterCreated"
+args = ["r31"]
+note = "after ftLib_800867E8(gobj); Slippi Recording hooks +0x54, not here"
+
+[[hook]]
+id = "scene-enter"
+kind = "inject"
+at = "gm_801A4014+0xBC"
+target = "BAM_OnSceneEnter"
+note = "after gm_801A4B88(info); Slippi Online hooks +0xB4"
+
+[[hook]]
+id = "scene-ready"
+kind = "inject"
+at = "gm_801A4014+0xD4"
+target = "BAM_OnSceneReady"
+note = "after scene->on_enter() (stage and fighters exist), before the frame loop"
+
+[[hook]]
+id = "scene-exit"
+kind = "inject"
+at = "gm_801A4014+0x110"
+target = "BAM_OnSceneExit"
+note = "before state->on_exit"
+
+[[hook]]
+id = "frame"
+kind = "inject"
+at = "gm_801A4D34+0x154"
+target = "BAM_OnFrame"
+note = "after on_frame(); Slippi hooks +0x80/+0xB0/+0x2E0/+0x2E4"
+
+[[hook]]
+id = "aerial-landing-lag"
+kind = "inject"
+at = "ftCo_LandingAir_EnterWithLag+0x88"
+target = "BAM_OnLandingAirLag"
+args = ["regs"]
+note = "donor landing lag before L-cancel; Slippi Recording hooks +0x9C, flash code +0x94"
+
+[[hook]]
+id = "native-jump-0"
+kind = "inject"
+at = "ftCo_800D74A4"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before the native aerial jump: multi-jump (Jigglypuff, Kirby)"
+
+[[hook]]
+id = "native-jump-1"
+kind = "inject"
+at = "ftNs_JumpAerial_Enter"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before the native aerial jump: Ness"
+
+[[hook]]
+id = "native-jump-2"
+kind = "inject"
+at = "ftYs_JumpAerial_Enter"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before the native aerial jump: Yoshi (reads dat_attrs)"
+
+[[hook]]
+id = "native-jump-3"
+kind = "inject"
+at = "ftPe_JumpAerial_Enter"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before the native aerial jump: Peach"
+
+[[hook]]
+id = "native-jump-4"
+kind = "inject"
+at = "ftMt_JumpAerial_Enter"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before the native aerial jump: Mewtwo"
+
+[[hook]]
+id = "native-enter-guard"
+kind = "inject"
+at = "ftCo_800923B4"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before shielding out of it: Yoshi's shield is his own motion 341, a number donors' moves use too"
+
+[[hook]]
+id = "native-enter-powershield"
+kind = "inject"
+at = "ftCo_800939B4"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "same, for the powershield"
+
+[[hook]]
+id = "native-enter-escape"
+kind = "inject"
+at = "ftCo_80099894"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before rolling out of it (Yoshi's roll reads his own state)"
+
+[[hook]]
+id = "native-enter-appeal"
+kind = "inject"
+at = "ftCo_800DEA28"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before a side taunt out of it (Kirby's reads his copy ability)"
+
+[[hook]]
+id = "native-enter-fox-appeal"
+kind = "inject"
+at = "ftFx_AppealS_Enter"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "same, Fox's and Falco's Corneria taunt"
+
+[[hook]]
+id = "native-enter-catch"
+kind = "inject"
+at = "ftCo_800D8C54"
+target = "BAM_BeforeNativeJump"
+args = ["r3"]
+note = "end a borrowed move before a grab out of it"
+
+# ---- character select: move-select panel -------------------------------------
+
+[[hook]]
+id = "css-frame"
+kind = "inject"
+at = "mnCharSel_Scene_OnFrame"
+target = "BAM_CssFrame"
+note = "after pads are read, before the CSS and its procs"
+
+[[hook]]
+id = "css-exit"
+kind = "inject"
+at = "mnCharSel_Scene_OnExit"
+target = "BAM_CssExit"
+
+[[hook]]
+id = "part-anim-guard"
+kind = "override"
+at = "ftAnim_ApplyPartAnim"
+target = "BAM_ApplyPartAnim"
+note = "skip the donor's part animations during borrowed moves (Yoshi dair crash)"
+
+[[hook]]
+id = "vs-quit-combo"
+kind = "inject"
+at = "fn_8016CFE0"
+target = "BAM_VsFrame"
+note = "Z+A while paused = L+R+A+Start (controllers that reserve LRAS)"
+
+[[hook]]
+id = "joint-pos-guard"
+kind = "inject"
+at = "lb_8000B1CC"
+target = "BAM_CheckJointPos"
+args = ["r3", "regs"]
+ret = "r3"
+note = "garbage joint pointers from borrowed moves: log caller, treat as none"
+
+# ---- borrowed-move engine: rogueMelee's pinned edits to retail units ---------
+
+[[override_set]]
+line_edits = "overrides/special_adapters.json"
+anchor_edits = "overrides/platform_fixes.toml"
+owners = ["platform/specials", "platform/aerials"]
+strip_unchanged = true
+compiler = "Wii/1.7"
+extra_cflags = ["-lang", "c99"]
+prepend = "#include <melee/rogue/platform/melee/specials/special_engine.h>"
+# Slippi Recording injects at Fighter_Create+0x54: never replace it; the
+# engine's creation hook runs from the fighter-created inject instead.
+# Slippi also injects into these bodies; their edits move to hooks or drop:
+#   ftCo_LandingAir_EnterWithLag -> aerial-landing-lag inject
+#   ftPr_Init_8013C360           -> native Purin init keeps fp->u.pr (minor)
+skip_functions = ["Fighter_Create", "ftCo_LandingAir_EnterWithLag", "ftPr_Init_8013C360"]
+
+# ---- effects that name a donor joint by number ------------------------------
+
+[[hook]]
+id = "effect-joint-501"
+kind = "inject"
+at = "0x800616A0"
+target = "Rogue_EfJoint85"
+args = ["r24", "r4"]
+ret = "r4"
+note = "efSync_Spawn 0x501 (Zelda's up smash) attaches to joint 85: the borrower's equivalent"
+
+[[hook]]
+id = "effect-joint-494"
+kind = "inject"
+at = "0x800626A0"
+target = "Rogue_EfJoint44"
+args = ["r30", "r26"]
+ret = "r26"
+note = "efAlt 0x494 attaches to joint 44: the borrower's equivalent"
