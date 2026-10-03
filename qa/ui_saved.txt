@@ -6,15 +6,7 @@ at 380 press L               # previous tab: Saved
 at 420 press A               # slot 1 is empty: save
 at 470 press DOWN            # slot 2
 at 500 press DOWN            # slot 3
-at 530 press DOWN            # share code
-at 570 press A               # enter a code (starts from the current one)
-at 610 press UP              # first letter + 1: the code is now wrong
-at 650 press START           # refused
-at 700 press DOWN            # first letter back
-at 740 press START           # accepted
-at 790 press Y               # (code row: no-op)
-at 820 press UP              # slot 3
-at 850 press UP              # slot 2
+at 820 press UP              # slot 2
 at 880 press UP              # slot 1
 at 910 press Y               # delete slot 1
 at 960 press A               # empty: save again

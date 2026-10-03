@@ -56,6 +56,7 @@ void BamText_Line(BamText* text, float x, float y, const char* fmt, ...)
         case ':': code = 0x46; break;
         case '-': code = 0x7c; break;
         case '.': code = 0x44; break;
+        case '_': code = 0x51; break;
         case ',': code = 0x43; break;
         case '\'': code = 0x66; break;
         }

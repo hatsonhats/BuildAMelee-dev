@@ -210,6 +210,14 @@ target = "BAM_CssFrame"
 note = "after pads are read, before the CSS and its procs"
 
 [[hook]]
+id = "name-entry-proc"
+kind = "inject"
+at = "mnNameNew_EnterFromMnCharSel+0x2E4"
+target = "BAM_NameEntryProc"
+args = ["r3"]
+note = "after the keyboard's input proc is set up (r3 = proc): share-code entry swaps it (css_menu.c)"
+
+[[hook]]
 id = "css-exit"
 kind = "inject"
 at = "mnCharSel_Scene_OnExit"

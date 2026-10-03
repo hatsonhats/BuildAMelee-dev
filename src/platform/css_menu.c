@@ -32,10 +32,16 @@
 #include "ui_text.h"
 #include "build_store.h"
 #include <melee/mn/types.h>
+#include <melee/mn/mnmain.h>
+#include <melee/mn/mnnamenew.h>
+#include <melee/mn/inlines.h>
+#include <melee/lb/lb_00B0.h>
+#include <sysdolphin/baselib/jobj.h>
 #include <melee/lb/lbdvd.h>
 #include <melee/lb/types.h>
 #include <sysdolphin/baselib/controller.h>
 #include <sysdolphin/baselib/sislib.h>
+#include <sysdolphin/baselib/gobjproc.h>
 #include <dolphin/os.h>
 #include <dolphin/gx.h>
 #include <sysdolphin/baselib/memory.h>
@@ -123,9 +129,15 @@ static const char* const row_labels[MOVE_ROWS] = {
 
 static int ui_ready, ui_tried, canvas, first_frame;
 static int open_port = -1, row, page, ckind, just_opened;
-/* Share-code entry (on the Saved tab): the symbols being typed, the cursor. */
-static int entry_on, entry_at;
-static unsigned char entry_code[BAM_CODE_LEN];
+/* Share-code entry on Melee's own keyboard (the name entry screen the CSS
+ * opens for new name tags): the port typing, the symbols typed so far, and
+ * the outcome shown when the panel comes back. */
+static int kb_state, kb_port, kb_len, kb_frames, kb_loaded;
+enum { KB_OFF, KB_OPENING, KB_OPEN, KB_BACK };
+static unsigned char kb_code[BAM_CODE_LEN];
+static const char* kb_msg;
+static unsigned kb_msg_rgb;
+static BamText kb_text, kb_name;
 /* A short message in the panel's title line ("Saved to slot 2"). */
 static const char* toast;
 static unsigned toast_rgb, toast_frames;
@@ -255,7 +267,7 @@ static void ui_create(void)
      * freed) froze the game there. */
     FONT = 0;
     if (!HSD_SisLib_804D1124[FONT]) { BAM_LOG("css: CSS font not loaded\n"); return; }
-    mem = HSD_MemAlloc(sizeof(MenuMem));
+    if (!mem) mem = HSD_MemAlloc(sizeof(MenuMem)); /* kept across the keyboard */
     if (!mem) { BAM_LOG("css: no memory for the panel\n"); return; }
     canvas = HSD_SisLib_803A611C(FONT, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
     BamText_Create(&hint, FONT, canvas, hint_buf, sizeof(hint_buf));
@@ -642,32 +654,6 @@ static void draw_saved_row(unsigned i, float y)
     }
 }
 
-/* Share-code entry: one box per symbol, in the code's groups. */
-static void draw_entry(void)
-{
-    static const unsigned char groups[] = { 4, 5, 5, 3, 5 };
-    float x = CONT_X + 4, y = ROW_Y + 40, w = 13, h = 24;
-    unsigned g, k = 0, i;
-    put(CONT_X + 2, ROW_Y + 8, 0.6f, SOFT, "Up/Down picks a letter. A goes to the next one.");
-    for (g = 0; g < sizeof(groups); ++g) {
-        for (i = 0; i < groups[g]; ++i, ++k) {
-            char c[2];
-            int on = (int) k == entry_at;
-            c[0] = bam_code_alphabet[entry_code[k] & 31]; c[1] = 0;
-            rframe(x, y, w, h, on ? CARD_ON : CARD, on ? GOLD : 0x3A4258, on ? 2 : 1);
-            put_center(x, w, y + h * 0.5f, 0.62f, on ? GOLD : WHITE, c);
-            if (on) {
-                shape(x + 3, y - 9, 7, 6, GOLD, 255, 0);
-                shape(x + 3, y + h + 3, 7, 6, GOLD, 255, 0);
-            }
-            x += w + 2;
-        }
-        x += 6;
-    }
-    put(CONT_X + 2, ROW_Y + 96, 0.6f, SOFT, "Start loads the code.  B cancels.");
-    if (toast_frames) put(CONT_X + 2, ROW_Y + 128, 0.6f, toast_rgb, toast);
-}
-
 static void draw_tab(int t, float y)
 {
     const PanelTab* tb = &tabs[t];
@@ -705,9 +691,7 @@ static void draw_keys(void)
                                              "Start", "Done" };
     static const char* const saved_keys[] = { "L/R", "Tab", "A", "Load", "X", "Save", "Y", "Delete",
                                               "Start", "Done" };
-    static const char* const entry_keys[] = { "Up/Down", "Letter", "Left/Right", "Move", "A", "Next", "B", "Cancel",
-                                              "Start", "Load" };
-    const char* const* keys = entry_on ? entry_keys : page == PAGE_SAVED ? saved_keys : move_keys;
+    const char* const* keys = page == PAGE_SAVED ? saved_keys : move_keys;
     const float s = 0.54f, gap = 6, spread = 18;
     float total = 0, x, cy = FOOT_Y + 22;
     unsigned i;
@@ -750,11 +734,10 @@ static void draw_panel(void)
     quad(CONT_X - 8, TITLE_Y, 1, BTN_Y + BTN_H - TITLE_Y, LINE, 255);
 
     /* The tab's moves (or slots, or the code being typed). */
-    put(CONT_X + 2, TITLE_Y + 12, 0.76f, WHITE, entry_on ? "Enter a Share Code" : tb->title);
+    put(CONT_X + 2, TITLE_Y + 12, 0.76f, WHITE, tb->title);
     if (toast_frames) --toast_frames;
-    if (toast_frames && !entry_on) {
+    if (toast_frames) {
         put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, toast_rgb, toast);
-    } else if (entry_on) {
     } else if (page == PAGE_SAVED) {
         put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, DIM,
                   bam_store_on_card ? "On memory card" : "Kept until you quit");
@@ -763,16 +746,12 @@ static void draw_panel(void)
         buf[0] = (char) ('0' + n); buf[5] = (char) ('0' + tb->count);
         put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, n ? GOLD : DIM, buf);
     }
-    if (entry_on) {
-        draw_entry();
-    } else {
-        for (i = 0; i < tb->count; ++i) {
-            if (page == PAGE_SAVED) draw_saved_row(tb->first + i, ROW_Y + ROW_STEP * i);
-            else draw_row(tb->first + i, ROW_Y + ROW_STEP * i);
-        }
-        draw_button(CONT_X, (CONT_W - 10) * 0.5f, "RANDOMIZE", row == ROW_RANDOM, 0);
-        draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, "LOCK IN", row == ROW_LOCK, 1);
+    for (i = 0; i < tb->count; ++i) {
+        if (page == PAGE_SAVED) draw_saved_row(tb->first + i, ROW_Y + ROW_STEP * i);
+        else draw_row(tb->first + i, ROW_Y + ROW_STEP * i);
     }
+    draw_button(CONT_X, (CONT_W - 10) * 0.5f, "RANDOMIZE", row == ROW_RANDOM, 0);
+    draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, "LOCK IN", row == ROW_LOCK, 1);
 
     quad(PANEL_X + 12, FOOT_Y, PANEL_W - 24, 1, LINE, 255);
     draw_keys();
@@ -841,7 +820,6 @@ static void open_panel(int port, int kind)
     ckind = kind;
     row = 0;
     page = 0;
-    entry_on = 0;
     toast_frames = 0;
     loadout_fix(&bam_loadouts[port]);
     if (!panel_create()) { open_port = -1; return; }
@@ -861,7 +839,6 @@ static void close_panel(void)
             l->normals[6], l->normals[7], l->normals[8], l->normals[9], l->normals[10], l->normals[11]);
     bam_css_port = open_port;
     open_port = -1;
-    entry_on = 0;
     panel_destroy();
 }
 
@@ -936,6 +913,215 @@ static void store(const char* done)
     }
 }
 
+/* ---- share codes on Melee's keyboard --------------------------------------
+ * A on the Code row asks the CSS to open its name-entry keyboard, as it does
+ * for a new name tag (mnCharSel_804D6CF6 = 4, the port in 804D6CF9). The
+ * keyboard runs as usual (its keys, cursor and sounds); only its input
+ * routine is swapped for kb_input (BAM_NameEntryProc), which collects the 22
+ * letters of a code instead of a 4-letter name and leaves without creating a
+ * name tag. Slippi's keyboard codes only act in its connect-code mode, which
+ * stays off here. */
+#define CSS_SUBSCREEN (*(volatile u8*) 0x804D6CF6)
+#define CSS_SUBSCREEN_PORT (*(volatile s8*) 0x804D6CF9)
+extern HSD_GObj* mnNameNew_804D6C08;
+extern void lbAudioAx_80024030(int);
+#define SFX_BACK 0
+#define SFX_OK 1
+#define SFX_MOVE 2
+#define SFX_ERROR 3
+
+static void kb_open(void)
+{
+    kb_port = open_port;
+    close_panel();
+    kb_len = 0;
+    kb_loaded = 0;
+    kb_msg = NULL;
+    kb_frames = 0;
+    kb_text.native = kb_name.native = NULL;
+    kb_state = KB_OPENING;
+    CSS_SUBSCREEN_PORT = (s8) kb_port;
+    CSS_SUBSCREEN = 4;
+    BAM_LOG("css: code keyboard for port %d\n", kb_port);
+}
+
+/* inject: mnNameNew_EnterFromMnCharSel, after the keyboard's input proc is
+ * set up (r3 = the proc). */
+static void kb_input(HSD_GObj* gobj);
+void BAM_NameEntryProc(HSD_GObjProc* proc)
+{
+    if (kb_state != KB_OPENING || !proc) return;
+    proc->on_invoke = kb_input;
+    kb_state = KB_OPEN;
+}
+
+/* A key's letter as a code symbol, or -1. Melee's keyboard types full-width
+ * Shift-JIS letters and digits; I and L read as 1, O as 0. */
+static int kb_symbol(unsigned sel, unsigned mode)
+{
+    char buf[8];
+    const u8* b = (const u8*) buf;
+    unsigned c, i;
+    memset(buf, 0, sizeof(buf));
+    AddCharacterToName(buf, (u8) sel, 0, (u8) mode);
+    if (b[0] == 0x82 && b[1] >= 0x60 && b[1] <= 0x79) c = 'A' + b[1] - 0x60;
+    else if (b[0] == 0x82 && b[1] >= 0x81 && b[1] <= 0x9A) c = 'A' + b[1] - 0x81;
+    else if (b[0] == 0x82 && b[1] >= 0x4F && b[1] <= 0x58) c = '0' + b[1] - 0x4F;
+    else if (b[0] >= 'a' && b[0] <= 'z') c = b[0] - 32;
+    else if ((b[0] >= 'A' && b[0] <= 'Z') || (b[0] >= '0' && b[0] <= '9')) c = b[0];
+    else return -1;
+    if (c == 'O') c = '0';
+    if (c == 'I' || c == 'L') c = '1';
+    for (i = 0; i < 32; ++i)
+        if (bam_code_alphabet[i] == (char) c) return (int) i;
+    return -1;
+}
+
+/* The code is drawn like Melee draws a name: a text on the keyboard's 3D
+ * layer, placed from the name field's model (first letter: jobjs[14], next:
+ * jobjs[15]), smaller so 22 letters fit; the field itself (jobjs[12], 13 its
+ * cursor) is hidden, the code runs across where it was. Help or an error
+ * goes under the keyboard's description bar. */
+#define KB_HELP_CY 454.0f
+extern Vec3 mnNameNew_803EE330;
+
+/* The code so far over Melee's keyboard. */
+static void kb_draw(void)
+{
+    static const unsigned char dash_after[] = { 4, 9, 14, 17 };
+    char text[BAM_CODE_TEXT + 2], *o = text;
+    unsigned k, d = 0;
+    if (!kb_text.native) {
+        int cv;
+        if (!mem || !HSD_SisLib_804D1124[0]) return;
+        cv = HSD_SisLib_803A611C(0, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
+        BamText_Create(&kb_text, 0, cv, hint_buf, sizeof(hint_buf));
+        BamText_Create(&kb_name, 0, mn_804D6BB5, body_buf, 1024);
+    }
+    for (k = 0; k < BAM_CODE_LEN; ++k) {
+        if (d < sizeof(dash_after) && k == dash_after[d]) { *o++ = '-'; ++d; }
+        *o++ = (int) k < kb_len ? bam_code_alphabet[kb_code[k] & 31] : '_';
+    }
+    *o = 0;
+    {
+        NameNewEntry* data = mnNameNew_804D6C08->user_data;
+        HSD_JObj* first = data->jobjs[14];
+        float sp = HSD_JObjGetTranslationX(data->jobjs[15]) - HSD_JObjGetTranslationX(first);
+        float units = text_w(text, 1.0f) / 0.6f, fs;
+        Vec3 pos;
+        lb_8000B1CC(first, &mnNameNew_803EE330, &pos);
+        /* Melee's name field and its cursor (4 letters wide) would cover
+         * the code: hide them while it is typed. */
+        HSD_JObjSetFlagsAll(data->jobjs[12], JOBJ_HIDDEN);
+        HSD_JObjSetFlagsAll(data->jobjs[13], JOBJ_HIDDEN);
+        if (sp < 0) sp = -sp;
+        fs = 9.5f * sp / units;
+        if (fs > 0.035f) fs = 0.035f;
+        kb_name.native->font_size.x = fs;
+        kb_name.native->font_size.y = fs * 1.25f;
+        kb_name.native->pos_x = pos.x + 1.5f * sp - units * fs * 0.5f;
+        kb_name.native->pos_y = -pos.y;
+        kb_name.native->pos_z = pos.z;
+        BamText_Begin(&kb_name);
+        BamText_Line(&kb_name, 0, 0, "%s", text);
+        BamText_Style(&kb_name, 1.0f, kb_len ? WHITE : DIM);
+        BamText_End(&kb_name);
+    }
+    {
+        const char* help = kb_msg ? kb_msg : "Start loads it.  B erases.  X clears.";
+        float s2 = 0.6f, w2 = text_w(help, s2);
+        BamText_Begin(&kb_text);
+        BamText_Line(&kb_text, (640.0f - w2) * 0.5f, KB_HELP_CY - 19.2f + 9.6f * s2, "%s", help);
+        BamText_Style(&kb_text, s2, kb_msg ? kb_msg_rgb : WHITE);
+        BamText_End(&kb_text);
+    }
+}
+
+static void kb_close(int loaded)
+{
+    kb_loaded = loaded;
+    kb_state = KB_BACK;
+    BamText_Destroy(&kb_text);
+    BamText_Destroy(&kb_name);
+    mnNameNew_8023B224(0); /* back to the CSS; no name tag is made */
+}
+
+static void kb_confirm(void)
+{
+    BamLoadout got;
+    if (kb_len < BAM_CODE_LEN) {
+        lbAudioAx_80024030(SFX_ERROR);
+        kb_msg = "A code has 22 letters.";
+        kb_msg_rgb = WARN;
+        return;
+    }
+    if (!Bam_LoadoutFromCode(kb_code, &got)) {
+        lbAudioAx_80024030(SFX_ERROR);
+        kb_msg = "Not a valid code: check each letter.";
+        kb_msg_rgb = WARN;
+        return;
+    }
+    bam_loadouts[kb_port] = got;
+    lbAudioAx_80024030(SFX_OK);
+    BAM_LOG("css: code typed for port %d\n", kb_port);
+    kb_close(1);
+}
+
+static void kb_input(HSD_GObj* gobj)
+{
+    NameNewEntry* data = mnNameNew_804D6C08->user_data;
+    u16* hov = &mn_804A04F0.hovered_selection;
+    u32 b;
+    (void) gobj;
+    b = mn_804A04F0.buttons = mn_80229624((u32) kb_port);
+    if (b & MenuInput_AButton) {
+        u16 sel = *hov;
+        if (sel < 0x32) {
+            int sym = kb_symbol(sel, data->mode);
+            if (sym < 0 || kb_len >= BAM_CODE_LEN) {
+                lbAudioAx_80024030(SFX_ERROR);
+            } else {
+                kb_code[kb_len++] = (unsigned char) sym;
+                kb_msg = NULL;
+                lbAudioAx_80024030(SFX_OK);
+                if (kb_len == BAM_CODE_LEN) *hov = 0x39; /* to OK */
+            }
+        } else if (sel == 0x36) {
+            if (kb_len) { --kb_len; kb_msg = NULL; lbAudioAx_80024030(SFX_BACK); }
+            else lbAudioAx_80024030(SFX_ERROR);
+        } else if (sel == 0x38 || sel == 0x39) {
+            kb_confirm();
+            if (kb_state != KB_OPEN) return;
+        } else if (sel == 0x32) {
+            lbAudioAx_80024030(SFX_BACK);
+            kb_close(0);
+            return;
+        } else {
+            lbAudioAx_80024030(SFX_ERROR);
+        }
+    } else if (b & MenuInput_StartButton) {
+        kb_confirm();
+        if (kb_state != KB_OPEN) return;
+    } else if (b & MenuInput_Back) {
+        lbAudioAx_80024030(SFX_BACK);
+        if (!kb_len) { kb_close(0); return; }
+        --kb_len;
+        kb_msg = NULL;
+    } else if (b & MenuInput_XButton) {
+        kb_len = 0;
+        kb_msg = NULL;
+        lbAudioAx_80024030(SFX_BACK);
+    } else if (b & (MenuInput_Up | MenuInput_Down | MenuInput_Left | MenuInput_Right)) {
+        u8 next = (u8) mnNameNew_8023BAA8(data, (s32) b, (u8) *hov);
+        if (next != *hov) {
+            lbAudioAx_80024030(SFX_MOVE);
+            *hov = next;
+            if (next < 0x32) data->last_key_sel = next;
+        }
+    }
+    kb_draw();
+}
+
 /* A / X / Y on a slot row. */
 static void slot_input(BamLoadout* l, unsigned slot, u32 t)
 {
@@ -959,31 +1145,11 @@ static void slot_input(BamLoadout* l, unsigned slot, u32 t)
     }
 }
 
-static void entry_input(BamLoadout* l, int dir, u32 t)
-{
-    if (t & HSD_PAD_B) { entry_on = 0; return; }
-    if (dir == DIR_UP) entry_code[entry_at] = (unsigned char) ((entry_code[entry_at] + 1) & 31);
-    if (dir == DIR_DOWN) entry_code[entry_at] = (unsigned char) ((entry_code[entry_at] + 31) & 31);
-    if (dir == DIR_LEFT && entry_at > 0) --entry_at;
-    if (dir == DIR_RIGHT && entry_at < BAM_CODE_LEN - 1) ++entry_at;
-    if (t & HSD_PAD_Y) entry_code[entry_at] = 0;
-    if ((t & HSD_PAD_A) && entry_at < BAM_CODE_LEN - 1) { ++entry_at; return; }
-    if (t & (HSD_PAD_START | HSD_PAD_A)) {
-        BamLoadout got;
-        if (!Bam_LoadoutFromCode(entry_code, &got)) { say("Not a valid code: check each letter", WARN); return; }
-        *l = got;
-        loadout_fix(l);
-        entry_on = 0;
-        say("Code loaded", GOLD);
-    }
-}
-
 static void panel_input(HSD_PadStatus* pad)
 {
     BamLoadout* l = &bam_loadouts[open_port];
     int dir = read_dir(open_port, pad);
     u32 t = pad->trigger;
-    if (entry_on) { entry_input(l, dir, t); return; }
     /* L/R: turn the page. */
     if (t & (HSD_PAD_L | HSD_PAD_R)) {
         page = (page + ((t & HSD_PAD_R) ? 1 : PAGES - 1)) % PAGES;
@@ -1011,9 +1177,7 @@ static void panel_input(HSD_PadStatus* pad)
         t &= ~(HSD_PAD_A | HSD_PAD_X | HSD_PAD_Y);
     } else if (row == ROW_CODE) {
         if (t & HSD_PAD_A) {
-            Bam_CodeFromLoadout(l, entry_code); /* start from the current build's code */
-            entry_at = 0;
-            entry_on = 1;
+            kb_open();
             return;
         }
         t &= ~(HSD_PAD_X | HSD_PAD_Y);
@@ -1113,7 +1277,36 @@ void BAM_CssFrame(void)
     { extern int QA_CssAuto(void); if (QA_CssAuto()) return; }
 #endif
     if (!mnCharSel_804D6CB0) return;
+    /* Melee's keyboard is up for a share code: leave the CSS alone. */
+    if (kb_state == KB_OPENING || kb_state == KB_OPEN) {
+        if (kb_state == KB_OPENING && ++kb_frames > 60) {
+            BAM_LOG("css: the keyboard did not take the code entry\n");
+            kb_state = KB_OFF;
+        }
+        return;
+    }
+    /* Back from the keyboard: the CSS rebuilt itself and our texts went with
+     * it. Make them again and reopen the panel on the code. */
+    if (kb_state == KB_BACK) {
+        hint.native = shapes.native = body.native = NULL;
+        nquads = 0;
+        open_port = -1;
+        ui_ready = 0;
+        ui_tried = 0;
+    }
     if (!ui_tried) { ui_create(); first_frame = 1; }
+    if (kb_state == KB_BACK && ui_ready) {
+        PlayerInitData* pl = &mnCharSel_804D6CB0->vs.start.players[kb_port];
+        kb_state = KB_OFF;
+        if (pl->slot_type != 1 && (u8) pl->ckind < 26) {
+            open_panel(kb_port, pl->ckind);
+            if (open_port >= 0) {
+                page = PAGE_SAVED;
+                row = ROW_CODE;
+                if (kb_loaded) say("Code loaded", GOLD);
+            }
+        }
+    }
     /* Slippi's direct-code entry resets all SIS texts while the CSS is still
      * running. Ours are gone then: forget them (never touch freed texts) and
      * stay hidden until the CSS is entered again. */

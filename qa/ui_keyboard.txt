@@ -1,0 +1,22 @@
+# Share code on Melee's keyboard (bam.py build --qa ui_keyboard).
+mode ui
+at 300 press Z               # open the panel (port 1, Marth)
+at 340 press L               # Saved tab
+at 370 press DOWN
+at 400 press DOWN
+at 430 press DOWN            # Code row
+at 470 press A               # Melee's keyboard
+at 560 press A               # type the key under the cursor
+at 600 press RIGHT
+at 630 press A
+at 670 press DOWN
+at 700 press A
+at 740 press LEFT
+at 770 press A
+at 810 press UP
+at 840 press A
+at 880 press START           # too short: refused
+at 930 press B               # erase one
+at 970 press X               # clear
+at 1010 press B              # empty: leave the keyboard
+at 1100 press START          # close the panel

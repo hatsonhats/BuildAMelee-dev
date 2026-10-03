@@ -1,0 +1,125 @@
+# Type a whole share code on Melee's keyboard (bam.py build --qa ui_keyboard2).
+mode ui
+at 300 press Z
+at 340 press L
+at 370 press DOWN
+at 400 press DOWN
+at 430 press DOWN
+at 470 press A
+at 560 press RIGHT
+at 574 press RIGHT
+at 588 press RIGHT
+at 602 press RIGHT
+at 616 press RIGHT
+at 630 press RIGHT
+at 644 press DOWN
+at 658 press A   # Q
+at 674 press RIGHT
+at 688 press RIGHT
+at 702 press A   # S
+at 718 press LEFT
+at 732 press LEFT
+at 746 press LEFT
+at 760 press LEFT
+at 774 press LEFT
+at 788 press A   # N
+at 804 press LEFT
+at 818 press A   # M
+at 834 press RIGHT
+at 848 press RIGHT
+at 862 press RIGHT
+at 876 press UP
+at 890 press A   # F
+at 906 press RIGHT
+at 920 press RIGHT
+at 934 press A   # H
+at 950 press LEFT
+at 964 press LEFT
+at 978 press LEFT
+at 992 press A   # E
+at 1008 press RIGHT
+at 1022 press RIGHT
+at 1036 press RIGHT
+at 1050 press RIGHT
+at 1064 press RIGHT
+at 1078 press A   # J
+at 1094 press DOWN
+at 1108 press DOWN
+at 1122 press DOWN
+at 1136 press A   # 9
+at 1152 press LEFT
+at 1166 press LEFT
+at 1180 press LEFT
+at 1194 press UP
+at 1208 press UP
+at 1222 press UP
+at 1236 press A   # G
+at 1252 press LEFT
+at 1266 press LEFT
+at 1280 press DOWN
+at 1294 press DOWN
+at 1308 press DOWN
+at 1322 press A   # 4
+at 1338 press LEFT
+at 1352 press UP
+at 1366 press UP
+at 1380 press A   # N
+at 1396 press LEFT
+at 1410 press LEFT
+at 1424 press UP
+at 1438 press A   # B
+at 1454 press LEFT
+at 1468 press DOWN
+at 1482 press A   # K
+at 1498 press RIGHT
+at 1512 press RIGHT
+at 1526 press UP
+at 1540 press A   # C
+at 1556 press RIGHT
+at 1570 press RIGHT
+at 1584 press RIGHT
+at 1598 press RIGHT
+at 1612 press RIGHT
+at 1626 press DOWN
+at 1640 press DOWN
+at 1654 press DOWN
+at 1668 press A   # 7
+at 1684 press RIGHT
+at 1698 press UP
+at 1712 press UP
+at 1726 press A   # S
+at 1742 press LEFT
+at 1756 press LEFT
+at 1770 press LEFT
+at 1784 press LEFT
+at 1798 press LEFT
+at 1812 press DOWN
+at 1826 press DOWN
+at 1840 press A   # 3
+at 1856 press RIGHT
+at 1870 press RIGHT
+at 1884 press RIGHT
+at 1898 press A   # 6
+at 1914 press LEFT
+at 1928 press LEFT
+at 1942 press LEFT
+at 1956 press LEFT
+at 1970 press LEFT
+at 1984 press LEFT
+at 1998 press UP
+at 2012 press UP
+at 2026 press A   # K
+at 2042 press RIGHT
+at 2056 press RIGHT
+at 2070 press RIGHT
+at 2084 press RIGHT
+at 2098 press RIGHT
+at 2112 press UP
+at 2126 press A   # F
+at 2142 press RIGHT
+at 2156 press RIGHT
+at 2170 press RIGHT
+at 2184 press RIGHT
+at 2198 press A   # J
+at 2234 press START   # load
+at 2354 press START  # close the panel

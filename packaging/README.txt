@@ -38,8 +38,8 @@ build's share code.
   A on a slot      Load it (on an empty slot: save into it)
   X on a slot      Save your build into it
   Y on a slot      Delete it
-  A on the code    Type in a friend's code (Up/Down letter, Left/Right
-                   move, Start to load, B to cancel)
+  A on the code    Type in a friend's code on Melee's keyboard: A types
+                   the key, B erases, X clears, Start loads it
 
 Share your build by posting its code, for example QSNM-FHEJ9-G4NBK-C7S-36KFJ.
 
