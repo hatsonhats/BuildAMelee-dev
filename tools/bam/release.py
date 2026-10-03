@@ -1,12 +1,12 @@
 """Player release: build, patch against the clean ISO, package the zip.
 
-  bam.py release 0.1.2
+  bam.py release 1.2
 
 1. Sets [project] version in project.toml (when a version is given).
 2. Builds the DOL and writes it into a copy of the clean ISO.
 3. Makes patch.xdelta (clean ISO -> BuildAMelee ISO) and checks that
    applying it reproduces the ISO exactly.
-4. Packages build/release/BuildAMelee-vX.Y.Z.zip from packaging/: the
+4. Packages build/release/BuildAMelee-vX.Y.zip from packaging/: the
    drag-and-drop .bat, the Linux/Mac script, README.txt and xdelta3.exe.
 
 xdelta3 is downloaded once into .cache/ (the official 3.1.0 Windows build);
@@ -32,8 +32,8 @@ XDELTA_EXE_MD5 = '93110bd8eaa3be753e03db56765f49a2'
 
 
 def set_version(root: Path, version: str) -> None:
-    if not re.fullmatch(r'\d+\.\d+\.\d+', version):
-        sys.exit(f'version must look like 1.2.3, not {version!r}')
+    if not re.fullmatch(r'\d+\.\d+(\.\d+)?', version):
+        sys.exit(f'version must look like 1.2 (or 1.2.1), not {version!r}')
     path = root / 'project.toml'
     text = path.read_text(encoding='utf-8')
     new, n = re.subn(r'(?m)^version = "[^"]*"', f'version = "{version}"', text, count=1)

@@ -1,14 +1,14 @@
 # Status
 
-**v0.1.1** - all 21 move slots borrowable on every character; local and
+**v1.1** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
-- 0.1.1: version shown on the character select screen; after an online
+- 1.1: version shown on the character select screen; after an online
   match that played without builds, the screen says why (different version,
   no answer, quick chat off). The online build id is now the version plus a
   source hash, so the same source always matches. `bam.py release`.
-- 0.1.0: first release.
+- 1.0: first release.
 
 ## Verified
 - Automated sweep (docs/QA.md): every move slot of all 26 characters with

@@ -4,7 +4,7 @@
   bam.py doctor                 check toolchain, decomp checkout, ISO
   bam.py fetch                  clone the pinned decomp and set it up (tools, compilers)
   bam.py build [--iso OUT]      build build/output/main.dol (and an ISO)
-  bam.py release [X.Y.Z]        set the version, build, make the player zip (build/release/)
+  bam.py release [X.Y]           set the version, build, make the player zip (build/release/)
   bam.py check-slippi           list Slippi injections inside functions we touch
   bam.py info                   print retail DOL layout and project settings
 """
@@ -105,7 +105,7 @@ def cmd_iso(args):
     print(f'source ok: {info["image"]}')
     off = assemble(Path(src), dol, out)
     import re as _re
-    m = _re.search(rb'\0(\d+\.\d+\.\d+-[0-9a-f]{6})\0', dol.read_bytes())
+    m = _re.search(rb'\0(\d+\.\d+(?:\.\d+)?-[0-9a-f]{6})\0', dol.read_bytes())
     print(f'BuildAMelee build {m.group(1).decode() if m else "?"}  (dolphin.log should show the same "build")')
     print(f'wrote {out}\n  DOL {dol} placed at disc offset 0x{off:X}; GALE01 header and filesystem unchanged')
 
@@ -138,7 +138,7 @@ def main(argv=None):
     s.add_argument('--quick', action='store_true', help='skip the full-image MD5 (checks the DOL hash only)')
     s = sub.add_parser('release', help='set the version, build, and package the player zip')
     s.set_defaults(fn=cmd_release)
-    s.add_argument('version', nargs='?', help='new version (X.Y.Z); default: keep project.toml\'s')
+    s.add_argument('version', nargs='?', help='new version (X.Y, or X.Y.Z for a hotfix); default: keep project.toml\'s')
     s = sub.add_parser('fetch'); s.set_defaults(fn=cmd_fetch)
     s.add_argument('--jobs', type=int, default=4)
     s.add_argument('--no-baseline', action='store_true', help='skip building/verifying the retail DOL')

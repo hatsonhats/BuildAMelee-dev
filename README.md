@@ -29,27 +29,27 @@ Dolphin's log (`[bam]` lines); the first line shows the version and build id.
 ## Releasing
 
 ```powershell
-py -3 tools\bam.py release 0.1.2
+py -3 tools\bam.py release 1.2
 ```
 
 This sets the version in `project.toml`, builds, writes the ISO, makes
 `patch.xdelta` from your clean ISO, checks that the patch reproduces the ISO
-exactly, and packages `build\release\BuildAMelee-v0.1.2.zip` (the
+exactly, and packages `build\release\BuildAMelee-v1.2.zip` (the
 drag-and-drop .bat, the Linux/Mac script, README.txt and xdelta3.exe, from
 `packaging\`). Then:
 
 1. Unzip it, drag your clean ISO onto the .bat, play the result.
-2. Commit, and tag: `git tag v0.1.2 && git push --tags`.
-3. On the public repo, create release v0.1.2 and attach the zip.
+2. Commit, and tag: `git tag v1.2 && git push --tags`.
+3. On the public repo, create release v1.2 and attach the zip.
 
-Versions: bump the last number for fixes (0.1.1 -> 0.1.2), the middle one
-for features (0.1.2 -> 0.2.0).
+Versions: 1.0 was the first release, 1.1 the next. Bump the second number
+for each release (1.1 -> 1.2); add a third for a quick hotfix (1.2 -> 1.2.1).
 
 ## Online versions
 
 Builds are exchanged between players in Slippi Direct (`src/platform/online_sync.c`).
 Each build carries an id: the version plus a hash of the source
-(`0.1.1-cd7f16`), so two players exchange builds only when their DOLs come
+(`1.1-` plus six hex digits), so two players exchange builds only when their DOLs come
 from the same source. Otherwise both play their characters' own moves, and
 the character select screen says why after the match (different version, no
 answer, or quick chat off). The version is shown in the bottom-left corner of
