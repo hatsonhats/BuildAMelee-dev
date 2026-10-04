@@ -11,6 +11,7 @@ typedef struct Scaled {
     const Fighter* fighter;
     HSD_JObj* jobj;
     float own[3], donor[3], ratio;
+    float own_hip, donor_hip, size; /* rest hip heights; Rogue_BorrowScale */
 } Scaled;
 typedef struct Quat { float x, y, z, w; } Quat;
 typedef struct RotFix {
@@ -424,6 +425,9 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
             memcpy(s->own, own->pos[i], sizeof(s->own));
             memcpy(s->donor, donor->pos[i], sizeof(s->donor));
             s->ratio = ratio;
+            s->own_hip = own->hip;
+            s->donor_hip = donor->hip;
+            s->size = Rogue_BorrowScale(fp);
         }
     }
 }
@@ -432,8 +436,23 @@ float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 {
     unsigned i;
     for (i = 0; i < scaled_count; ++i)
-        if (scaled[i].jobj == jobj)
-            return scaled[i].own[axis] + (value - scaled[i].donor[axis]) * scaled[i].ratio;
+        if (scaled[i].jobj == jobj) {
+            const Scaled* e = &scaled[i];
+            float d = value - e->donor[axis], move = d * e->ratio;
+            if (axis == 1 && d > 0.0f) {
+                /* A lift (Jigglypuff's dash attack and up smash hop half
+                 * her height): no higher off the ground than the donor's
+                 * body goes, at the move's size, so the attack stays at the
+                 * height it hits at. A taller fighter, whose hip is already
+                 * that high, does not rise beyond a small bob; it never sinks for it. */
+                float allowed = (e->donor_hip + d) * e->size - e->own_hip, bob = d * e->size;
+                /* Small bobs keep their motion (at the move's size). */
+                if (bob > 1.5f) bob = 1.5f;
+                if (allowed < bob) allowed = bob;
+                if (move > allowed) move = allowed;
+            }
+            return e->own[axis] + move;
+        }
     return value;
 }
 
