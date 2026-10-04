@@ -495,11 +495,16 @@ static int own_joint(Fighter* fp, int part)
 /* The recipient body part a prop entry hangs from: the donor's, or when the
  * recipient lacks it (Kirby has no finger bones) the donor's next part up
  * that it has. -1 if none. */
+static int rest_slot(int part);
 static int prop_part(Fighter* fp, int prop)
 {
     unsigned kind = fp->x597_bits;
     int part = rogue_prop[prop].part, n = 0;
-    while (part != 0xFF && own_joint(fp, part) < 0 && n++ < 8)
+    /* Not from a finger even when the borrower has one: fingers are not
+     * retargeted, so the borrower's finger keeps its own frame (Yoshi's is
+     * turned 120 degrees from Marth's). From the hand, which is, with the
+     * donor's finger rotations folded in (prop_relative). */
+    while (part != 0xFF && (own_joint(fp, part) < 0 || rest_slot(part) >= ROGUE_REST_PARTS) && n++ < 8)
         part = kind < ROGUE_REST_KINDS ? rogue_part_parent[kind][part] : 0xFF;
     return part == 0xFF || n > 8 ? -1 : part;
 }
@@ -552,12 +557,15 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
     if (prop_find(kind, joint) < 0 && chain_find(kind, joint) < 0) {
         /* Body parts the recipient lacks: those folded into a bone (no
          * finger bones) and those a prop hangs from. */
-        if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID) return;
         int part = (unsigned) joint < from->parts_num ? from->joint_to_part[joint] : FTPART_INVALID, k, used = 0;
         if (part == FTPART_INVALID) return;
-        used = body_slot(part) >= 0;
         for (k = 0; !used && k < ROGUE_PROP_COUNT; ++k)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
+        /* A finger a prop hangs from is folded even when the borrower has
+         * it (prop_part); other bones the borrower has are its own. */
+        if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID && !(used && rest_slot(part) >= ROGUE_REST_PARTS))
+            return;
+        if (!used) used = body_slot(part) >= 0;
         if (!used) return;
     }
     for (i = 0; i < prop_track_count[slot]; ++i)
@@ -1045,7 +1053,15 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         {
             Quat d, r;
             int ds = rest_slot(part), rs = rest_slot(own_part);
-            if (own_part == part) ds = rs = body_slot(part);
+            if (own_part == part) {
+                /* A finger both have is not retargeted: it plays the donor's
+                 * own rotation on the borrower's hand, so the offset needs
+                 * the hand's correction (about right: fingers turn little
+                 * against the hand). Other bones: their own. */
+                int hand = rest_slot(part) >= ROGUE_REST_PARTS && source < ROGUE_REST_KINDS ?
+                    rogue_part_parent[source][part] : part;
+                ds = rs = hand != 0xFF ? body_slot(hand) : -1;
+            }
             if (ds < 0 || rs < 0 || !rest_world(source, (unsigned) ds, &d) || !rest_world(fp->kind, (unsigned) rs, &r))
                 return;
             c = q_mul(q_conj(d), r);
