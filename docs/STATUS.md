@@ -1,9 +1,11 @@
 # Status
 
-**v1.2** - all 21 move slots borrowable on every character; local and
+**v1.3** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.3: share codes typed on Melee's own keyboard; fixed a crash after online
+  matches (after typing a connect code).
 - 1.2: three saved builds (on the memory card in Slot A when there is one,
   otherwise until the game is closed) and share codes, on the build panel's
   Saved tab. Codes are typed on Melee's own name-entry keyboard.
