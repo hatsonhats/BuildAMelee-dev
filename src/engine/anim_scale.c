@@ -863,9 +863,9 @@ static const float model_scale[] = {
 
 /* How a borrowed move's own parts are sized on this fighter: its weapons,
  * tails and props (rebuilt bones and the donor's meshes), the articles it
- * holds, and its hitboxes. They grow with a bigger fighter (Pichu's tail on
- * Bowser is Bowser-sized) but never shrink below the donor's own size
- * (Marth's sword on Jigglypuff is Marth's sword), and the hitboxes stay on
+ * holds, and its hitboxes. They follow the body ratio, kept within
+ * 0.8x..1.6x of the donor's own size (Marth's sword on Jigglypuff stays
+ * near Marth's; Pichu's tail on Bowser grows, not to Bowser size), and the hitboxes stay on
  * the parts that are drawn. Both sizes are in skeleton units: the fighter's
  * model scale applies on top, as it does to everything it draws. 1 when not
  * borrowing. */
@@ -879,13 +879,12 @@ float Rogue_BorrowScale(Fighter* fp)
     own = body_size[fp->kind];
     donor = body_size[source];
     /* On screen the move is (own x its model scale) / (donor x the donor's)
-     * the donor's own size: never smaller than the donor's (a big
-     * character's move keeps its size on a small one), at most 2.5x. */
+     * the donor's own size, kept within 0.8x..1.6x of it. */
     {
         float own_ms = model_scale[fp->kind], donor_ms = model_scale[source];
         float shown = (own * own_ms) / (donor * donor_ms);
-        if (shown < 1.0f) shown = 1.0f;
-        if (shown > 2.5f) shown = 2.5f;
+        if (shown < 0.8f) shown = 0.8f;
+        if (shown > 1.6f) shown = 1.6f;
         s = shown * donor_ms / own_ms;
     }
     return s;

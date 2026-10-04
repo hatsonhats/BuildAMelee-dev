@@ -4,6 +4,8 @@
 Slippi Online (Direct) play.
 
 ## Changes
+- next: borrowed moves follow the body ratio within 0.8x-1.6x of the
+  donor's own size.
 - 1.3.2: fixed a crash after a borrowed Peach up B; borrowed moves are never
   drawn smaller than on their own character (they still grow on bigger ones).
 - 1.3.1: borrowed moves sized by each character's measured body height
