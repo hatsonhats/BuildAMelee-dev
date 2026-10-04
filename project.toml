@@ -98,6 +98,13 @@ args = ["r31"]
 note = "StartMelee data; before Slippi's playback restore (+0x18) and recording (+0x1C)"
 
 [[hook]]
+id = "replay-builds-rewrite"
+kind = "inject"
+at = "GObj_Create"
+target = "BAM_ReplayBuildsRewrite"
+note = "Slippi Online's +0x18 code copies the agreed block over r31, then calls GObj_Create before recording"
+
+[[hook]]
 id = "replay-builds-read"
 kind = "inject"
 at = "fn_8016E730+0x20"

@@ -20,6 +20,11 @@
  *                     written, playback restored a recorded block: load the
  *                     builds it carries for this match.
  *
+ * Slippi Online copies the match block both players agreed on over r31
+ * (InitOnlinePlay, at +0x18) after the write above, wiping the builds before
+ * recording. Its code then calls GObj_Create, so an inject there writes them
+ * again while a write is pending.
+ *
  * The share code's check symbol covers the move catalogs, so a replay from a
  * build with different catalogs plays native moves rather than wrong ones.
  */
@@ -43,6 +48,7 @@
 static const u8 magic[4] = { 'B', 'A', 'M', 'R' };
 static u8 original[STASH], written[STASH];
 static int have_original;
+static u8* pending; /* block between the write and read hooks */
 /* The players' own builds while a replay's are loaded. */
 static BamLoadout before[BAM_PLAYER_SLOTS];
 static int replay_loaded;
@@ -102,6 +108,25 @@ void BAM_ReplayBuildsWrite(u8* data)
     encode(written);
     spare_put(data, written);
     have_original = 1;
+    pending = data;
+}
+
+/* inject GObj_Create: Slippi Online's match setup calls it after copying the
+ * agreed block over ours. Write the builds again if they are gone. */
+void BAM_ReplayBuildsRewrite(void)
+{
+    u8 got[STASH];
+    u8* data = pending;
+    /* Online only (scene 8); a replay's restored builds are never replaced. */
+    if (!data || *(volatile u8*) 0x80479D30 != 8) return;
+    spare_get(data, got);
+    if (!memcmp(got, written, STASH) || !memcmp(got, magic, sizeof(magic))) return;
+    if (data[PLAYERS + SPARE_ENTRY * ENTRY + SLOT_TYPE] != PKIND_NA ||
+        data[PLAYERS + (SPARE_ENTRY + 1) * ENTRY + SLOT_TYPE] != PKIND_NA)
+        return;
+    memcpy(original, got, STASH);
+    encode(written);
+    spare_put(data, written);
 }
 
 /* inject fn_8016E730+0x20 (r31 = StartMeleeData), after Slippi's playback
@@ -110,6 +135,7 @@ void BAM_ReplayBuildsRead(u8* data)
 {
     u8 got[STASH];
     unsigned p;
+    pending = 0;
     if (!data || !have_original) return;
     have_original = 0;
     spare_get(data, got);
