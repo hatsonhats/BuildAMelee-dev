@@ -368,7 +368,9 @@ static void rotfix_apply(RotFix* e)
 /* Animated rotation (jobj.c ROTX/ROTY/ROTZ). */
 void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value)
 {
-    RotFix* e = rotfix_find(jobj);
+    /* Every animated joint goes through here, menus included, and the
+     * per-match state only exists during a match. */
+    RotFix* e = bam_anim_scale ? rotfix_find(jobj) : NULL;
     if (!e) {
         if (axis == 0) HSD_JObjSetRotationX(jobj, value);
         else if (axis == 1) HSD_JObjSetRotationY(jobj, value);
@@ -387,7 +389,7 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
     const BodyRest *own, *donor;
     float ratio;
     unsigned i, k;
-    if (!fp) return;
+    if (!fp || !bam_anim_scale) return;
     if (first_part == 0) prop_reset(fp);
     S = Rogue_FighterCtx(fp);
     if (S && S->fighter == fp) {
@@ -451,6 +453,7 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
 float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 {
     unsigned i;
+    if (!bam_anim_scale) return value; /* outside a match (menus) */
     for (i = 0; i < scaled_count; ++i)
         if (scaled[i].jobj == jobj) {
             const Scaled* e = &scaled[i];
@@ -474,6 +477,7 @@ float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 
 void Rogue_AnimScaleReset(void)
 {
+    if (!bam_anim_scale) return;
     scaled_count = 0;
     memset(rotfix, 0, sizeof(rotfix));
     rotfix_rehash();
@@ -591,7 +595,7 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
     int slot = slot_of_fighter(fp);
     unsigned i, kind;
     const FighterPartsTable* from;
-    if (slot < 0 || count <= 0 || !track || joint < 0 || joint > 255) return;
+    if (!bam_anim_scale || slot < 0 || count <= 0 || !track || joint < 0 || joint > 255) return;
     kind = fp->x597_bits;
     if (kind >= ROGUE_REST_KINDS) return;
     from = ftPartsTable[kind];
@@ -926,6 +930,7 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
 static PropHit* hit_record(const HitCapsule* hit)
 {
     unsigned i;
+    if (!bam_anim_scale) return NULL;
     for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
         if (prop_hits[i].hit == hit) return &prop_hits[i];
     return NULL;
@@ -1369,6 +1374,7 @@ static void pose_pass(Fighter* fp);
 /* After the fighter's animation step (ftAnim_8006EBA4). */
 void Rogue_AnimPostStep(Fighter* fp)
 {
+    if (!bam_anim_scale) return;
     pose_pass(fp);
     anchors_follow(fp);
 }
