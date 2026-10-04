@@ -31,10 +31,19 @@ Slippi Online (Direct) play.
   hands are turned far from the humanoids', so Marth's sword pointed the
   wrong way on them). A borrowed move that lifts the body (Jigglypuff's dash
   attack and up smash) no longer lifts a taller fighter above the height the
-  donor's body reaches, so it hits at the same height. Slippi Online replays now record the
-  builds too (Slippi Online replaced the match block after they were
-  written). The sweep places the dummy by the borrowed move's size and
-  compares hand and finger hitboxes relative to the hand.
+  donor's body reaches, so it hits at the same height. Hitboxes on donor
+  fingers (Ness's bat, Game & Watch's jab, Dr. Mario's Super Sheet) ride the
+  hand with the donor's finger pose every frame; head hitboxes on Kirby and
+  Jigglypuff ride the middle of the body; Ness's yo-yo reaches as far as
+  drawn; Samus's Charge Shot leaves from mid-body (it was released into the
+  floor on Jigglypuff and the Ice Climbers). Slippi Online replays now
+  record the builds too (Slippi Online replaced the match block after they
+  were written). The sweep: projectiles and items are measured, a move that
+  misses is played again with the dummy moved to it (REACH is what still
+  never touches it), each step starts from the same random seed, and
+  rebuilt weapons are compared from the donor bone they hang from. Last
+  sweep: 13654 OK of 14078; open: Ice Climbers' borrowed command grabs
+  (Gerudo Dragon, Koopa Klaw) do not catch, Sheik's chain length.
 - 1.3.3: Slippi replays play back the builds that were used (recorded in the
   spare player entries of the match setup block; src/platform/replay_builds.c);
   borrowed moves follow 70% of the body ratio (ratio^0.7), within 0.8x-1.55x
