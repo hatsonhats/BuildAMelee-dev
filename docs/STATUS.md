@@ -26,7 +26,12 @@ Slippi Online (Direct) play.
   frame (Jigglypuff's dash attack on fighters without a waist bone); finger
   bones have rest-pose data (the files' own rotations), so props and
   hitboxes hanging from them (Ice Climbers' hammer, Ness's bat) keep their
-  orientation on fighters without those fingers. Slippi Online replays now record the
+  orientation on fighters without those fingers, and props hanging from
+  fingers hang from the retargeted hand (Yoshi's, Pichu's and Pikachu's
+  hands are turned far from the humanoids', so Marth's sword pointed the
+  wrong way on them). A borrowed move that lifts the body (Jigglypuff's dash
+  attack and up smash) no longer lifts a taller fighter above the height the
+  donor's body reaches, so it hits at the same height. Slippi Online replays now record the
   builds too (Slippi Online replaced the match block after they were
   written). The sweep places the dummy by the borrowed move's size and
   compares hand and finger hitboxes relative to the hand.
