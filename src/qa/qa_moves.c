@@ -689,6 +689,11 @@ static void qa_frame(void)
     case PH_RUN:
         log_hitboxes(p1);
         track_reach(p1, p2);
+        if (p1->unk_gobj || p1->dmg.x1914 || p1->dmg.x1924)
+            /* What a hit or a command grab's detection saw this frame. */
+            OSReport("[qa] D %u %u %u %d %d %d %d %d %d\n", cur_match, cur_step, rf, (int) p1->motion_id,
+                     p1->unk_gobj == p2->gobj ? 2 : p1->unk_gobj ? 1 : 0, p1->dmg.x1914, p1->dmg.x1924,
+                     p1->hurtbox_detect_cb != NULL, (int) p1->cmd_vars[0]);
         if (Rogue_IsAbilityState(p1)) {
             saw_borrow = 1;
             if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Rogue_BorrowScale(p1)); }
