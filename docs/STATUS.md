@@ -1,9 +1,12 @@
 # Status
 
-**v1.3** - all 21 move slots borrowable on every character; local and
+**v1.3.1** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.3.1: borrowed moves sized by each character's measured body height
+  (Marth's sword on Jigglypuff was far too small, Pichu's moves on Bowser
+  too big).
 - 1.3: share codes typed on Melee's own keyboard; fixed a crash after online
   matches (after typing a connect code).
 - 1.2: three saved builds (on the memory card in Slot A when there is one,
