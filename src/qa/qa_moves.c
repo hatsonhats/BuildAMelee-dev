@@ -444,6 +444,11 @@ static void log_hitboxes(Fighter* fp)
             Vec3 ap = { 0, 0, 0 };
             for (j = 0; j < (int) t->parts_num; ++j)
                 if (fp->parts[j].joint == h->jobj) { part = t->joint_to_part[j]; break; }
+            {
+                /* A rebuilt donor bone: from the donor part it hangs from. */
+                extern int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos);
+                anc = Rogue_QAHitAnchor(fp, h, &ap);
+            }
             for (walk = h->jobj; walk && anc < 0; walk = walk->parent)
                 for (j = 0; j < (int) t->parts_num; ++j)
                     if (fp->parts[j].joint == walk && t->joint_to_part[j] != 0xFF) {

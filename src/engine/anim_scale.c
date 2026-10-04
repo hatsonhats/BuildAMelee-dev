@@ -746,16 +746,16 @@ static void chain_world(Fighter* fp, int row, Mtx out)
 
 /* Transform from the body part a prop hangs from to the prop, including the
  * rest correction between the donor's and the recipient's body part. */
-static int prop_relative(Fighter* fp, int prop, Mtx out)
+/* From the body part a prop hangs from to the donor part it hangs from
+ * (the rest correction, and the donor bones between them it folds in). */
+static void prop_fold(Fighter* fp, int prop, Mtx out)
 {
-    int slot = slot_of_fighter(fp), chain[8], n = 0, i;
+    int slot = slot_of_fighter(fp);
     unsigned source = fp->x597_bits;
     Mtx local;
     Quat c;
     Quaternion cq;
     int base = prop_part(fp, prop), part;
-    for (i = prop; i != 255 && n < 8; i = rogue_prop[i].parent) chain[n++] = i;
-    if (i != 255) return 0;
     /* C(base)^-1, then the donor parts between base and the prop's own part
      * that it hangs from instead: their rotations, and for fingers their
      * offsets too (Ice Climbers' hammer hangs three bones out from the
@@ -783,6 +783,14 @@ static int prop_relative(Fighter* fp, int prop, Mtx out)
             PSMTXConcat(out, local, out);
         }
     }
+}
+static int prop_relative(Fighter* fp, int prop, Mtx out)
+{
+    int slot = slot_of_fighter(fp), chain[8], n = 0, i;
+    Mtx local;
+    for (i = prop; i != 255 && n < 8; i = rogue_prop[i].parent) chain[n++] = i;
+    if (i != 255) return 0;
+    prop_fold(fp, prop, out);
     while (n--) {
         prop_local(fp, slot, chain[n], local);
         PSMTXConcat(out, local, out);
@@ -1022,6 +1030,28 @@ static void hit_place(Fighter* fp, PropHit* h)
     out.x *= s; out.y *= s; out.z *= s;
     h->hit->b_offset = out;
 }
+#if BAM_QA
+/* QA: for a hitbox on a rebuilt donor bone, the world position of the donor
+ * body part that bone hangs from (rebuilt on the borrower), and that part;
+ * -1 if it is not one. Hitbox positions are compared from it. */
+int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
+{
+    PropHit* h = hit_record(hit);
+    Mtx rel, grow, w;
+    int root;
+    float bs;
+    if (!fp || !h || h->fighter != fp || h->prop >= PROP_CHAIN) return -1;
+    root = prop_root(fp, h->prop);
+    if (root < 0 || !fp->parts[root].joint) return -1;
+    prop_fold(fp, h->prop, rel);
+    bs = Rogue_BorrowScale(fp);
+    PSMTXScale(grow, bs, bs, bs);
+    PSMTXConcat(grow, rel, rel);
+    PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[root].joint), rel, w);
+    pos->x = w[0][3]; pos->y = w[1][3]; pos->z = w[2][3];
+    return rogue_prop[h->prop].part;
+}
+#endif
 /* A move script just made a hitbox (ftAction_8007121C); `bone` is the
  * script's joint, or -1 for a common body part. Offsets of a borrowed move
  * are carried into the recipient's frame. */
