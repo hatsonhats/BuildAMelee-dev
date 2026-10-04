@@ -99,7 +99,7 @@ def step_names(from_ck, matches, res):
 
 # Body heights in skeleton units (src/engine/anim_scale.c body_size: top of
 # the hurtboxes over model scale), by CharacterKind.
-BODY = dict(zip(CK, [19.19, 17.09, 16.46, 13.06, 10.57, 32.59, 14.86, 12.96, 13.23, 16.67, 18.75, 13.26, 15.84, 13.22, 11.46, 13.20, 21.17, 16.02, 14.89, 12.71, 16.89, 15.64, 13.27, 17.36, 25.00, 20.27]))
+BODY = dict(zip(CK, [19.19, 17.09, 16.46, 13.06, 10.57, 32.59, 14.86, 12.96, 13.23, 16.67, 18.75, 13.26, 15.84, 13.22, 11.46, 13.20, 21.17, 16.02, 14.89, 12.71, 16.89, 15.64, 13.27, 17.36, 19.50, 20.27]))
 
 
 def keep(hs, name):
@@ -121,6 +121,16 @@ def compare(nat, bor, s, world, body):
             d.setdefault((h[1], round(h[12]), h[2]), h)
         return d
     n, b = index(nat), index(bor)
+    variant = False
+    if n and b and not set(n) & set(b):
+        # The same move in another of its states: Ice Climbers' Squall
+        # Hammer without Nana, a different Judgment number. Pair by frame.
+        def loose(hs):
+            d = {}
+            for h in hs:
+                d.setdefault((0, round(h[12]), h[2]), h)
+            return d
+        n, b, variant = loose(nat), loose(bor), True
     if n and not b:
         return ['no hitboxes (donor has %d active frames)' % len(n)], 99.0
     probs = []
@@ -147,11 +157,16 @@ def compare(nat, bor, s, world, body):
         worst = max(worst, err / body)
         if err > tol:
             probs.append((err / body, f'slot{key[2]} ms{key[0]} f{key[1]} at ({gx:.1f},{gy:.1f}) expected ({ex:.1f},{ey:.1f}) {rel}'))
-        if a[6] > 2 and abs(c[6] / a[6] - 1) > 0.4:
+        if not variant and a[6] > 2 and abs(c[6] / a[6] - 1) > 0.4:
             probs.append((0, f'slot{key[2]} damage {c[6]} expected {a[6]}'))
-    if n and len(shared) < 0.5 * len(n):
-        probs.append((9, f'hitboxes active {len(shared)} of the donor\'s {len(n)} frames'))
+    # Active frames in total (a state may differ: a borrowed Peach parasol
+    # floats in the common special fall, Peach in her own parasol fall).
+    fn, fb = len({h[0] for h in nat}), len({h[0] for h in bor})
+    if n and fb < 0.5 * fn:
+        probs.append((9, f'hitboxes active {fb} of the donor\'s {fn} frames'))
     probs.sort(key=lambda x: -x[0])
+    if variant and probs:
+        probs.insert(0, (99, 'played in another state than the donor\'s own (e.g. Squall Hammer without Nana)'))
     return [p[1] for p in probs], worst
 
 
@@ -180,7 +195,8 @@ def analyze(logdir):
                 msd = mscale.get((donor, s), 1.0)
                 probs, worst = compare(nat, bor, sc, sc * msr / msd, BODY[CK[R]] * msr)
                 if probs:
-                    status = 'HITBOX' if status == 'OK' else status
+                    variant = probs[0].startswith('played in another state')
+                    status = ('VARIANT' if variant else 'HITBOX') if status == 'OK' else status
                     note = '; '.join(probs[:4])
             if D >= 0 and r and r['res'] == 'OK' and (donor, s) in res and res[(donor, s)]['res'] == 'OK':
                 if r['dmg'] == 0 and res[(donor, s)]['dmg'] > 0 and status == 'OK':

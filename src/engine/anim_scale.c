@@ -834,7 +834,9 @@ static PropHit* hit_record(const HitCapsule* hit)
  * hurtboxes, measured in game (QA "SIZE" lines, tools/qa: bam.py build --qa
  * size), divided by the fighter's model scale so it is in skeleton units.
  * The old table (head bone height) made Bowser 2.1x Marth and Jigglypuff
- * 0.43x; by the body they are 1.17x and 0.65x. */
+ * 0.43x; by the body they are 1.17x and 0.65x. Pichu's head hurtbox is
+ * oversized (radius 5.1), which made it measure taller than Pikachu; it is
+ * Pikachu's height scaled by their standing ECB tops (5.71 / 6.98). */
 static const float body_size[] = {
     13.23f, /* Mario */ 16.46f, /* Fox */ 19.19f, /* Captain Falcon */
     17.09f, /* Donkey Kong */ 10.57f, /* Kirby */ 32.59f, /* Bowser */
@@ -843,7 +845,7 @@ static const float body_size[] = {
     13.22f, /* Pikachu */ 21.17f, /* Samus */ 16.02f, /* Yoshi */
     13.20f, /* Jigglypuff */ 18.75f, /* Mewtwo */ 12.96f, /* Luigi */
     16.67f, /* Marth */ 14.89f, /* Zelda */ 15.64f, /* Young Link */
-    13.27f, /* Dr. Mario */ 16.89f, /* Falco */ 25.00f, /* Pichu */
+    13.27f, /* Dr. Mario */ 16.89f, /* Falco */ 19.50f, /* Pichu */
     13.06f, /* Mr. Game & Watch */ 20.27f, /* Ganondorf */ 17.36f, /* Roy */
 };
 #define BODY_SIZE_KINDS (sizeof(body_size) / sizeof(body_size[0]))

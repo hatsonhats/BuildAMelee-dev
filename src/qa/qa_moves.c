@@ -370,6 +370,10 @@ static void drive_raw(const Step* s, Fighter* fp)
             else if (s->slot == 3) qa_drive_y = -80;
         }
         if (f == 0) qa_drive_buttons = HSD_PAD_B;
+        /* A side special that keeps travelling (Yoshi's Egg Roll) is steered
+         * back toward the middle before it leaves Final Destination. */
+        if (s->slot == 1 && f >= 2 && busy(fp) && (fp->cur_pos.x > 45.0f || fp->cur_pos.x < -45.0f))
+            qa_drive_x = (s8) ((fp->cur_pos.x > 0.0f ? -80 : 80) * face); /* drive() turns it back */
         /* Charged / held moves: release, then cancel. */
         if (busy(fp)) {
             if (f == 90 || f == 180 || f == 300) qa_drive_buttons = HSD_PAD_B;

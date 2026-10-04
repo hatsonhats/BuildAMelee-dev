@@ -63,7 +63,10 @@ void BAM_OnFrame(void)
     Bam_WatchdogFrame();
     if (!bam_match) return;
     for (i = 0; i < BAM_FIGHTERS; ++i)
-        if (bam_match->fighters[i].fighter) Rogue_AbilityFighterFrame(bam_match->fighters[i].fighter);
+        if (bam_match->fighters[i].fighter) {
+            Rogue_AbilityFighterFrame(bam_match->fighters[i].fighter);
+            Rogue_ParasolTrack(bam_match->fighters[i].fighter);
+        }
 }
 
 /* inject ftCo_LandingAir_EnterWithLag+0x88 (`cmpwi r4,-1`, before the

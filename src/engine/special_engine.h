@@ -171,4 +171,6 @@ bool Rogue_RestSleep(Fighter_GObj* gobj);
 bool Rogue_RestSleeping(Fighter* fp);
 void Rogue_RestSleepClear(Fighter* fp);
 bool Rogue_ParasolFloat(HSD_GObj* gobj);
+/* Every frame: a borrowed Peach up special's parasol float (sword_visual.c). */
+void Rogue_ParasolTrack(Fighter* fp);
 #endif

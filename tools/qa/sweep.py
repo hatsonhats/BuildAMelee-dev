@@ -214,7 +214,8 @@ class Worker(threading.Thread):
         super().__init__(daemon=True)
         self.n, self.jobs, self.run_dir, self.dolphin = n, jobs, run, dolphin
         self.timeout, self.addr, self.progress = timeout, addr, progress
-        self.user = OUT / 'users' / f'u{n}'
+        # Per run, so two sweeps can run side by side.
+        self.user = run / 'users' / f'u{n}'
         for sub in ('Config', 'Maps', 'GameSettings', 'Logs'):
             (self.user / sub).mkdir(parents=True, exist_ok=True)
         (self.user / 'Config' / 'Dolphin.ini').write_text(DOLPHIN_INI)
@@ -451,6 +452,7 @@ def report(run: Path):
              'OK       the move ran and its hitboxes match the donor\'s own (scaled)',
              'HITBOX   hitboxes differ in size, place or damage from the donor\'s own',
              'NOHIT    the dummy took no damage although the donor\'s own move hits it',
+             'VARIANT  the move ran in another of its states than the donor\'s own (informational)',
              'NOMOVE   the move never started    STUCK  the move never ended',
              'CRASH / FREEZE   the emulator crashed or hung on this move (skipped)', '']
     for r in bad:

@@ -16,6 +16,8 @@
 #include <sysdolphin/baselib/gobj.h>
 #include <sysdolphin/baselib/jobj.h>
 #include <sysdolphin/baselib/mtx.h>
+#include <melee/ft/kinds/ftPeach/ftpeach.h>
+#include <string.h>
 
 /* ---- per-match state ----
  * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
@@ -44,6 +46,8 @@ typedef struct SwordVisualState {
     signed char donor_vis[BAM_FIGHTERS][VIS_GROUPS];
     unsigned char donor_vis_kind[BAM_FIGHTERS];
     unsigned char parasol_float[BAM_FIGHTERS];
+    unsigned char parasol_hit[BAM_FIGHTERS];     /* hitbox id + 1 while it is on */
+    Vec3 parasol_hit_off[BAM_FIGHTERS];          /* canopy, in the hand's frame */
     Mtx weapon_attach[BAM_FIGHTERS][WEAPON_ITEMS];
     Mtx parasol_rel[BAM_FIGHTERS];
 } SwordVisualState;
@@ -53,6 +57,8 @@ static SwordVisualState* bam_sword_visual;
 #define donor_vis_kind (bam_sword_visual->donor_vis_kind)
 #define parasol_float (bam_sword_visual->parasol_float)
 #define parasol_rel (bam_sword_visual->parasol_rel)
+#define parasol_hit (bam_sword_visual->parasol_hit)
+#define parasol_hit_off (bam_sword_visual->parasol_hit_off)
 #define weapon_attach (bam_sword_visual->weapon_attach)
 #define weapon_owner (bam_sword_visual->weapon_owner)
 #define weapons (bam_sword_visual->weapons)
@@ -552,16 +558,105 @@ static int item_hand(Fighter* fp)
     if (hand < 0 || (unsigned) hand >= ftPartsTable[fp->kind]->parts_num || !fp->parts[hand].joint) return -1;
     return hand;
 }
+void ftAction_8007121C(Fighter_GObj* gobj, CommandInfo* cmd);
+
+/* Peach's open parasol hits (a weak hit made by her ItemParasolOpen script
+ * that lasts through the fall). The borrower's float gets the same hitbox,
+ * on the canopy of the parasol drawn in its hand. */
+static union CmdUnion* parasol_hit_cmd(void)
+{
+    /* Words per script command: 0x00-0x09 (common), 0x0A on (fighter). */
+    static const u8 common[10] = { 1, 1, 1, 1, 1, 2, 1, 2, 1, 1 };
+    static const u8 fighter[] = { 5, 5, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+                                  1, 1, 1, 7, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 1, 4 };
+    ftData* d = gFtDataList[Ft_Kind_Peach];
+    int anim;
+    u32* p;
+    unsigned i;
+    if (!d || !d->xC) return NULL;
+    anim = ftPe_Init_MotionStateTable[ftPe_MS_ItemParasolOpen - ftCo_MS_Count].anim_id;
+    if (anim < 0) return NULL;
+    p = (u32*) ((Fighter_WaitAnimData*) d->xC)[anim].xC;
+    for (i = 0; p && i < 32; ++i) {
+        unsigned op = *p >> 26;
+        if (op == 0x0B) return (union CmdUnion*) p;
+        if (op == 0 || (op >= 10 && op - 10 >= sizeof(fighter))) return NULL;
+        p += op < 10 ? common[op] : fighter[op - 10];
+    }
+    return NULL;
+}
+
+static void parasol_hit_off_set(Fighter* fp, int slot, int hand, Mtx parasol)
+{
+    union CmdUnion* cmd = parasol_hit_cmd();
+    Mtx inv, rel;
+    Vec3 off;
+    if (!cmd || !PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv)) return;
+    off.x = 0.003906f * cmd[1].create_hitbox_1.z_offset;
+    off.y = 0.003906f * cmd[2].create_hitbox_2.y_offset;
+    off.z = 0.003906f * cmd[2].create_hitbox_2.x_offset;
+    PSMTXConcat(inv, parasol, rel);
+    PSMTXMultVec(rel, &off, &parasol_hit_off[slot]);
+}
+
+/* The float ends. A state change has already removed the hitbox; closing
+ * the parasol (still in the special fall) removes it here. */
+static void parasol_hit_off_clear(Fighter* fp, int slot, int disable)
+{
+    if (parasol_hit[slot] && disable) {
+        HitCapsule* h = &fp->x914[parasol_hit[slot] - 1];
+        int hand = item_hand(fp);
+        if (hand >= 0 && h->jobj == fp->parts[hand].joint) h->state = HitCapsule_Disabled;
+    }
+    parasol_hit[slot] = 0;
+}
+
+/* Every frame (BAM_OnFrame), part of the simulation: whether the next
+ * special fall is a parasol float, and where its hitbox goes. */
+void Rogue_ParasolTrack(Fighter* fp)
+{
+    int slot = slot_of(fp), hand;
+    Mtx w;
+    if (slot < 0) return;
+    if (Rogue_IsAbilityState(fp)) {
+        if (Rogue_PropWeaponMtx(fp, w) != 2 || (hand = item_hand(fp)) < 0) return;
+        parasol_float[slot] = 1;
+        parasol_hit_off_set(fp, slot, hand, w);
+        return;
+    }
+    if (parasol_float[slot] && (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air)) {
+        parasol_hit_off_clear(fp, slot, 0);
+        parasol_float[slot] = 0;
+    }
+}
+
 /* ftCo_FallSpecial_Phys: true while the borrower floats on Peach's parasol. */
 bool Rogue_ParasolFloat(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    int slot = slot_of(fp);
+    int slot = slot_of(fp), hand;
     if (slot < 0 || !parasol_float[slot]) return false;
     if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air ||
         fp->input.lstick[0].y <= p_ftCommonData->close_parasol_threshold) {
+        parasol_hit_off_clear(fp, slot, fp->motion_id == ftCo_MS_FallSpecial);
         parasol_float[slot] = 0;
         return false;
+    }
+    if (!parasol_hit[slot] && (hand = item_hand(fp)) >= 0) {
+        union CmdUnion* cmd = parasol_hit_cmd();
+        if (cmd) {
+            CommandInfo ci;
+            HitCapsule* h;
+            memset(&ci, 0, sizeof(ci));
+            ci.u = cmd;
+            ftAction_8007121C(gobj, &ci);
+            h = &fp->x914[cmd->create_hitbox_0.id];
+            h->jobj = fp->parts[hand].joint;
+            h->b_offset = parasol_hit_off[slot];
+            parasol_hit[slot] = (unsigned char) (cmd->create_hitbox_0.id + 1);
+            BAM_LOG("parasol hit id=%d off=(%.2f,%.2f,%.2f)\n", (int) cmd->create_hitbox_0.id,
+                    h->b_offset.x, h->b_offset.y, h->b_offset.z);
+        }
     }
     return true;
 }
@@ -570,10 +665,7 @@ static void parasol_display(Fighter* fp, int slot, int pass, MtxPtr vmtx)
     HSD_JObj* model;
     Mtx place;
     int hand = item_hand(fp);
-    if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air || hand < 0) {
-        parasol_float[slot] = 0;
-        return;
-    }
+    if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air || hand < 0) return;
     model = weapon_model((unsigned) slot, 2);
     if (!model) return;
     PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[hand].joint), parasol_rel[slot], place);
@@ -597,7 +689,6 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
         if (parasol_float[slot]) parasol_display(fp, slot, pass, vmtx);
         return;
     }
-    parasol_float[slot] = 0;
     if (weapon_owner[slot] != fp) {
         release_slot((unsigned) slot);
         weapon_owner[slot] = fp;
@@ -623,10 +714,8 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     if (item == 2 && (hand = item_hand(fp)) >= 0) {
         /* Where the parasol sits on the hand, for the float that follows. */
         Mtx inv;
-        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv)) {
+        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv))
             PSMTXConcat(inv, place, parasol_rel[slot]);
-            parasol_float[slot] = 1;
-        }
     }
     HSD_JObjCopyMtx(model, place);
     model->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT;

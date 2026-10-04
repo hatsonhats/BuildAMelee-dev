@@ -56,6 +56,7 @@ includes the native matches (0-25) checks more than `--pair` alone.
 | OK | The move ran and its hitboxes match the donor's own, scaled |
 | HITBOX | Hitboxes differ in size, place or damage from the donor's own |
 | NOHIT | The dummy took no damage although the donor's own move hits it (often harmless: a move that whiffs from that spacing) |
+| VARIANT | The move ran in another of its states than the donor's own, e.g. Ice Climbers' Squall Hammer without Nana (informational) |
 | NOMOVE | The move never started |
 | STUCK | The move never ended |
 | CRASH / FREEZE | The emulator crashed or hung on this move; the sweep skipped it and went on |
@@ -76,7 +77,7 @@ includes the native matches (0-25) checks more than `--pair` alone.
     `B` borrow scale, `G` effects spawned, `R` result, `E` match end.
 - `qa.toml`: QA-only hooks, the full debug log, and a larger overlay.
 - `tools/qa/sweep.py`: the runner. Each worker has its own Dolphin user folder
-  (`build-qa/sweep/users/`) with fast settings (unthrottled, no video, no
+  (`build-qa/sweep/<tag>/users/`) with fast settings (unthrottled, no video, no
   audio, fast disc), and a game patch in its game settings that tells the QA
   executable which matches to play. It reads Dolphin's log file; after a
   crash or freeze it records the step and relaunches from the next one.
