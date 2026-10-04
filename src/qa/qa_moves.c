@@ -540,6 +540,12 @@ static void track_reach(Fighter* p1, Fighter* p2)
     for (cur = HSD_GObjPLinkHead[HSD_GOBJ_PLINK_ITEM]; cur != NULL; cur = cur->next) {
         Item* ip = GET_ITEM(cur);
         if (!ip || ip->owner != p1->gobj) continue;
+        for (i = 0; i < 4 && ip->x5D4_hitboxes[i].hit.state == HitCapsule_Disabled; ++i)
+            ;
+        if (i == 4 && (rf & 7) == 0)
+            /* An item with no hitbox yet (a charging shot): every 8 frames. */
+            OSReport("[qa] I %u %u %u %d %.2f %.2f -1\n", cur_match, cur_step, rf, (int) ip->kind,
+                     (ip->pos.x - p1->cur_pos.x) * face, ip->pos.y - p1->cur_pos.y);
         for (i = 0; i < 4; ++i) {
             HitCapsule* h = &ip->x5D4_hitboxes[i].hit;
             if (h->state == HitCapsule_Disabled) continue;
