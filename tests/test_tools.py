@@ -87,9 +87,13 @@ class HookTests(unittest.TestCase):
                                 mem.__getitem__, {'Fighter_Create': 0x80068E98}.get, ovl.get, tramp)
         self.assertEqual(len(patches), 1)
         self.assertEqual(patches[0].addr, 0x80069388)
-        self.assertEqual(ppc.branch_target(patches[0].value, 0x80069388), 0x80BD6360)
-        words = tramp.words
+        # The shared save/restore bodies come first; the hook's own entry after.
+        entry = ppc.branch_target(patches[0].value, 0x80069388)
+        self.assertGreater(entry, tramp.restore_at)
+        words = tramp.words[(entry - tramp.base) // 4:]
         self.assertEqual(words[0], ppc.stwu(1, -FRAME, 1))
+        self.assertEqual(ppc.branch_target(words[4], entry + 16), tramp.save_at)
+        self.assertEqual(tramp.words[(tramp.save_at - tramp.base) // 4], ppc.stmw(3, 0x0C, 1))
         self.assertEqual(words[-2], 0x7FE3FB78)                       # displaced instruction
         self.assertEqual(ppc.branch_target(words[-1], tramp.cursor - 4), 0x8006938C)
         self.assertIn(ppc.lwz(3, 0x0C + 28 * 4, 1), words)            # r31 slot -> r3

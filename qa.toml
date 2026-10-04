@@ -13,6 +13,7 @@ dirs = ["src/qa"]
 
 [defines]
 BAM_QA = 1
+BAM_DEBUG = 1
 
 [[hook]]
 id = "qa-pad-bot"

@@ -20,11 +20,16 @@ py -3 tools\bam.py doctor                          # checks everything
 
 ```powershell
 py -3 tools\bam.py build --auto-iso   # build\output\main.dol and build\output\BuildAMelee.iso
+py -3 tools\bam.py build --debug      # the same with the detailed [bam] log and internal checks
+py -3 tools\qa\sweep.py              # automated move sweep (docs\QA.md)
 python -m unittest discover -s tests
 ```
 
 Open `build\output\BuildAMelee.iso` in Slippi Dolphin. The mod logs to
 Dolphin's log (`[bam]` lines); the first line shows the version and build id.
+Release builds log only what matters for bug reports (crashes and freezes,
+moves dropped for memory, the online build exchange, replays); a `--debug`
+build logs everything. Every build prints how much of the overlay is free.
 
 ## Releasing
 

@@ -1,5 +1,4 @@
-/* Text lines and filled boxes on a SIS (HSD text) canvas. Ported from
- * rogueMelee's ui_text.c. */
+/* Text lines and filled boxes on a SIS (HSD text) canvas. */
 #ifndef BAM_UI_TEXT_H
 #define BAM_UI_TEXT_H
 #include <sysdolphin/baselib/sislib.h>

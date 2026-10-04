@@ -34,6 +34,8 @@ def cmd_build(args):
         subprocess.run([sys.executable, str(ROOT / 'tools/qa/script.py'), str(script),
                         str(ROOT / 'src/qa/qa_script.inc')], check=True)
     p = Project.load(ROOT, qa=bool(args.qa))
+    if args.debug:
+        p.defines['BAM_DEBUG'] = '1'
     from bam.build import Builder
     b = Builder(p, args.decomp, verbose=args.verbose)
     iso_out = Path(args.iso) if args.iso else None
@@ -129,6 +131,7 @@ def main(argv=None):
     s.add_argument('--iso', help='also write a patched ISO to this path')
     s.add_argument('--auto-iso', action='store_true', help='write build/output/BuildAMelee.iso')
     s.add_argument('-v', '--verbose', action='store_true')
+    s.add_argument('--debug', action='store_true', help='detailed [bam] log and internal checks (not for release)')
     s.add_argument('--qa', metavar='SCRIPT', help='QA build driven by qa/SCRIPT.txt (never ship)')
     s = sub.add_parser('check-slippi'); s.set_defaults(fn=cmd_check_slippi)
     s.add_argument('--ini')

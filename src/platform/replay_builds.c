@@ -116,7 +116,7 @@ void BAM_ReplayBuildsRead(u8* data)
     spare_put(data, original);
     if (!memcmp(got, written, STASH)) return; /* a live match: as written */
     if (memcmp(got, magic, sizeof(magic)) || got[4] != VERSION) {
-        BAM_LOG("replay: no builds recorded; everyone plays their own moves\n");
+        BAM_NOTE("replay: no builds recorded; everyone plays their own moves\n");
         return;
     }
     if (!replay_loaded) memcpy(before, bam_loadouts, sizeof(before));
@@ -127,10 +127,10 @@ void BAM_ReplayBuildsRead(u8* data)
         decode(got + HEADER + p * PACKED, code);
         Bam_CodeText(code, text);
         if (Bam_LoadoutFromCode(code, &bam_loadouts[p])) {
-            BAM_LOG("replay: P%u build %s\n", p + 1, text);
+            BAM_NOTE("replay: P%u build %s\n", p + 1, text);
         } else {
             Bam_LoadoutClear(&bam_loadouts[p]);
-            BAM_LOG("replay: P%u build %s is from another version; own moves\n", p + 1, text);
+            BAM_NOTE("replay: P%u build %s is from another version; own moves\n", p + 1, text);
         }
     }
 }

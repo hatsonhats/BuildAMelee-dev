@@ -10,10 +10,6 @@ void Bam_OnlineSceneReady(void);
 void Bam_OnlineSceneExit(void);
 void Bam_ReplayBuildsSceneExit(void);
 
-#ifndef BAM_TEST_LOADOUT
-#define BAM_TEST_LOADOUT 0
-#endif
-
 /* inject Fighter_800679B0+0x10: r4 = size HSD_ObjAllocInit will use for
  * Fighter structs (retail 0x23EC, Slippi's ExtendPlayerBlock makes 0x2600).
  * Returns the size including our extension slot. */
@@ -35,21 +31,6 @@ void BAM_OnFighterCreated(Fighter_GObj* gobj)
 void BAM_OnSceneEnter(void)
 {
     Bam_OnSceneEnter(NULL);
-#if BAM_TEST_LOADOUT
-    {
-        /* Port 1 test kit until the move-select screen exists:
-         * Falcon Punch / Fox Illusion / Dolphin Slash / Fox Reflector,
-         * Falcon nair, Marth fair, Falcon bair, Fox uair, Marth dair. */
-        BamLoadout* l = &bam_loadouts[0];
-        l->enabled = 1;
-        l->specials[0] = 1 + Ft_Kind_Captain * 4 + 0;
-        l->specials[1] = 1 + Ft_Kind_Fox * 4 + 1;
-        l->specials[2] = 1 + Ft_Kind_Mars * 4 + 2;
-        l->specials[3] = 1 + Ft_Kind_Fox * 4 + 3;
-        l->aerials[0] = 1;  l->aerials[1] = 47; l->aerials[2] = 3;
-        l->aerials[3] = 14; l->aerials[4] = 50;
-    }
-#endif
     Bam_OnlineSceneEnter();
 }
 
@@ -173,6 +154,6 @@ void* BAM_CheckJointPos(void* jobj, u32* regs)
 {
     u32 p = (u32) jobj;
     if (p == 0 || (p >= 0x80000000 && p < 0x81800000 && !(p & 3))) return jobj;
-    OSReport("[bam] bad joint %08x passed to lb_8000B1CC from %08x\n", (unsigned) p, (unsigned) regs[0x7C / 4]);
+    BAM_NOTE("bad joint %08x passed to lb_8000B1CC from %08x\n", (unsigned) p, (unsigned) regs[0x7C / 4]);
     return NULL;
 }

@@ -62,7 +62,7 @@ static ftData* load_into_cache(int kind)
     lbFile_8001668C(name, buf, &length);
     lbArchive_InitializeDAT(arc, buf, length);
     root = HSD_ArchiveGetPublicAddress(arc, ftData_803C1F40[kind].b);
-    if (root) OSReport("[bam] donor_data kind=%d %u KB in cache\n", kind, (unsigned) (size / 1024));
+    if (root) BAM_LOG("donor_data kind=%d %u KB in cache\n", kind, (unsigned) (size / 1024));
     return root;
 }
 
@@ -310,7 +310,7 @@ static ftData* load_trimmed(int kind, int articles)
     }
     DCStoreRange(out, kept * 32);
     result = (ftData*) (out + newblk[root_off / 32] * 32 + root_off % 32);
-    OSReport("[bam] donor_data kind=%d %u KB -> %u KB%s in %s\n", kind, (unsigned) (dsize / 1024),
+    BAM_LOG("donor_data kind=%d %u KB -> %u KB%s in %s\n", kind, (unsigned) (dsize / 1024),
              (unsigned) (kept * 32 / 1024), articles ? "" : " (no articles)", BamCache_Owns(out) ? "cache" : "heap");
 
 done:
@@ -359,7 +359,7 @@ int Rogue_LoadDonorData(int kind)
     }
     /* The complete file, into the match heap, only with room to spare. */
     if (Bam_HeapRoom() < OSRoundUp32B(lbFileGetSize(name)) + 0x100 + HEAP_FLOOR) {
-        OSReport("[bam] donor_data kind=%d: out of memory\n", kind);
+        BAM_NOTE("donor_data kind=%d: out of memory\n", kind);
         return 0;
     }
     ftData_8008572C(kind);
@@ -379,13 +379,6 @@ static EfDatEntry* donor_effects(int kind)
     idx = ftData_UnkBytePerCharacter[kind];
     if (idx == 0xFF || idx >= 50 || !EF_ENTRIES[idx].file) return NULL;
     return &EF_ENTRIES[idx];
-}
-
-unsigned Rogue_DonorEffectsSize(int kind)
-{
-    EfDatEntry* e = donor_effects(kind);
-    if (!e || e->data || lbDvd_8001819C(e->file)) return 0;
-    return (unsigned) OSRoundUp32B(lbFileGetSize(e->file)) + 0x60;
 }
 
 int Rogue_LoadDonorEffects(int kind)
@@ -412,7 +405,7 @@ int Rogue_LoadDonorEffects(int kind)
                     if ((u32) table->file | (u32) table->table)
                         psInitDataBank(idx, (int*) table->file, (int*) table->table, NULL, NULL);
                     e->data = &table->data;
-                    OSReport("[bam] donor_effects kind=%d %u KB in cache\n", kind, (unsigned) (size / 1024));
+                    BAM_LOG("donor_effects kind=%d %u KB in cache\n", kind, (unsigned) (size / 1024));
                     return 1;
                 }
             }
@@ -421,7 +414,7 @@ int Rogue_LoadDonorEffects(int kind)
     /* As the game loads it: preloaded, or into the match heap. */
     if (!lbDvd_8001819C(e->file) &&
         Bam_HeapRoom() < OSRoundUp32B(lbFileGetSize(e->file)) + 0x100 + HEAP_FLOOR) {
-        OSReport("[bam] donor_effects kind=%d: out of memory\n", kind);
+        BAM_NOTE("donor_effects kind=%d: out of memory\n", kind);
         return 0;
     }
     efAsync_LoadSync(idx);

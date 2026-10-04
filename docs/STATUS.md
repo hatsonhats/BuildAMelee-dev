@@ -1,9 +1,15 @@
 # Status
 
-**v1.3.3** - all 21 move slots borrowable on every character; local and
+**v1.3.4** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.3.4: a borrowed Kirby inhale swallows without copying (Kirby himself
+  still copies), so the copy-ability moves run with retail code; release
+  builds keep only the essential log lines (`bam.py build --debug` for all);
+  hook trampolines share one register save/restore; dead code removed. The
+  overlay went from 1.5 KB to ~42 KB free. The move sweep runs locally on
+  Windows with parallel Dolphin instances (docs/QA.md).
 - 1.3.3: Slippi replays play back the builds that were used (recorded in the
   spare player entries of the match setup block; src/platform/replay_builds.c);
   borrowed moves follow 70% of the body ratio (ratio^0.7), within 0.8x-1.55x

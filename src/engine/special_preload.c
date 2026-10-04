@@ -4,7 +4,6 @@
 #include <dolphin/dvd.h>
 #include <sysdolphin/baselib/memory.h>
 extern char* ftData_803C23E4[Ft_Kind_Max];
-static unsigned skipped_donors;
 
 /* Borrowed animations go to ARAM, as a fighter's own do: on every action
  * change Melee copies the action's animation from there into the fighter's
@@ -107,7 +106,7 @@ static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinitio
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
             buf = Rogue_SliceAlloc(total);
             if (!buf) {
-                OSReport("[bam] special_slices id=%u: out of memory\n", def->id);
+                BAM_NOTE("special_slices id=%u: out of memory\n", def->id);
                 return 0;
             }
             S->special_blobs[S->special_blob_count++] = buf;
@@ -143,7 +142,7 @@ static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinitio
             ++loaded;
         }
     }
-    OSReport("[bam] special_slices id=%u kind=%d anims=%u bytes=%u in %s\n", def->id, source, loaded, total,
+    BAM_LOG("special_slices id=%u kind=%d anims=%u bytes=%u in %s\n", def->id, source, loaded, total,
              (u32) buf < 0x80000000U ? "ARAM" : "RAM");
     return 1;
 }
@@ -161,16 +160,16 @@ int Rogue_DonorEnsure(RogueFighterState* S, int source)
     if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
     /* Out of memory for this source: the slot keeps its native move. */
     if (!Rogue_DonorFits(source)) {
-        OSReport("[bam] donor kind=%u: out of memory\n", source);
+        BAM_NOTE("donor kind=%u: out of memory\n", source);
         return 0;
     }
     {
         unsigned before = Bam_HeapRoom();
         if (!load_donor_core(source)) {
-            OSReport("[bam] donor kind=%u: out of memory while loading\n", source);
+            BAM_NOTE("donor kind=%u: out of memory while loading\n", source);
             return 0;
         }
-        OSReport("[bam] donor_cost kind=%u core=%u KB\n", source, (before - Bam_HeapRoom()) / 1024);
+        BAM_LOG("donor_cost kind=%u core=%u KB\n", source, (before - Bam_HeapRoom()) / 1024);
     }
     if (!gFtDataList[source] || !gFtDataList[source]->ext_attr) return 0;
     memcpy(bam_match->donor_attrs[source].bytes, gFtDataList[source]->ext_attr, donor->attrs_size);
@@ -304,7 +303,7 @@ int Rogue_DonorEnsure(RogueFighterState* S, int source)
     }
     S->loaded_sources[source] = true;
 #if BAM_DEBUG
-    OSReport("[bam] donor_preload kind=%u match=%u\n", source, S->match_generation);
+    BAM_LOG("donor_preload kind=%u match=%u\n", source, S->match_generation);
 #endif
     return 1;
 }
@@ -354,7 +353,7 @@ int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, u
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
             buf = Rogue_SliceAlloc(total);
             if (!buf) {
-                OSReport("[bam] %s kind=%d: no memory for %u KB of animations\n", what, source, total / 1024);
+                BAM_NOTE("%s kind=%d: no memory for %u KB of animations\n", what, source, total / 1024);
                 return 0;
             }
             S->special_blobs[S->special_blob_count++] = buf;
@@ -380,12 +379,11 @@ int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, u
             ++loaded;
         }
     }
-    OSReport("[bam] %s kind=%d anims=%u bytes=%u in %s\n", what, source, loaded, total,
+    BAM_LOG("%s kind=%d anims=%u bytes=%u in %s\n", what, source, loaded, total,
              (u32) buf < 0x80000000U ? "ARAM" : "RAM");
     return 1;
 }
 
-unsigned Rogue_AbilitySkippedDonors(void) { return skipped_donors; }
 void Rogue_AbilityFighterCreated(Fighter* fp)
 {
     int i;
@@ -393,24 +391,21 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     RogueFighterState* S;
 #if BAM_DEBUG
     if (fp->kind == Ft_Kind_Nana || fp->kind == Ft_Kind_Popo)
-        OSReport("[bam] climber_create kind=%u sub=%u player=%u build=%d\n",
+        BAM_LOG("climber_create kind=%u sub=%u player=%u build=%d\n",
             (unsigned) fp->kind, (unsigned) fp->is_sub_fighter, (unsigned) fp->player_id, (int) Rogue_IsBuildFighter(fp));
 #endif
     if (!Rogue_IsBuildFighter(fp)) return;
     index = (unsigned) Bam_FighterIndex(fp);
     S = &bam_match->fighters[index];
     *Bam_FighterExtSlot(fp) = S;
-    if (index == 0) skipped_donors = 0;
     if (S->fighter) Rogue_AbilityFighterDestroyed(S->fighter);
     memset(S, 0, sizeof(*S));
     S->fighter = fp;
     S->match_generation = bam_match->generation;
     memcpy(S->specials, bam_loadouts[fp->player_id].specials, sizeof(S->specials));
     memcpy(S->aerials, bam_loadouts[fp->player_id].aerials, sizeof(S->aerials));
-    /* match accounting removed */
-    /* trace removed */
 #if BAM_DEBUG
-    OSReport("[bam] fighter_create kind=%u match=%u\n", fp->kind, S->match_generation);
+    BAM_LOG("fighter_create kind=%u match=%u\n", fp->kind, S->match_generation);
 #endif
     /* Nana: Popo (created just before her) already loaded every donor and
      * aerial slice. Share them instead of loading or allocating again, which
@@ -445,8 +440,7 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
         if (!needed) continue;
         if (S->loaded_sources[source]) { S->loaded[i] = true; continue; }
         if (!Rogue_DonorEnsure(S, source)) {
-            ++skipped_donors;
-            OSReport("[bam] donor_skipped kind=%u ability=%u\n", source, i);
+            BAM_NOTE("donor_skipped kind=%u ability=%u\n", source, i);
             continue;
         }
         S->loaded[def->id] = true;

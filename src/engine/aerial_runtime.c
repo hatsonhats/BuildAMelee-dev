@@ -36,7 +36,7 @@ void Rogue_AerialPrepare(Fighter* fp)
         source = def->donor;
         /* Out of memory: this slot keeps the native aerial. */
         if (!Rogue_DonorEnsure(S, source)) {
-            OSReport("[bam] aerial_skipped kind=%u slot=%u (out of memory)\n", source, slot);
+            BAM_NOTE("aerial_skipped kind=%u slot=%u (out of memory)\n", source, slot);
             S->aerial_equipped[slot] = 0;
             continue;
         }
@@ -49,7 +49,7 @@ void Rogue_AerialPrepare(Fighter* fp)
             anims[landing] = (short) state->anim_id;
         }
         if (!Rogue_DonorReadAnims(S, source, anims, 2, "aerial_slices")) {
-            OSReport("[bam] aerial_skipped kind=%u slot=%u (no memory for animations)\n", source, slot);
+            BAM_NOTE("aerial_skipped kind=%u slot=%u (no memory for animations)\n", source, slot);
             S->aerial_equipped[slot] = 0;
         }
     }
@@ -63,7 +63,6 @@ void Rogue_AerialRelease(RogueFighterState* S)
         for(landing=0;landing<2;++landing)
             if(S->aerial_blobs[slot][landing]) {
                 Rogue_SliceFree(S->aerial_blobs[slot][landing]);
-                /* match accounting removed */
             }
     for(slot=0;slot<(int)S->special_blob_count;++slot)
         if(S->special_blobs[slot]) Rogue_SliceFree(S->special_blobs[slot]);
@@ -96,7 +95,7 @@ bool Rogue_AerialTryEnter(Fighter_GObj* gobj, int motion)
         if (slot == 3) fp->accessory4_cb = ftGw_AttackAirN_ItemSparkySetup;
     }
 #if BAM_DEBUG || 0 || 0
-    OSReport("[bam] aerial_enter id=%u recipient=%u match=%u\n", def->id, fp->kind, S->match_generation);
+    BAM_LOG("aerial_enter id=%u recipient=%u match=%u\n", def->id, fp->kind, S->match_generation);
 #endif
     return true;
 }

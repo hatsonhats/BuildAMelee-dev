@@ -108,7 +108,7 @@ void Bam_StoreInit(void)
                     memcpy(bam_saved, im->slots, sizeof(bam_saved));
                     BAM_LOG("store: loaded %u-slot file from the card\n", (unsigned) im->count);
                 } else {
-                    BAM_LOG("store: card file unreadable, ignored\n");
+                    BAM_NOTE("store: card file unreadable, ignored\n");
                 }
             }
         }

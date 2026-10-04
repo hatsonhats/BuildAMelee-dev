@@ -4,9 +4,9 @@
 #include <math.h>
 #include <engine/anim_rest.inc>
 
-/* ---- per-match state (vendor_engine.py) ----
- * These were file-level statics upstream. They live in a match-heap block
- * so Slippi rollback restores them; the pointer is set once per match. */
+/* ---- per-match state ----
+ * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
+ * restores it; the pointer is set once per match. */
 typedef struct Scaled {
     const Fighter* fighter;
     HSD_JObj* jobj;
@@ -818,7 +818,7 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
     }
     anchor_place(fp, &anchors[slot][i]);
 #if BAM_DEBUG
-    OSReport("[bam] item_anchor donor=%u joint=%d prop=%d\n", Rogue_AbilitySourceKind(fp), part, prop);
+    BAM_LOG("item_anchor donor=%u joint=%d prop=%d\n", Rogue_AbilitySourceKind(fp), part, prop);
 #endif
     return anchors[slot][i].jobj;
 }
@@ -1005,7 +1005,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     h->kind = (unsigned char) source;
     hit_place(fp, h);
 #if BAM_DEBUG
-    OSReport("[bam] prop_hit donor=%u bone=%d root=%d off=(%.2f,%.2f,%.2f)\n", source, bone, root,
+    BAM_LOG("prop_hit donor=%u bone=%d root=%d off=(%.2f,%.2f,%.2f)\n", source, bone, root,
         hit->b_offset.x, hit->b_offset.y, hit->b_offset.z);
 #endif
 }

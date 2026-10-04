@@ -147,12 +147,16 @@ class Builder:
     def compile_sources(self) -> List[Path]:
         objs = self.assemble_runtime()
         cflags = self.own_cflags()
+        # Objects are reused by mtime, so a change of flags or defines (a
+        # --debug build after a release one) must invalidate them all. The
+        # build ID changes with every source edit and only arena.c uses it.
+        sig = self._flags_stamp('own', [f for f in cflags if not f.startswith('-DBAM_BUILD_ID=')])
         for d in self.p.source_dirs:
             for src in sorted((self.p.root / d).rglob('*.c')):
                 rel = src.relative_to(self.p.root)
                 obj = self.out / 'obj' / rel.with_suffix('.o')
                 # arena.c prints the build ID: always rebuild it so the ID is fresh.
-                if src.name != 'arena.c' and obj.is_file() and obj.stat().st_mtime >= max(src.stat().st_mtime, self._headers_mtime()):
+                if src.name != 'arena.c' and obj.is_file() and obj.stat().st_mtime >= max(src.stat().st_mtime, self._headers_mtime(), sig):
                     objs.append(obj)
                     continue
                 self.log(f'  CC   {rel}')
@@ -161,6 +165,15 @@ class Builder:
         return objs
 
     _hdr_mtime: Optional[float] = None
+
+    def _flags_stamp(self, name: str, flags: List[str]) -> float:
+        """mtime of a stamp file rewritten whenever these flags change."""
+        stamp = self.out / 'obj' / f'.flags-{name}'
+        text = '\n'.join(flags)
+        if not stamp.is_file() or stamp.read_text() != text:
+            stamp.parent.mkdir(parents=True, exist_ok=True)
+            stamp.write_text(text)
+        return stamp.stat().st_mtime
 
     def _headers_mtime(self) -> float:
         if self._hdr_mtime is None:
@@ -326,7 +339,8 @@ class Builder:
         for k, v in self.p.defines.items():
             cflags.append(f'-D{k}={v}')
         cflags += ub.spec.extra_cflags
-        if ub.obj.is_file() and ub.obj.stat().st_mtime >= max(ub.source.stat().st_mtime, self._headers_mtime()):
+        sig = self._flags_stamp('units', [f'-D{k}={v}' for k, v in sorted(self.p.defines.items())])
+        if ub.obj.is_file() and ub.obj.stat().st_mtime >= max(ub.source.stat().st_mtime, self._headers_mtime(), sig):
             pass
         else:
             self.log(f'  CC*  {ub.spec.unit}  [{ub.spec.compiler or flags.mw_version}]' +
@@ -523,6 +537,10 @@ class Builder:
         full = image + b'\0' * (tramp_base - ovl_end) + tramp.to_bytes()
         if len(full) > p.overlay_reserve:
             raise BuildError(f'overlay is 0x{len(full):X} bytes, reserve is 0x{p.overlay_reserve:X}; raise overlay.reserve')
+        free = p.overlay_reserve - len(full)
+        if free < 0x4000:
+            print(f'[bam] WARNING: only {free / 1024:.1f} KB of the {p.overlay_reserve // 1024} KB overlay left '
+                  '(docs/STATUS.md: ways to reclaim space)')
 
         # Optional: refuse to patch where Slippi's own codes inject.
         ini = slippi_ini or (self.p.root / p.slippi_ini if p.slippi_ini else None)
@@ -599,7 +617,7 @@ class Builder:
         report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
 
         changed = sum(1 for d in diffs if d.changed)
-        self.log(f'[bam] overlay 0x{len(full):X} bytes ({len(image):#x} code/data + {tramp.size:#x} trampolines); '
+        self.log(f'[bam] overlay 0x{len(full):X} bytes, {(p.overlay_reserve - len(full)) / 1024:.1f} KB free ({len(image):#x} code/data + {tramp.size:#x} trampolines); '
                  f'{len(patches)} patches; {changed}/{len(diffs)} recompiled functions differ')
         self.log(f'[bam] wrote {dol_path}  (BuildAMelee {self.build_id})')
 

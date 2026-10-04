@@ -271,7 +271,7 @@ static void ui_create(void)
      * panel comes back from Melee's keyboard in the same visit. Any other
      * old pointer is stale (the match rebuilt the heap since). */
     if (!mem || kb_state != KB_BACK) mem = HSD_MemAlloc(sizeof(MenuMem));
-    if (!mem) { BAM_LOG("css: no memory for the panel\n"); return; }
+    if (!mem) { BAM_NOTE("css: no memory for the panel\n"); return; }
     canvas = HSD_SisLib_803A611C(FONT, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
     BamText_Create(&hint, FONT, canvas, hint_buf, sizeof(hint_buf));
     ui_ready = 1;
@@ -1286,7 +1286,7 @@ void BAM_CssFrame(void)
     /* Melee's keyboard is up for a share code: leave the CSS alone. */
     if (kb_state == KB_OPENING || kb_state == KB_OPEN) {
         if (kb_state == KB_OPENING && ++kb_frames > 60) {
-            BAM_LOG("css: the keyboard did not take the code entry\n");
+            BAM_NOTE("css: the keyboard did not take the code entry\n");
             kb_state = KB_OFF;
         }
         return;

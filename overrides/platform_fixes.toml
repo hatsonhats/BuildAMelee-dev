@@ -1,4 +1,4 @@
-# Pinned anchor edits from rogueMelee-v2 integration/platform_fixes.toml (specials + aerials only).
+# Anchor edits applied to the decomp sources after special_adapters.json.
 
 [[fix]]
 id = "boomerang-return-donor-context"
@@ -46,7 +46,7 @@ id = "purin-native-accessory-bank-header"
 owner = "platform/specials/purin-recipient"
 file = "src/melee/ft/kinds/ftPurin/ftpurin.c"
 anchor = "#include \"ftpurin.h\""
-replacement = "#include \"ftpurin.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftpurin.h\"\n#include <engine/special_engine.h>"
 reason = "Declare the borrowed-special variable-bank facade for native accessory callbacks."
 
 [[fix]]
@@ -63,7 +63,7 @@ id = "aerial-header-ftCo_AttackAir"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackAir.c"
 anchor = "#include \"ftCo_AttackAir.h\""
-replacement = "#include \"ftCo_AttackAir.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftCo_AttackAir.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -72,7 +72,7 @@ id = "aerial-header-ftCo_LandingAir"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_LandingAir.c"
 anchor = "#include \"ftCo_LandingAir.h\""
-replacement = "#include \"ftCo_LandingAir.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftCo_LandingAir.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -81,7 +81,7 @@ id = "aerial-header-ftgamewatchattackair"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "#include \"ftgamewatchattackair.h\""
-replacement = "#include \"ftgamewatchattackair.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftgamewatchattackair.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -170,7 +170,7 @@ id = "aerial-gw-cleanup-ftgamewatchattack11-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattack11.c"
 anchor = "#include \"ftgamewatchattack11.h\""
-replacement = "#include \"ftgamewatchattack11.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftgamewatchattack11.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
@@ -188,7 +188,7 @@ id = "aerial-gw-cleanup-ftgamewatchattacklw3-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacklw3.c"
 anchor = "#include \"ftgamewatchattacklw3.h\""
-replacement = "#include \"ftgamewatchattacklw3.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftgamewatchattacklw3.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
@@ -206,7 +206,7 @@ id = "aerial-gw-cleanup-ftgamewatchattacks4-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacks4.c"
 anchor = "#include \"ftgamewatchattacks4.h\""
-replacement = "#include \"ftgamewatchattacks4.h\"\n#include <melee/rogue/platform/melee/specials/special_engine.h>"
+replacement = "#include \"ftgamewatchattacks4.h\"\n#include <engine/special_engine.h>"
 occurrences = 1
 reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
@@ -907,3 +907,19 @@ anchor = "        if (fp->hitlag_mul > 0 && fp->x2218_b1) {\n            switch 
 replacement = "        if (fp->hitlag_mul > 0 && fp->x2218_b1) {\n            Rogue_NormalBegin(gobj, BAM_NORMAL_JAB);\n            switch (fp->unk_msid) {"
 occurrences = 1
 reason = "A jab's second and third hits started after the first one ended (from Wait) are the same character's jab."
+
+[[fix]]
+id = "borrowed-inhale-no-copy"
+owner = "platform/specials/kirby"
+file = "src/melee/ft/kinds/ftKirby/ftkirbyspecialn.c"
+anchor = "    ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0, true);"
+replacement = "    if (fp->kind == Ft_Kind_Kirby) /* a borrowed inhale swallows without copying */\n        ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0, true);"
+reason = "Only Kirby himself copies abilities. A borrowed inhale swallows and spits, so the copy-ability moves only ever run on Kirby with his own variables installed, and their states need no borrowing edits."
+
+[[fix]]
+id = "borrowed-inhale-no-copy-air"
+owner = "platform/specials/kirby"
+file = "src/melee/ft/kinds/ftKirby/ftkirbyspecialn.c"
+anchor = "            ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0, true);"
+replacement = "            if (fp2->kind == Ft_Kind_Kirby)\n                ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0, true);"
+reason = "As borrowed-inhale-no-copy, in the air."

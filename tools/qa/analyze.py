@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Analyse a move sweep (tools/qa/sweep.py): results per move and hitbox
-checks against each donor's own move.
+checks against each donor's own move. sweep.py runs this itself; by hand:
 
-  analyze.py TAG [--csv out.csv] [--all]
+  analyze.py TAG [--csv out.csv] [--all]      (TAG: a folder in build-qa/sweep)
 
 A borrowed move's hitboxes should be the donor's, sized by the borrow scale:
 radius = donor radius * scale, position (relative to the fighter, facing
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-QA = ROOT / 'build' / 'qa'
+QA = ROOT / 'build-qa' / 'sweep'
 
 CK = ['Falcon', 'DK', 'Fox', 'G&W', 'Kirby', 'Bowser', 'Link', 'Luigi', 'Mario', 'Marth', 'Mewtwo', 'Ness',
       'Peach', 'Pikachu', 'ICs', 'Puff', 'Samus', 'Yoshi', 'Zelda', 'Sheik', 'Falco', 'YLink', 'Doc', 'Roy',
@@ -28,14 +28,14 @@ SPECIALS = ['neutralB', 'sideB', 'upB', 'downB']
 AERIALS = ['nair', 'fair', 'bair', 'uair', 'dair']
 
 
-def load(tag):
+def load(logdir):
     matches = {}          # m -> (R, D, nsteps)
     res = {}              # (m, s) -> dict
     hits = collections.defaultdict(list)  # (m, s) -> [(f, ms, i, r, x, y, dmg)]
     scale = {}
     mscale = {}           # (m, s) -> port 1 model scale
     crashes = {}          # (m, s) -> text
-    for f in sorted((QA / tag).glob('w*.log')):
+    for f in sorted(Path(logdir).glob('*.log')):
         for ln in f.read_text(errors='replace').splitlines():
             p = ln.split()
             if len(p) < 2 or p[0] != '[qa]':
@@ -155,13 +155,9 @@ def compare(nat, bor, s, world, body):
     return [p[1] for p in probs], worst
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('tag')
-    ap.add_argument('--csv')
-    ap.add_argument('--all', action='store_true')
-    a = ap.parse_args()
-    matches, res, hits, scale, crashes, mscale = load(a.tag)
+def analyze(logdir):
+    """[(match, step, recipient, donor, move, result, note)], Counter of results."""
+    matches, res, hits, scale, crashes, mscale = load(logdir)
     counts = collections.Counter()
     rows = []
     for m, (R, D, n) in sorted(matches.items()):
@@ -192,6 +188,16 @@ def main():
                     note = f"dummy took 0% (donor's own move: {res[(donor, s)]['dmg']}%)"
             counts[status] += 1
             rows.append((m, s, CK[R], CK[D] if D >= 0 else '-', name, status, note))
+    return rows, counts
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('tag')
+    ap.add_argument('--csv')
+    ap.add_argument('--all', action='store_true')
+    a = ap.parse_args()
+    rows, counts = analyze(QA / a.tag / 'logs')
     print('results:', dict(counts))
     for row in rows:
         if a.all or row[5] != 'OK':

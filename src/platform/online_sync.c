@@ -148,7 +148,7 @@ static int run_phase(const u8* out, u8* in, int n, int first)
             int m;
             wait_ms(2);
             m = poll_msg();
-            if (m == -2) { BAM_LOG("online: opponent has quick chat off\n"); chat_off = 1; return 0; }
+            if (m == -2) { BAM_NOTE("online: opponent has quick chat off\n"); chat_off = 1; return 0; }
             if (m >= 0) {
                 if ((unsigned) MSG_SEQ(m) == (k & 1)) {
                     in[i] = (u8) MSG_DATA(m);
@@ -169,7 +169,7 @@ static int run_phase(const u8* out, u8* in, int n, int first)
                 sent = now_ms();
             }
             if (now_ms() - start >= limit) {
-                BAM_LOG("online: timeout at message %u\n", k);
+                BAM_NOTE("online: timeout at message %u\n", k);
                 return 0;
             }
         }
@@ -312,14 +312,14 @@ static void scene_enter(void)
     mine = bam_loadouts[port];
     clear_all();
     if (ONLINE_MODE != ONLINE_MODE_DIRECT) {
-        BAM_LOG("online: mode %d is not Direct; everyone plays their own moves\n", ONLINE_MODE);
+        BAM_NOTE("online: mode %d is not Direct; everyone plays their own moves\n", ONLINE_MODE);
         return;
     }
     FN_LoadMatchState(msrb);
     sync.local = msrb[MSRB_LOCAL_INDEX];
     sync.remote = msrb[MSRB_REMOTE_INDEX];
     if (sync.local > 1 || sync.remote > 1 || sync.local == sync.remote) {
-        BAM_LOG("online: unexpected player slots %d/%d\n", sync.local, sync.remote);
+        BAM_NOTE("online: unexpected player slots %d/%d\n", sync.local, sync.remote);
         return;
     }
     sync.initiator = sync.local == 0;
@@ -329,18 +329,18 @@ static void scene_enter(void)
     { int i; for (i = 0; i < 3; ++i) { poll_msg(); wait_ms(5); } }
     encode_loadout(&mine, out);
     log_loadout("mine", sync.local, &mine);
-    BAM_LOG("online: exchanging builds (%s, build %s)\n", sync.initiator ? "first" : "second", bam_build_id);
+    BAM_NOTE("online: exchanging builds (%s, build %s)\n", sync.initiator ? "first" : "second", bam_build_id);
     {
         u32 t = now_ms();
         if (!run_phase(out, in, P1_SYMS, 1)) {
-            BAM_LOG("online: build exchange failed; everyone plays their own moves\n");
+            BAM_NOTE("online: build exchange failed; everyone plays their own moves\n");
             bam_online_notice = chat_off ? BAM_NOTICE_CHAT_OFF : BAM_NOTICE_NO_ANSWER;
             return;
         }
-        BAM_LOG("online: builds exchanged in %u ms\n", now_ms() - t);
+        BAM_NOTE("online: builds exchanged in %u ms\n", now_ms() - t);
     }
     if (!decode_loadout(in, &theirs)) {
-        BAM_LOG("online: opponent runs a different BuildAMelee build; everyone plays their own moves\n");
+        BAM_NOTE("online: opponent runs a different BuildAMelee build; everyone plays their own moves\n");
         bam_online_notice = BAM_NOTICE_OTHER_VERSION;
         /* They see the same mismatch. Still finish the handshake. */
         finish();
@@ -412,7 +412,7 @@ static void scene_ready(void)
     put_bits(out, &pos, m0, P2_BITS / 2);
     put_bits(out, &pos, m1, P2_BITS / 2);
     if (!run_phase(out, in, P2_SYMS, 0)) {
-        BAM_LOG("online: loaded-move exchange failed; turning borrowed moves off\n");
+        BAM_NOTE("online: loaded-move exchange failed; turning borrowed moves off\n");
         bam_online_notice = BAM_NOTICE_NO_ANSWER;
         apply_mask(0, 0);
         apply_mask(1, 0);
@@ -422,7 +422,7 @@ static void scene_ready(void)
     pos = 0;
     t0 = get_bits(in, &pos, P2_BITS / 2);
     t1 = get_bits(in, &pos, P2_BITS / 2);
-    BAM_LOG("online: loaded masks here %06x/%06x there %06x/%06x\n", m0, m1, t0, t1);
+    BAM_NOTE("online: loaded masks here %06x/%06x there %06x/%06x\n", m0, m1, t0, t1);
     apply_mask(0, m0 & t0);
     apply_mask(1, m1 & t1);
 }
@@ -443,7 +443,7 @@ void Bam_OnlineSceneReady(void)
     if (!sync.active || !sync.ok) return;
     msrb = HSD_MemAlloc(MSRB_ALLOC);
     if (!msrb) {
-        BAM_LOG("online: out of memory for the exchange; turning borrowed moves off\n");
+        BAM_NOTE("online: out of memory for the exchange; turning borrowed moves off\n");
         sync.ok = 0;
         apply_mask(0, 0);
         apply_mask(1, 0);

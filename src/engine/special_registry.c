@@ -152,15 +152,6 @@ const RogueAbilityDefinition* Rogue_GetAbility(RogueAbilityID id)
     return NULL;
 }
 
-RogueAbilityID Rogue_AbilityForOpponent(CharacterKind opponent, RogueAbilitySlot slot)
-{
-    unsigned i;
-    for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i)
-        if (abilities[i].source_kind == opponent && abilities[i].native_slot == slot)
-            return abilities[i].id;
-    return ROGUE_ABILITY_NATIVE;
-}
-
 FighterKind Rogue_InternalKindForCharacter(CharacterKind character)
 {
     unsigned i;

@@ -1,38 +1,70 @@
 #!/usr/bin/env python3
-"""Headless move sweep runner (QA builds: `bam.py build --qa sweep`).
+"""Automated move sweep: every move slot of every character with every
+donor, played in Dolphin as fast as the machine allows, many instances at
+once, then checked against each donor's own moves.
 
-Runs the QA DOL in headless Dolphin (unthrottled, null video, no audio),
-collects the sweep log (src/qa/qa_moves.c) and restarts the emulator after a
-crash or freeze, skipping the step that broke.
+One command does everything (Windows, Linux, macOS):
 
-  sweep.py iso                         build/qa/base.iso from build/output/main.dol
-  sweep.py run --workers 2 [--start M] [--end M] [--tag NAME]
-  sweep.py report [--tag NAME]         summary of build/qa/NAME/*.log
+    python tools/qa/sweep.py
 
-Matches: 0..25 native baselines, then recipient x donor pairs (674 total).
+builds the QA executable (`bam.py build --qa sweep`), puts it in a QA copy
+of your Melee ISO, runs the 674 sweep matches spread over parallel Dolphin
+instances, and writes a report:
+
+    build-qa/sweep/<tag>/report.txt     summary and every problem found
+    build-qa/sweep/<tag>/results.csv    one row per move tested
+    build-qa/sweep/<tag>/logs/          raw logs (one per batch of matches)
+
+Options:
+    --workers N        parallel Dolphin instances (default: half the CPU threads)
+    --matches A-B      only matches A..B-1 (0-25 are each character's own moves)
+    --pair R:D         one recipient with one donor, e.g. --pair Jigglypuff:Marth
+    --tag NAME         output folder name (default: a timestamp)
+    --no-build         reuse the last QA build
+    --timeout S        seconds without progress before a freeze is declared
+    sweep.py report TAG    re-run the analysis of an earlier sweep
+
+Dolphin: a stock Dolphin build (not Slippi Dolphin: the QA executable is
+laid out for a stock disc boot). DolphinNoGUI runs without windows and is
+preferred; Dolphin.exe works too. Point at it with --dolphin, the DOLPHIN
+environment variable, or `qa_dolphin = "..."` under [paths] in
+config/local.toml.
+
+How a run works: each worker owns a Dolphin user folder whose game settings
+carry a patch telling the QA executable which matches to play. The worker
+reads Dolphin's log file; a match that crashes or freezes is recorded, and
+the worker relaunches Dolphin from the step after the one that broke.
 """
 from __future__ import annotations
+
 import argparse
 import os
-import re
-import select
+import queue
 import shutil
-import signal
 import struct
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
-QA = ROOT / 'build' / 'qa'
-# A headless Dolphin build (docs/QA.md) and the decomp's symbol map.
-DOLPHIN = Path(os.environ.get('DOLPHIN', 'dolphin-emu-nogui'))
-SYMBOLS = Path(os.environ.get('BAM_SYMBOLS', str(ROOT / '.cache/melee/config/GALE01/symbols.txt')))
-TOTAL_MATCHES = 26 + 26 * 25 - 2
-MARKER = b'QARS'
-VIDEO = False
+sys.path.insert(0, str(ROOT / 'tools' / 'qa'))
+OUT = ROOT / 'build-qa' / 'sweep'
+QA_DOL = ROOT / 'build-qa' / 'output' / 'main.dol'
+QA_ELF = ROOT / 'build-qa' / 'overlay' / 'overlay.elf'
+ISO = ROOT / 'build-qa' / 'sweep.iso'
+
+CHARS = ['Falcon', 'DK', 'Fox', 'G&W', 'Kirby', 'Bowser', 'Link', 'Luigi', 'Mario', 'Marth', 'Mewtwo', 'Ness',
+         'Peach', 'Pikachu', 'ICs', 'Jigglypuff', 'Samus', 'Yoshi', 'Zelda', 'Sheik', 'Falco', 'YLink', 'Doc',
+         'Roy', 'Pichu', 'Ganon']
+ALIASES = {'captainfalcon': 'Falcon', 'donkeykong': 'DK', 'gameandwatch': 'G&W', 'gw': 'G&W', 'mrgameandwatch': 'G&W',
+           'bowser': 'Bowser', 'iceclimbers': 'ICs', 'puff': 'Jigglypuff', 'younglink': 'YLink', 'drmario': 'Doc',
+           'ganondorf': 'Ganon'}
+NATIVE = len(CHARS)
+TOTAL_MATCHES = NATIVE + NATIVE * (NATIVE - 1) - 2   # Zelda and Sheik never borrow from each other
+BATCH = 4                                            # matches per Dolphin launch
 
 DOLPHIN_INI = """[Core]
 CPUThread = True
@@ -45,10 +77,12 @@ SIDevice1 = 0
 SIDevice2 = 0
 SIDevice3 = 0
 EmulationSpeed = 0.00000000
+FastDiscSpeed = True
 GFXBackend = Null
 DSPHLE = True
 SkipIPL = True
 OverclockEnable = False
+MMU = False
 [DSP]
 Backend = No Audio Output
 EnableJIT = True
@@ -57,6 +91,7 @@ UsePanicHandlers = False
 ConfirmStop = False
 OnScreenDisplayMessages = False
 DebugModeEnabled = False
+ShowActiveTitle = False
 [Display]
 RenderToMain = False
 [Analytics]
@@ -64,6 +99,8 @@ Enabled = False
 PermissionAsked = True
 [AutoUpdate]
 UpdateTrack =
+[General]
+ShowFrameCount = False
 """
 GFX_INI = """[Settings]
 ShowFPS = False
@@ -72,8 +109,9 @@ EFBAccessEnable = False
 """
 LOGGER_INI = """[Options]
 Verbosity = 4
-WriteToConsole = True
-WriteToFile = False
+WriteToConsole = False
+WriteToFile = True
+WriteToWindow = False
 [Logs]
 OSREPORT = True
 OSREPORT_HLE = False
@@ -84,323 +122,361 @@ CORE = True
 """
 
 
-def make_map(path: Path):
-    """Dolphin symbol map with the functions it hooks (OSReport -> log)."""
-    want = {'OSReport', 'OSPanic', 'vprintf', 'printf'}
-    lines = ['.text section layout']
-    for ln in SYMBOLS.read_text().splitlines():
-        m = re.match(r'(\w+) = \.text:0x([0-9A-Fa-f]+); // type:function size:0x([0-9A-Fa-f]+)', ln)
-        if m and m.group(1) in want:
-            a, s = int(m.group(2), 16), int(m.group(3), 16)
-            lines.append(f'  {a:08x} {s:06x} {a:08x}  4 {m.group(1)} \tqa.o')
-    path.write_text('\n'.join(lines) + '\n')
+# ---- setup ----------------------------------------------------------------
+
+def local_paths() -> dict:
+    from bam.project import Project
+    return Project.load(ROOT).local.get('paths', {})
 
 
-def user_dir(n: int) -> Path:
-    u = QA / f'user{n}'
-    (u / 'Config').mkdir(parents=True, exist_ok=True)
-    (u / 'Maps').mkdir(parents=True, exist_ok=True)
-    (u / 'Config' / 'Dolphin.ini').write_text(DOLPHIN_INI)
-    (u / 'Config' / 'GFX.ini').write_text(GFX_INI)
-    (u / 'Config' / 'Logger.ini').write_text(LOGGER_INI)
-    make_map(u / 'Maps' / 'GALE01.map')
-    return u
+def find_dolphin(arg: str | None) -> Path:
+    cands = [arg, os.environ.get('DOLPHIN'), local_paths().get('qa_dolphin')]
+    for c in cands:
+        if c:
+            p = Path(c)
+            if p.is_dir():
+                for name in ('DolphinNoGUI.exe', 'dolphin-emu-nogui', 'Dolphin.exe', 'dolphin-emu'):
+                    if (p / name).is_file():
+                        return p / name
+            if p.is_file():
+                return p
+            sys.exit(f'Dolphin not found at {c}')
+    for name in ('dolphin-emu-nogui', 'DolphinNoGUI', 'dolphin-emu'):
+        w = shutil.which(name)
+        if w:
+            return Path(w)
+    sys.exit('Set the stock Dolphin to use: --dolphin PATH, the DOLPHIN environment variable, or\n'
+             '  [paths]\n  qa_dolphin = "C:/Dolphin-x64/DolphinNoGUI.exe"\nin config/local.toml')
 
 
-def build_iso():
-    from bam.iso import assemble
-    QA.mkdir(parents=True, exist_ok=True)
-    src = ROOT / '.iso' / 'GALE01.iso'
-    off = assemble(src, ROOT / 'build-qa/output/main.dol', QA / 'base.iso')
-    print('base iso written, DOL at', hex(off))
+def build_qa():
+    print('Building the QA executable...')
+    subprocess.run([sys.executable, str(ROOT / 'tools' / 'bam.py'), 'build', '--qa', 'sweep'], check=True)
 
 
-def update_isos():
-    """Put build/output/main.dol into base.iso and every worker ISO in place
-    (same extent as `iso`; no 1.4 GB copy)."""
-    from bam.iso import layout
-    src = ROOT / '.iso' / 'GALE01.iso'
-    dol = (ROOT / 'build-qa/output/main.dol').read_bytes()
-    with src.open('rb') as f:
-        _, ranges = layout(f)
-    cursor, dest = 0, None
-    for start, end in ranges + [(src.stat().st_size, src.stat().st_size)]:
-        cursor = (cursor + 31) & ~31
-        if start - cursor >= len(dol):
-            dest = cursor
-            break
-        cursor = max(cursor, end)
-    only = os.environ.get('QA_ISOS')
-    isos = [QA / n for n in only.split(',')] if only else [QA / 'base.iso'] + sorted(QA.glob('w*.iso'))
-    for iso in isos:
-        with iso.open('r+b') as f:
-            f.seek(dest)
-            f.write(dol)
+def prepare_iso():
+    """The QA ISO: a copy of the retail image with the QA executable in it.
+    Made once; later runs only rewrite the executable in place."""
+    from bam.iso import assemble, layout
+    dol = QA_DOL.read_bytes()
+    if ISO.is_file():
+        with ISO.open('r+b') as f:
             f.seek(0x420)
-            f.write(struct.pack('>I', dest))
-        os.utime(iso)
-        print('updated', iso.name, hex(dest))
+            at = struct.unpack('>I', f.read(4))[0]
+            _, ranges = layout(f)
+            nxt = min([s for s, _ in ranges if s > at] + [ISO.stat().st_size])
+            if at + len(dol) <= nxt:
+                f.seek(at)
+                f.write(dol)
+                return
+    src = local_paths().get('melee_iso')
+    if not src:
+        sys.exit('Set paths.melee_iso in config/local.toml (a clean NTSC 1.02 Melee ISO).')
+    print('Making the QA copy of your ISO (once)...')
+    ISO.parent.mkdir(parents=True, exist_ok=True)
+    assemble(Path(src), QA_DOL, ISO)
 
 
-def marker_offset(iso: Path) -> int:
-    data = iso.read_bytes()[:0x1000000] if iso.stat().st_size > 0x1000000 else iso.read_bytes()
-    # The DOL sits early in the image; search the whole file if needed.
-    hits = [m.start() for m in re.finditer(re.escape(MARKER), data)]
-    if not hits:
-        with iso.open('rb') as f:
-            whole = f.read()
-        hits = [m.start() for m in re.finditer(re.escape(MARKER), whole)]
-    good = []
-    with iso.open('rb') as f:
-        for h in hits:
-            f.seek(h)
-            b = f.read(12)
-            if b[4:8] == b'\0\0\0\0' and b[8:12] == struct.pack('>I', 0xFFFF):
-                good.append(h)
-    if len(good) != 1:
-        raise SystemExit(f'resume marker not unique in {iso}: {good}')
-    return good[0]
+def resume_address() -> int:
+    from bam.elf import Elf
+    for s in Elf(QA_ELF).symbols():
+        if s.name == 'qa_resume_block':
+            return s.value
+    sys.exit('qa_resume_block not found: rebuild with `bam.py build --qa sweep`')
 
 
-def patch(iso: Path, off: int, resume: int, end: int):
-    with iso.open('r+b') as f:
-        f.seek(off + 4)
-        f.write(struct.pack('>II', resume, end))
+def symbol_map() -> str:
+    """Dolphin symbol map with the functions it hooks (OSReport -> log)."""
+    import re
+    syms = Path(os.environ.get('BAM_SYMBOLS', '')) if os.environ.get('BAM_SYMBOLS') else None
+    if not syms or not syms.is_file():
+        from bam.project import Project
+        syms = Path(Project.load(ROOT, qa=True).decomp) / 'config' / 'GALE01' / 'symbols.txt'
+    lines = ['.text section layout']
+    for ln in syms.read_text().splitlines():
+        m = re.match(r'(\w+) = \.text:0x([0-9A-Fa-f]+); // type:function size:0x([0-9A-Fa-f]+)', ln)
+        if m and m.group(1) in ('OSReport', 'OSPanic', 'vprintf', 'printf'):
+            a, n = int(m.group(2), 16), int(m.group(3), 16)
+            lines.append(f'  {a:08x} {n:06x} {a:08x}  4 {m.group(1)} \tqa.o')
+    return '\n'.join(lines) + '\n'
 
 
-class Worker:
-    def __init__(self, n, start, end, tag, timeout):
-        self.n, self.start, self.end, self.tag, self.timeout = n, start, end, tag, timeout
-        self.iso = QA / f'w{n}.iso'
-        if not self.iso.exists():
-            shutil.copyfile(QA / 'base.iso', self.iso)
-            # The marker must start at resume 0, end 0xFFFF before searching.
-        self.off = marker_offset_fresh(self.iso)
-        self.user = user_dir(n)
-        self.log = (QA / tag)
-        self.log.mkdir(parents=True, exist_ok=True)
-        self.out = (self.log / f'w{n}.log').open('a')
-        self.raw = (self.log / f'w{n}.raw').open('a')
-        self.resume = start * 32
+# ---- one Dolphin instance --------------------------------------------------
+
+class Worker(threading.Thread):
+    def __init__(self, n, jobs, run, dolphin, timeout, addr, smap, progress):
+        super().__init__(daemon=True)
+        self.n, self.jobs, self.run_dir, self.dolphin = n, jobs, run, dolphin
+        self.timeout, self.addr, self.progress = timeout, addr, progress
+        self.user = OUT / 'users' / f'u{n}'
+        for sub in ('Config', 'Maps', 'GameSettings', 'Logs'):
+            (self.user / sub).mkdir(parents=True, exist_ok=True)
+        (self.user / 'Config' / 'Dolphin.ini').write_text(DOLPHIN_INI)
+        (self.user / 'Config' / 'GFX.ini').write_text(GFX_INI)
+        (self.user / 'Config' / 'Logger.ini').write_text(LOGGER_INI)
+        (self.user / 'Maps' / 'GALE01.map').write_text(smap)
+        self.logfile = self.user / 'Logs' / 'dolphin.log'
         self.proc = None
-        self.done = False
-        self.fail_streak = {}
+        self.stop = False
+
+    # The QA executable reads where to start and stop from qa_resume_block
+    # (src/qa/qa_moves.c); a game patch rewrites it every frame.
+    def set_range(self, resume: int, end: int):
+        a = self.addr
+        (self.user / 'GameSettings' / 'GALE01.ini').write_text(
+            '[OnFrame]\n$BAM QA range\n'
+            f'0x{a + 4:08X}:dword:0x{resume:08X}\n0x{a + 8:08X}:dword:0x{end:08X}\n'
+            '[OnFrame_Enabled]\n$BAM QA range\n')
 
     def launch(self):
-        self.off = marker_offset_fresh(self.iso)  # the DOL may have been replaced
-        patch(self.iso, self.off, self.resume, self.end)
-        self.out.write(f'[qa] LAUNCH {self.resume >> 5} {self.resume & 31} {time.time():.0f}\n')
-        self.out.flush()
-        env = dict(os.environ, DOLPHIN_NO_ALERTS='1')
-        extra = []
-        if VIDEO:
-            extra = ['-C', 'Dolphin.Core.GFXBackend=Software Renderer', '-C', 'Dolphin.Movie.DumpFrames=True',
-                     '-C', 'GFX.Settings.DumpFramesAsImages=True']
-        import shlex
-        extra += shlex.split(os.environ.get('QA_DOLPHIN_ARGS', ''))  # e.g. -C Dolphin.Core.SlotA=1
-        self.proc = subprocess.Popen([str(DOLPHIN), '-u', str(self.user), '-p', 'headless'] + extra + ['-e', str(self.iso)],
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0,
-                                     start_new_session=True, env=env, stdin=subprocess.DEVNULL)
-        self.buf = b''
-        self.last = time.time()
-        self.boot = time.time()
-        self.m = self.s = None
-        self.open_step = False
-        self.after_r = None
-        self.tail = []
+        self.kill()
+        # Start each launch with an empty log; if the file is still held
+        # (Windows, briefly after a kill), read only what this launch appends.
+        start = 0
+        try:
+            self.logfile.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            start = self.logfile.stat().st_size
+        nogui = 'nogui' in self.dolphin.name.lower()
+        cmd = [str(self.dolphin), '-u', str(self.user)]
+        cmd += ['-p', 'headless'] if nogui else ['-b']
+        cmd += ['-e', str(ISO)]
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, creationflags=flags)
+        self.pos = start
+        self.part = b''
 
     def kill(self):
         if self.proc and self.proc.poll() is None:
+            self.proc.kill()
             try:
-                os.killpg(self.proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
+                self.proc.wait(10)
+            except subprocess.TimeoutExpired:
                 pass
-            self.proc.wait()
         self.proc = None
 
-    def handle(self, line: str):
-        self.raw.write(line + '\n')
-        if 'QA-CRASH' in line or 'UNHANDLED EXCEPTION' in line or 'assertion' in line:
-            self.crashinfo = (getattr(self, 'crashinfo', '') + ' ' + line[line.find('QA-CRASH') if 'QA-CRASH' in line else 0:].strip())[-600:]
-        self.tail.append(line)
-        self.tail = self.tail[-12:]
-        if '[qa]' not in line:
-            if '[bam]' in line:
-                self.out.write(line[line.index('[bam]'):] + '\n')
-            return
-        q = line[line.index('[qa]'):]
-        self.out.write(q + '\n')
-        self.last = time.time()
-        p = q.split()
-        if p[1] == 'M':
-            self.m, self.s, self.open_step, self.after_r = int(p[2]), None, False, None
-        elif p[1] == 'S':
-            self.m, self.s, self.open_step = int(p[2]), int(p[3]), True
-        elif p[1] == 'R':
-            self.open_step = False
-            self.after_r = int(p[3])
-        elif p[1] == 'E':
-            self.after_r = None
-        elif p[1] == 'DONE':
-            self.done = True
+    def lines(self):
+        try:
+            with self.logfile.open('rb') as f:
+                f.seek(self.pos)
+                data = f.read()
+        except FileNotFoundError:
+            return []
+        self.pos += len(data)
+        data = self.part + data
+        *out, self.part = data.split(b'\n')
+        return [x.decode('utf-8', 'replace').rstrip('\r') for x in out]
 
-    def failure(self, why: str):
-        """Record the failure where the sweep was and pick the resume point."""
-        tail = getattr(self, 'crashinfo', '') or ' | '.join(t.strip()[:120] for t in self.tail[-6:])
-        self.crashinfo = ''
-        if self.m is None:
-            key = ('boot', self.resume)
-            self.fail_streak[key] = self.fail_streak.get(key, 0) + 1
-            self.out.write(f'[qa] X boot {self.resume >> 5} {self.resume & 31} {why} :: {tail}\n')
-            if self.fail_streak[key] >= 2:
-                # The first match itself never got going: skip it.
-                self.out.write(f'[qa] X {self.resume >> 5} -1 LOAD{why} :: {tail}\n')
-                self.resume = ((self.resume >> 5) + 1) * 32
-        elif self.open_step:
-            self.out.write(f'[qa] X {self.m} {self.s} {why} :: {tail}\n')
-            self.resume = self.m * 32 + self.s + 1
-        elif self.after_r is not None:
-            self.out.write(f'[qa] X {self.m} {self.after_r + 1} PREP{why} :: {tail}\n')
-            self.resume = self.m * 32 + self.after_r + 2
-        else:
-            self.out.write(f'[qa] X {self.m} -1 LOAD{why} :: {tail}\n')
-            self.resume = (self.m + 1) * 32
-        self.out.flush()
-        if (self.resume >> 5) >= self.end:
-            self.done = True
+    def run(self):
+        while not self.stop:
+            try:
+                first, last = self.jobs.get_nowait()
+            except queue.Empty:
+                return
+            self.batch(first, last)
+            self.jobs.task_done()
 
-    def poll(self):
-        """Read output; returns False once this worker is finished."""
-        if self.done:
-            return False
-        if self.proc is None:
+    def batch(self, first: int, last: int):
+        out = (self.run_dir / 'logs' / f'm{first:03d}.log').open('w', encoding='utf-8')
+        resume = first * 32
+        m = s = after_r = None
+        open_step = False
+        boot_fails = 0
+        tail: list[str] = []
+        while not self.stop:
+            self.set_range(resume, last)
             self.launch()
-        r, _, _ = select.select([self.proc.stdout], [], [], 0.2)
-        if r:
-            chunk = os.read(self.proc.stdout.fileno(), 65536)
-            if chunk:
-                self.buf += chunk
-                *lines, self.buf = self.buf.split(b'\n')
-                for ln in lines:
-                    self.handle(ln.decode('utf-8', 'replace'))
-            elif self.proc.poll() is not None:
-                self.kill()
-                if self.done:
-                    return False
-                self.failure('EXIT')
-                return not self.done
-        if self.done:
+            t_last = t0 = time.time()
+            state = 'run'
+            while not self.stop:
+                time.sleep(0.25)
+                for ln in self.lines():
+                    tail = (tail + [ln])[-12:]
+                    if '[qa]' not in ln:
+                        if '[bam]' in ln:
+                            out.write(ln[ln.index('[bam]'):] + '\n')
+                        elif any(k in ln for k in ('Unhandled', 'exception', 'Invalid read', 'Invalid write',
+                                                   'OSPanic', 'PANIC', 'assert')):
+                            out.write('[dolphin] ' + ln.strip()[-300:] + '\n')
+                        continue
+                    q = ln[ln.index('[qa]'):]
+                    out.write(q + '\n')
+                    t_last = time.time()
+                    p = q.split()
+                    k = p[1] if len(p) > 1 else ''
+                    if k == 'M':
+                        m, s, open_step, after_r = int(p[2]), None, False, None
+                    elif k == 'S':
+                        m, s, open_step = int(p[2]), int(p[3]), True
+                    elif k == 'R':
+                        open_step, after_r = False, int(p[3])
+                    elif k == 'E':
+                        after_r = None
+                        self.progress(1)
+                    elif k == 'DONE':
+                        state = 'done'
+                if state == 'done':
+                    break
+                if self.proc.poll() is not None:
+                    state = 'EXIT'
+                    break
+                limit = self.timeout if m is not None else max(self.timeout, 120)
+                if time.time() - t_last > limit:
+                    crashed = any(k in t for t in tail for k in ('Invalid read', 'Invalid write', 'xception',
+                                                               'OSPanic', 'PANIC', 'FREEZE'))
+                    state = 'CRASH' if crashed else 'FREEZE'
+                    break
             self.kill()
-            self.out.flush()
-            return False
-        limit = self.timeout if self.m is not None else max(self.timeout, 90)
-        if time.time() - self.last > limit:
-            crash = bool(getattr(self, 'crashinfo', '')) or any(
-                k in t for t in self.tail for k in ('Invalid read', 'Invalid write', 'exception', 'Exception',
-                                                    'OSPanic', 'PANIC', 'Panic'))
-            self.kill()
-            self.failure('CRASH' if crash else 'FREEZE')
-        self.out.flush()
-        return not self.done
+            if state == 'done' or self.stop:
+                break
+            why = ' | '.join(t.strip()[-120:] for t in tail[-4:])
+            # Skip past what broke and relaunch.
+            if m is None:
+                boot_fails += 1
+                out.write(f'[qa] X boot {resume >> 5} {resume & 31} {state} :: {why}\n')
+                if boot_fails >= 2:
+                    out.write(f'[qa] X {resume >> 5} -1 LOAD{state} :: {why}\n')
+                    resume = ((resume >> 5) + 1) * 32
+                    self.progress(1)
+                    boot_fails = 0
+            elif open_step:
+                out.write(f'[qa] X {m} {s} {state} :: {why}\n')
+                resume = m * 32 + s + 1
+            elif after_r is not None:
+                out.write(f'[qa] X {m} {after_r + 1} PREP{state} :: {why}\n')
+                resume = m * 32 + after_r + 2
+            else:
+                out.write(f'[qa] X {m} -1 LOAD{state} :: {why}\n')
+                resume = (m + 1) * 32
+                self.progress(1)
+            out.flush()
+            m = s = after_r = None
+            open_step = False
+            if (resume >> 5) >= last:
+                break
+        out.close()
 
 
-def marker_offset_fresh(iso: Path) -> int:
-    # A worker ISO may carry a patched resume from an earlier run: reset it.
-    data = iso.open('rb')
-    off = None
-    chunk = 1 << 24
-    pos = 0
-    while True:
-        b = data.read(chunk + 12)
-        if not b:
-            break
-        i = b.find(MARKER)
-        while i >= 0:
-            if i + 12 <= len(b) and b[i + 8:i + 12] in (struct.pack('>I', 0xFFFF),) or (i + 12 <= len(b) and True):
-                cand = pos + i
-                tail = b[i + 4:i + 12]
-                if len(tail) == 8:
-                    r, e = struct.unpack('>II', tail)
-                    if r < 0x10000 and e <= 0xFFFF:
-                        if off is not None and off != cand:
-                            raise SystemExit(f'two resume markers in {iso}')
-                        off = cand
-            i = b.find(MARKER, i + 1)
-        pos += chunk
-        data.seek(pos)
-        if pos > 0x8000000:
-            break
-    data.close()
-    if off is None:
-        raise SystemExit('no resume marker in ' + str(iso))
-    return off
+# ---- commands ---------------------------------------------------------------
+
+def match_range(a) -> tuple[int, int]:
+    if a.pair:
+        def ck(name):
+            key = name.lower().replace(' ', '').replace('.', '').replace('&', 'and')
+            for i, c in enumerate(CHARS):
+                if c.lower().replace('&', 'and') == key or ALIASES.get(key) == c:
+                    return i
+            sys.exit(f'unknown character {name!r}; one of: {", ".join(CHARS)}')
+        r, d = (ck(x) for x in a.pair.split(':'))
+        if r == d:
+            return r, r + 1
+        n = NATIVE
+        for rr in range(NATIVE):
+            for dd in range(NATIVE):
+                if rr == dd or {rr, dd} == {18, 19}:
+                    continue
+                if (rr, dd) == (r, d):
+                    return n, n + 1
+                n += 1
+        sys.exit('that pair is not swept (Zelda and Sheik share moves)')
+    if a.matches:
+        lo, _, hi = a.matches.partition('-')
+        return int(lo), int(hi) if hi else int(lo) + 1
+    return 0, TOTAL_MATCHES
 
 
 def cmd_run(a):
-    global VIDEO
-    VIDEO = a.video
-    end = min(a.end, TOTAL_MATCHES)
-    n = a.workers
-    span = (end - a.start + n - 1) // n
-    ws = []
-    for i in range(n):
-        lo, hi = a.start + i * span, min(end, a.start + (i + 1) * span)
-        if lo < hi:
-            w = Worker(a.slot + i, lo, hi, a.tag, a.timeout)
-            if i == 0 and a.step:
-                w.resume = lo * 32 + a.step
-            ws.append(w)
+    dolphin = find_dolphin(a.dolphin)
+    if not a.no_build:
+        build_qa()
+    prepare_iso()
+    addr = resume_address()
+    smap = symbol_map()
+    first, last = match_range(a)
+    tag = a.tag or time.strftime('%Y%m%d-%H%M%S')
+    run = OUT / tag
+    if run.exists():
+        shutil.rmtree(run)
+    (run / 'logs').mkdir(parents=True)
+    jobs: queue.Queue = queue.Queue()
+    for lo in range(first, last, BATCH):
+        jobs.put((lo, min(last, lo + BATCH)))
+    total = last - first
+    workers = max(1, min(a.workers or max(1, (os.cpu_count() or 4) // 2), jobs.qsize()))
+    done = [0]
+    lock = threading.Lock()
+
+    def progress(n):
+        with lock:
+            done[0] += n
+
+    print(f'Sweep {tag}: matches {first}-{last - 1} on {workers} Dolphin instances ({dolphin.name})')
+    ws = [Worker(i, jobs, run, dolphin, a.timeout, addr, smap, progress) for i in range(workers)]
     t0 = time.time()
+    for w in ws:
+        w.start()
     try:
-        while any([w.poll() for w in ws]):
-            pass
-    finally:
+        while any(w.is_alive() for w in ws):
+            time.sleep(1)
+            el = time.time() - t0
+            d = min(done[0], total)
+            eta = (el / d * (total - d)) if d else 0
+            print(f'\r  {d}/{total} matches  {el / 60:5.1f} min elapsed  ~{eta / 60:5.1f} min left ', end='', flush=True)
+    except KeyboardInterrupt:
+        print('\nStopping...')
+        for w in ws:
+            w.stop = True
         for w in ws:
             w.kill()
-    print(f'sweep {a.tag} finished in {time.time() - t0:.0f}s')
+        raise SystemExit(1)
+    print(f'\nFinished in {(time.time() - t0) / 60:.1f} min.')
+    report(run)
 
 
-def cmd_report(a):
-    import collections
-    res = collections.Counter()
-    bad = []
-    for f in sorted((QA / a.tag).glob('w*.log')):
-        for ln in f.read_text().splitlines():
-            p = ln.split()
-            if len(p) > 2 and p[1] == 'R':
-                res[p[4]] += 1
-                if p[4] != 'OK':
-                    bad.append(ln)
-            elif len(p) > 2 and p[1] == 'X':
-                res['X'] += 1
-                bad.append(ln)
-    print(dict(res))
-    for b in bad[:200]:
-        print(b)
+def report(run: Path):
+    import analyze
+    rows, counts = analyze.analyze(run / 'logs')
+    bad = [r for r in rows if r[5] != 'OK']
+    lines = [f'Sweep {run.name}: {len(rows)} moves tested',
+             'results: ' + ', '.join(f'{k} {v}' for k, v in sorted(counts.items(), key=lambda kv: -kv[1])), '',
+             'OK       the move ran and its hitboxes match the donor\'s own (scaled)',
+             'HITBOX   hitboxes differ in size, place or damage from the donor\'s own',
+             'NOHIT    the dummy took no damage although the donor\'s own move hits it',
+             'NOMOVE   the move never started    STUCK  the move never ended',
+             'CRASH / FREEZE   the emulator crashed or hung on this move (skipped)', '']
+    for r in bad:
+        lines.append('%4d %2d %-10s %-10s %-9s %-8s %s' % r)
+    (run / 'report.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    import csv
+    with (run / 'results.csv').open('w', newline='', encoding='utf-8') as f:
+        w = csv.writer(f)
+        w.writerow(['match', 'step', 'recipient', 'donor', 'move', 'result', 'note'])
+        w.writerows(rows)
+    print('\n'.join(lines[:2]))
+    print(f'Report: {run / "report.txt"}')
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    sub = ap.add_subparsers(dest='cmd', required=True)
-    s = sub.add_parser('iso')
-    s.set_defaults(fn=lambda a: build_iso())
-    s = sub.add_parser('update')
-    s.set_defaults(fn=lambda a: update_isos())
-    s = sub.add_parser('run')
-    s.add_argument('--workers', type=int, default=2)
-    s.add_argument('--start', type=int, default=0)
-    s.add_argument('--end', type=int, default=TOTAL_MATCHES)
-    s.add_argument('--tag', default='sweep')
-    s.add_argument('--timeout', type=float, default=40)
-    s.add_argument('--slot', type=int, default=0, help='first worker number (own ISO and user dir)')
-    s.add_argument('--step', type=int, default=0, help='first step of the first match')
-    s.add_argument('--video', action='store_true', help='software renderer, every frame dumped as PNG')
-    s.set_defaults(fn=cmd_run)
-    s = sub.add_parser('report')
-    s.add_argument('--tag', default='sweep')
-    s.set_defaults(fn=cmd_report)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest='cmd')
+    r = sub.add_parser('report', help='re-run the analysis of an earlier sweep')
+    r.add_argument('tag')
+    for p in (ap,):
+        p.add_argument('--workers', type=int, default=0)
+        p.add_argument('--matches')
+        p.add_argument('--pair')
+        p.add_argument('--tag')
+        p.add_argument('--no-build', action='store_true')
+        p.add_argument('--timeout', type=float, default=45)
+        p.add_argument('--dolphin')
     a = ap.parse_args()
-    a.fn(a)
+    if a.cmd == 'report':
+        report(OUT / a.tag)
+    else:
+        cmd_run(a)
 
 
 if __name__ == '__main__':

@@ -103,22 +103,44 @@ class Trampolines:
         import struct
         return b''.join(struct.pack('>I', w) for w in self.words)
 
-    def inject(self, site: int, original: int, fn: int, args: Sequence[str], ret: Optional[str]) -> int:
-        """Emit a full trampoline; returns its entry address."""
-        if not ppc.is_displaceable(original):
-            raise ValueError(f'instruction at {site:#010x} ({original:#010x}) cannot be displaced; '
-                             'move the hook one instruction up or down')
-        entry = self.cursor
+    def _shared(self) -> None:
+        """Emit the save and restore bodies every trampoline calls (once)."""
+        if hasattr(self, 'save_at'):
+            return
         e = self.emit
-        e(ppc.stwu(1, -FRAME, 1))
-        e(ppc.stw(0, OFF_R0, 1))
+        # save: r3-r31, CR, CTR, XER, f0-f13 into the caller's frame. r0 and
+        # LR are already saved by the trampoline; r0 is scratch here.
+        self.save_at = self.cursor
         e(ppc.stmw(3, OFF_GPR, 1))
-        e(ppc.mflr(0)); e(ppc.stw(0, OFF_LR, 1))
         e(ppc.mfcr(0)); e(ppc.stw(0, OFF_CR, 1))
         e(ppc.mfctr(0)); e(ppc.stw(0, OFF_CTR, 1))
         e(ppc.mfxer(0)); e(ppc.stw(0, OFF_XER, 1))
         for i in range(14):
             e(ppc.stfd(i, OFF_FPR + i * 8, 1))
+        e(ppc.BLR)
+        # restore: the same registers back (the trampoline restores LR, r0).
+        self.restore_at = self.cursor
+        for i in range(14):
+            e(ppc.lfd(i, OFF_FPR + i * 8, 1))
+        e(ppc.lwz(0, OFF_XER, 1)); e(ppc.mtxer(0))
+        e(ppc.lwz(0, OFF_CTR, 1)); e(ppc.mtctr(0))
+        e(ppc.lwz(0, OFF_CR, 1)); e(ppc.mtcr(0))
+        e(ppc.lmw(3, OFF_GPR, 1))
+        e(ppc.BLR)
+
+    def inject(self, site: int, original: int, fn: int, args: Sequence[str], ret: Optional[str]) -> int:
+        """Emit a trampoline; returns its entry address. Saving and restoring
+        the registers is shared (`_shared`), so each hook costs ~20 words."""
+        if not ppc.is_displaceable(original):
+            raise ValueError(f'instruction at {site:#010x} ({original:#010x}) cannot be displaced; '
+                             'move the hook one instruction up or down')
+        self._shared()
+        entry = self.cursor
+        e = self.emit
+        e(ppc.stwu(1, -FRAME, 1))
+        e(ppc.stw(0, OFF_R0, 1))
+        e(ppc.mflr(0)); e(ppc.stw(0, OFF_LR, 1))
+        e(ppc.bl(self.cursor, self.save_at))
         # Arguments: r3.. <- selected saved registers.
         if len(args) > 8:
             raise ValueError('at most 8 register arguments')
@@ -145,13 +167,8 @@ class Trampolines:
             if not m:
                 raise ValueError(f'bad ret register {ret!r}')
             e(ppc.stw(3, gpr_slot(int(m.group(1))), 1))
-        for i in range(14):
-            e(ppc.lfd(i, OFF_FPR + i * 8, 1))
-        e(ppc.lwz(0, OFF_XER, 1)); e(ppc.mtxer(0))
-        e(ppc.lwz(0, OFF_CTR, 1)); e(ppc.mtctr(0))
-        e(ppc.lwz(0, OFF_CR, 1)); e(ppc.mtcr(0))
+        e(ppc.bl(self.cursor, self.restore_at))
         e(ppc.lwz(0, OFF_LR, 1)); e(ppc.mtlr(0))
-        e(ppc.lmw(3, OFF_GPR, 1))
         e(ppc.lwz(0, OFF_R0, 1))
         e(ppc.addi(1, 1, FRAME))
         # Displaced original instruction.

@@ -2,7 +2,8 @@
 # Clean NTSC-U 1.02 image (never modified). Or drop it in .iso/.
 melee_iso = "C:/Users/you/Melee/GALE01.iso"
 # Decomp checkout with compilers (default .cache/melee, created by `bam.py fetch`).
-# You can point at an existing rogueMelee-v2 checkout instead:
-# decomp = "C:/Users/you/Desktop/rogueMelee-v2/.cache/deps/melee"
+# decomp = "C:/Users/you/melee"
 # Slippi Dolphin, for `bam.py run`.
 dolphin = "C:/Users/you/AppData/Roaming/Slippi Launcher/netplay/Slippi Dolphin.exe"
+# Stock Dolphin (not Slippi) for the automated move sweep (docs/QA.md).
+# qa_dolphin = "C:/Dolphin-x64/DolphinNoGUI.exe"

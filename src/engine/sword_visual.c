@@ -17,9 +17,9 @@
 #include <sysdolphin/baselib/jobj.h>
 #include <sysdolphin/baselib/mtx.h>
 
-/* ---- per-match state (vendor_engine.py) ----
- * These were file-level statics upstream. They live in a match-heap block
- * so Slippi rollback restores them; the pointer is set once per match. */
+/* ---- per-match state ----
+ * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
+ * restores it; the pointer is set once per match. */
 #define WEAPON_ITEMS 3
 #define DONOR_JOINTS 192
 #define DONOR_MESHES 16
@@ -150,7 +150,7 @@ bool Rogue_VisSet(HSD_GObj* gobj, int group, int val)
      * to this fighter it would hide parts of its own body (the borrower
      * went invisible). Drop it: the borrower keeps its own look. */
     if (!vis_donor(source, group) || group >= VIS_GROUPS) {
-        OSReport("[bam] vis_drop kind=%u group=%d variant=%d\n", source, group, val);
+        BAM_LOG("vis_drop kind=%u group=%d variant=%d\n", source, group, val);
         return true;
     }
     slot = slot_of(fp);
@@ -161,7 +161,7 @@ bool Rogue_VisSet(HSD_GObj* gobj, int group, int val)
     }
     donor_vis[slot][group] = (signed char) val;
     /* Diagnostics: Mr. Game & Watch's box, key and horn not showing. */
-    OSReport("[bam] vis_set kind=%u group=%d variant=%d frame=%d\n", source, group, val, (int) fp->cur_anim_frame);
+    BAM_LOG("vis_set kind=%u group=%d variant=%d frame=%d\n", source, group, val, (int) fp->cur_anim_frame);
     return true;
 }
 /* The variant DObjs (full-detail set) of one of the donor's groups. */
@@ -264,7 +264,7 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
     if ((!count && !vis_donor(kind, -1)) || kind >= Ft_Kind_Max) return NULL;
     desc = CostumeListsForeachCharacter[kind].costume_list[0].joint;
     if (!desc) {
-        OSReport("[bam] donor_model kind=%u not loaded\n", kind);
+        BAM_LOG("donor_model kind=%u not loaded\n", kind);
         return NULL;
     }
     ftPartsPObjSetDefaultClass();
@@ -287,7 +287,7 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
                 }
         }
     }
-    OSReport("[bam] donor_model kind=%u joints=%u meshes=%u of %u\n", kind, m->joints, m->meshes, count);
+    BAM_LOG("donor_model kind=%u joints=%u meshes=%u of %u\n", kind, m->joints, m->meshes, count);
     return m;
 }
 /* A donor whose moves draw part of its model (a tail, a sword, Mr. Game &
@@ -307,7 +307,7 @@ void Rogue_DonorModelPreload(unsigned kind)
     if (ftData_803C2360[kind] && ftData_803C2360[kind][0].dat_filename &&
         lbDvd_8001819C(ftData_803C2360[kind][0].dat_filename)) {
         ftData_80085820(kind, 0);
-        OSReport("[bam] donor_model_load kind=%u (cached)\n", kind);
+        BAM_LOG("donor_model_load kind=%u (cached)\n", kind);
         return;
     }
     model_wanted[kind] = 1;
@@ -337,7 +337,7 @@ static int model_into_cache(unsigned kind, const Fighter_CostumeStrings* cs)
         c->x14_archive = NULL;
         return 0;
     }
-    OSReport("[bam] donor_model_load kind=%u %u KB in cache\n", kind, size / 1024);
+    BAM_LOG("donor_model_load kind=%u %u KB in cache\n", kind, size / 1024);
     return 1;
 }
 
@@ -355,11 +355,11 @@ void Rogue_DonorModelsLoad(void)
         size = (unsigned) lbFileGetSize(ftData_803C2360[kind][0].dat_filename);
         room = Bam_HeapRoom();
         if (room < size + BAM_HEAP_FLOOR) {
-            OSReport("[bam] donor_model_load kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
+            BAM_LOG("donor_model_load kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
             continue;
         }
         ftData_80085820(kind, 0);
-        OSReport("[bam] donor_model_load kind=%u %u KB\n", kind, size / 1024);
+        BAM_LOG("donor_model_load kind=%u %u KB\n", kind, size / 1024);
     }
 }
 
@@ -383,7 +383,7 @@ static bool vis_show(DonorModel* m, int slot, unsigned kind)
         if (v->kind != kind) continue;
         if (!(lookup = vis_lookup(kind, v->group))) {
             static unsigned char told;
-            if (!told) OSReport("[bam] vis_show kind=%u group=%d no lookup\n", kind, v->group);
+            if (!told) BAM_LOG("vis_show kind=%u group=%d no lookup\n", kind, v->group);
             told = 1;
             continue;
         }

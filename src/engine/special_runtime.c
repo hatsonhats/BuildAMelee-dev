@@ -44,12 +44,11 @@ void Rogue_AbilityCleanup(Fighter* fp)
 
     source = Rogue_AbilitySourceKind(fp);
     slot = S->active ? S->active->native_slot : ROGUE_ABILITY_SLOTS;
-    /* trace removed */
 #if BAM_DEBUG || 0
     if (S->normal_on)
-        OSReport("[bam] normal_restore slot=%d donor=%u match=%u\n", S->normal_slot, S->normal_donor, S->match_generation);
+        BAM_LOG("normal_restore slot=%d donor=%u match=%u\n", S->normal_slot, S->normal_donor, S->match_generation);
     else
-        OSReport("[bam] %s_restore id=%u match=%u\n", S->active ? "special" : "aerial", S->active ? S->active->id : S->aerial->id, S->match_generation);
+        BAM_LOG("%s_restore id=%u match=%u\n", S->active ? "special" : "aerial", S->active ? S->active->id : S->aerial->id, S->match_generation);
 #endif
 
     /*
@@ -195,10 +194,8 @@ void Rogue_AbilityFighterDestroyed(Fighter* fp)
     Rogue_SwordRelease(fp);
     Rogue_AbilityCleanup(fp);
     Rogue_AerialRelease(S);
-    /* match accounting removed */
-    /* trace removed */
 #if BAM_DEBUG
-    OSReport("[bam] fighter_context_destroy kind=%u match=%u\n", fp->kind, S->match_generation);
+    BAM_LOG("fighter_context_destroy kind=%u match=%u\n", fp->kind, S->match_generation);
 #endif
     memset(S, 0, sizeof(*S));
 }
@@ -242,9 +239,8 @@ void Rogue_AbilityTransformed(Fighter* src, Fighter* dst)
     /* Both native forms already exist; all borrowed assets and persistent
      * charge data belong to the borrower and survive the entity swap. */
     S->fighter = dst;
-    /* trace removed */
 #if BAM_DEBUG
-    OSReport("[bam] fighter_transform from=%u to=%u match=%u\n",src->kind,dst->kind,bam_match->generation);
+    BAM_LOG("fighter_transform from=%u to=%u match=%u\n",src->kind,dst->kind,bam_match->generation);
 #endif
 }
 
@@ -270,9 +266,8 @@ MotionState* Rogue_AbilityMotionState(Fighter* fp, int motion)
         Rogue_AbilityCleanup(fp);
         return NULL;
     }
-    /* trace removed */
 #if BAM_DEBUG || 0
-    OSReport("[bam] donor_motion id=%u motion=%d anim=%p\n", def->id, motion, def->states[motion-ftCo_MS_Count].anim_cb);
+    BAM_LOG("donor_motion id=%u motion=%d anim=%p\n", def->id, motion, def->states[motion-ftCo_MS_Count].anim_cb);
 #endif
     return &def->states[motion - ftCo_MS_Count];
 }
@@ -356,7 +351,7 @@ int Rogue_AbilityMapBone(Fighter* fp, int bone)
         part = from->joint_to_part[bone];
     mapped = Rogue_AbilityFallbackJoint(fp, part);
 #if BAM_DEBUG
-    OSReport("[bam] bone_fallback donor=%u bone=%d part=%d recipient=%u joint=%d\n",
+    BAM_LOG("bone_fallback donor=%u bone=%d part=%d recipient=%u joint=%d\n",
         source, bone, part, fp->kind, mapped);
 #endif
     if (S->fallback_count < sizeof(S->fallback_bone) / sizeof(S->fallback_bone[0])) {
@@ -457,14 +452,6 @@ int Rogue_AbilityPartIndex(Fighter* fp, int part)
     if (Rogue_IsBuildFighter(fp) && ((unsigned) index >= ftPartsTable[fp->kind]->parts_num || !fp->parts[index].joint))
         return Rogue_AbilityFallbackJoint(fp, part);
     return index;
-}
-
-int Rogue_AbilityDebugRestored(Fighter* fp)
-{
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
-    return fp && S->fighter == fp && !S->active && !S->aerial && !S->normal_on &&
-        fp->dat_attrs == S->native_attrs && fp->x24 == S->native_anims &&
-        fp->x28 == S->native_anim_flags && fp->x58C == S->native_anim_count;
 }
 
 /* A joint two effects name by the donor's joint number (efsync.c 0x501,

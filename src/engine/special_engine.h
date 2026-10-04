@@ -47,12 +47,9 @@ const RogueAbilityDefinition* Rogue_GetAbility(RogueAbilityID id);
 void Rogue_AbilityFighterCreated(Fighter* fp);
 void Rogue_AbilityFighterDestroyed(Fighter* fp);
 void Rogue_AbilityMatchEnd(void);
-/* Borrowed specials the run player lost to the practice memory check. */
-unsigned Rogue_AbilitySkippedDonors(void);
 void Rogue_AbilityTransformed(Fighter* src, Fighter* dst);
 Fighter_GObj* Rogue_AbilityClimberPartner(Fighter* fp);
 void Rogue_AbilityCleanup(Fighter* fp);
-int Rogue_AbilityDebugRestored(Fighter* fp);
 MotionState* Rogue_AbilityMotionState(Fighter* fp, int motion);
 bool Rogue_TrySpecial(Fighter_GObj* gobj, RogueAbilitySlot slot, bool airborne);
 /* Whether Rogue_TrySpecial would succeed for this slot. Lets a fighter with
@@ -94,7 +91,6 @@ void Rogue_SliceRead(int file, unsigned offset, void* dst, unsigned bytes);
 void Rogue_SliceFree(void* p);
 /* Effects file for a borrowed move (donor_trim.c). */
 int Rogue_LoadDonorEffects(int kind);
-unsigned Rogue_DonorEffectsSize(int kind);
 /* Preload-cache blocks for borrowed-move data (bam_cache.c).
  * ram: 1 main RAM, 0 ARAM. */
 void* BamCache_Alloc(int ram, u32 size);
@@ -131,7 +127,6 @@ ftData* Rogue_AbilityData(Fighter* fp);
 union Fighter_FighterVars;
 union Fighter_FighterVars* Rogue_AbilityVars(Fighter* fp, FighterKind family);
 bool Rogue_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish);
-RogueAbilityID Rogue_AbilityForOpponent(CharacterKind opponent, RogueAbilitySlot slot);
 FighterKind Rogue_InternalKindForCharacter(CharacterKind character);
 
 void Rogue_AerialPrepare(Fighter* fp);

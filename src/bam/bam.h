@@ -14,6 +14,7 @@
 #define BAM_H
 
 #include <dolphin/types.h>
+#include <dolphin/os.h>
 
 #ifndef BAM_OVERLAY_BASE
 #define BAM_OVERLAY_BASE 0x80BD5C40
@@ -34,10 +35,15 @@ extern int bam_online_notice;
 #define BAM_BUILD_ID "local"
 #endif
 
+/* Release builds (BAM_DEBUG 0) log only BAM_NOTE: crashes and freezes,
+ * moves dropped for memory, the online build exchange, replays and the
+ * version. `bam.py build --debug` (and QA builds) add the BAM_LOG detail
+ * and the internal consistency checks. */
 #ifndef BAM_DEBUG
-#define BAM_DEBUG 1
+#define BAM_DEBUG 0
 #endif
 
+#define BAM_NOTE(...) OSReport("[bam] " __VA_ARGS__)
 #if BAM_DEBUG
 #define BAM_LOG(...) OSReport("[bam] " __VA_ARGS__)
 #else

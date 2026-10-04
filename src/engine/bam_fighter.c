@@ -16,16 +16,6 @@ static unsigned fighter_ext_offset;
 
 void Bam_LoadoutClear(BamLoadout* l) { memset(l, 0, sizeof(*l)); }
 
-int Bam_LoadoutIsNative(const BamLoadout* l)
-{
-    unsigned i;
-    if (!l->enabled) return 1;
-    for (i = 0; i < BAM_SPECIAL_SLOTS; ++i) if (l->specials[i]) return 0;
-    for (i = 0; i < BAM_AERIAL_SLOTS; ++i) if (l->aerials[i]) return 0;
-    for (i = 0; i < BAM_NORMAL_SLOTS; ++i) if (l->normals[i]) return 0;
-    return 1;
-}
-
 static int climber_or_main(const Fighter* fp)
 {
     return !fp->is_sub_fighter || fp->kind == Ft_Kind_Nana;
@@ -43,8 +33,6 @@ int Bam_FighterIndex(const Fighter* fp)
     return (int) fp->player_id * 2 + (fp->is_sub_fighter ? 1 : 0);
 }
 
-int Bam_Active(void) { return bam_match != NULL; }
-
 unsigned Rogue_EquippedSpecial(const Fighter* fp, unsigned slot)
 {
     RogueFighterState* S = Rogue_FighterCtx(fp);
@@ -57,13 +45,6 @@ unsigned Rogue_EquippedAerial(const Fighter* fp, unsigned slot)
     RogueFighterState* S = Rogue_FighterCtx(fp);
     if (S->fighter != fp || slot >= BAM_AERIAL_SLOTS) return 0;
     return S->aerials[slot];
-}
-
-unsigned Rogue_EquippedNormal(const Fighter* fp, unsigned slot)
-{
-    RogueFighterState* S = Rogue_FighterCtx(fp);
-    if (S->fighter != fp || slot >= BAM_NORMAL_SLOTS) return 0;
-    return S->normals[slot];
 }
 
 void Rogue_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id)
@@ -141,13 +122,6 @@ void Bam_OnSceneExit(void)
     BamCache_SceneExit();
 }
 
-/* inject at Fighter_procPhys entry: per-fighter per-frame upkeep. */
-void Bam_FighterFrame(Fighter_GObj* gobj)
-{
-    if (!bam_match) return;
-    Rogue_AbilityFighterFrame(GET_FIGHTER(gobj));
-}
-
 /* Largest block the current (match) heap can still give, in 16 KB steps. */
 unsigned Bam_HeapRoom(void)
 {
@@ -164,15 +138,21 @@ unsigned Bam_HeapRoom(void)
 void lbHeap_80015DF8(void);
 void Bam_LogHeapTable(void)
 {
+#if BAM_DEBUG
     lbHeap_80015DF8();
+#endif
 }
 
 void Bam_LogHeapRoom(const char* where)
 {
+#if BAM_DEBUG
     unsigned t1, l1;
     Bam_LbHeapRoom(1, &t1, &l1);
-    OSReport("[bam] heap room %s: %u KB (cache main %u KB, cache ARAM %u KB, ARAM heap %u KB)\n",
+    BAM_LOG("heap room %s: %u KB (cache main %u KB, cache ARAM %u KB, ARAM heap %u KB)\n",
              where, Bam_HeapRoom() / 1024, BamCache_Room(1) / 1024, BamCache_Room(0) / 1024, l1 / 1024);
+#else
+    (void) where;
+#endif
 }
 
 /* Whether a donor can be loaded at all. What a borrowed move's donor costs:
@@ -195,7 +175,7 @@ int Rogue_DonorFits(int kind)
     if (gFtDataList[kind] || BamCache_Room(1) >= 0x20000) return 1;
     room = Bam_HeapRoom();
     if (room >= BAM_HEAP_FLOOR + 0x20000) return 1;
-    OSReport("[bam] donor kind=%d does not fit (%u KB free, cache %u KB)\n", kind, room / 1024,
+    BAM_NOTE("donor kind=%d does not fit (%u KB free, cache %u KB)\n", kind, room / 1024,
              BamCache_Room(1) / 1024);
     return 0;
 }

@@ -1,7 +1,7 @@
 /* BuildAMelee fighter identity, loadouts and per-match state.
  *
- * Replaces rogueMelee's run/director/play-context plumbing for the borrowed
- * move engine (special_engine.h). A loadout is assigned per player slot
+ * Glue between the borrowed-move engine (special_engine.h) and the game. A
+ * loadout is assigned per player slot
  * before a match; every fighter in that slot (Popo and Nana both) borrows.
  *
  * Memory rules (docs/ARCHITECTURE.md): the overlay is outside Slippi's
@@ -46,12 +46,10 @@ typedef struct BamLoadout {
  * only once a match runs: Fighter_Create copies it into match-heap state. */
 extern BamLoadout bam_loadouts[BAM_PLAYER_SLOTS];
 void Bam_LoadoutClear(BamLoadout* l);
-int Bam_LoadoutIsNative(const BamLoadout* l);
 
 /* Identity. */
 bool Rogue_IsBuildFighter(const Fighter* fp);   /* slot has an enabled loadout */
 int Bam_FighterIndex(const Fighter* fp);        /* 0..BAM_FIGHTERS-1 or -1 */
-int Bam_Active(void);                           /* a match with build fighters is loaded */
 
 /* The fighter's own kit (match-heap copy of the loadout; Zelda/Sheik's
  * transform rewrites it, so it is per fighter and rolled back). */
@@ -60,7 +58,6 @@ unsigned Rogue_EquippedAerial(const Fighter* fp, unsigned slot);
 void Rogue_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id);
 /* The donor (FighterKind + 1) of a ground attack or throw slot whose data
  * loaded for this match, 0 when the fighter uses its own move. */
-unsigned Rogue_EquippedNormal(const Fighter* fp, unsigned slot);
 
 /* Fighter-struct extension: one pointer appended past whatever size the
  * allocator was given (retail 0x23EC, Slippi 0x2600). */
@@ -79,9 +76,8 @@ void Bam_MatchEnd(void);       /* scene exit */
 void RogueFighter_Created(Fighter* fp);
 void Bam_OnSceneEnter(void* info);
 void Bam_OnSceneExit(void);
-void Bam_FighterFrame(Fighter_GObj* gobj);
 
-/* Memory probe kept from upstream; always fits outside Training Mode. */
+/* Whether a donor can be loaded at all (bam_fighter.c). */
 int Rogue_DonorFits(int kind);
 unsigned Bam_HeapRoom(void);
 void Bam_LogHeapRoom(const char* where);

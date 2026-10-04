@@ -13,8 +13,7 @@ bool Rogue_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)
     next_kind = old_kind == Ft_Kind_Zelda ? Ft_Kind_Seak : Ft_Kind_Zelda;
     next = Rogue_GetAbility(1 + next_kind * 4 + ROGUE_ABILITY_DOWN);
     if (!next || !S->loaded_sources[next_kind]) return false;
-    /* Transform the borrowed kit while retaining the player's base fighter.
-     * Only the run player's own kit is rewritten; the mirror borrows it. */
+    /* Transform the borrowed kit while retaining the player's base fighter. */
     for (slot = 0; slot < 4; ++slot) {
         const RogueAbilityDefinition* equipped = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
         if (equipped && equipped->internal_kind == old_kind)
@@ -29,7 +28,7 @@ bool Rogue_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)
     fp->x58C = ftData_Table_Unk0[next_kind].count;
     finish(gobj);
 #if BAM_DEBUG
-    OSReport("[bam] borrowed_transform from=%u to=%u recipient=%u match=%u\n",old_kind,next_kind,fp->kind,S->match_generation);
+    BAM_LOG("borrowed_transform from=%u to=%u recipient=%u match=%u\n",old_kind,next_kind,fp->kind,S->match_generation);
 #endif
     return true;
 }

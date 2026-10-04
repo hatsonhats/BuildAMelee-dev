@@ -27,7 +27,7 @@ static void check(OSAlarm* a, OSContext* ctx)
     }
     if (++still < 3 || reported) return;
     reported = 1;
-    OSReport("[bam] FREEZE: no frame for %u s. pc=%08x lr=%08x sp=%08x r3=%08x r4=%08x r5=%08x\n",
+    BAM_NOTE("FREEZE: no frame for %u s. pc=%08x lr=%08x sp=%08x r3=%08x r4=%08x r5=%08x\n",
              (unsigned) still, (unsigned) ctx->srr0, (unsigned) ctx->lr, (unsigned) ctx->gpr[1],
              (unsigned) ctx->gpr[3], (unsigned) ctx->gpr[4], (unsigned) ctx->gpr[5]);
     {
@@ -36,7 +36,7 @@ static void check(OSAlarm* a, OSContext* ctx)
         for (i = 0; i < 16 && ram_ptr(sp); ++i) {
             u32 back = *(u32*) sp;
             if (!ram_ptr(back) || back <= sp) break;
-            OSReport("[bam] FREEZE: caller %d %08x\n", i, (unsigned) *(u32*) (back + 4));
+            BAM_NOTE("FREEZE: caller %d %08x\n", i, (unsigned) *(u32*) (back + 4));
             sp = back;
         }
     }

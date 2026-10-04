@@ -3,9 +3,9 @@
 #include <melee/ft/ftanim.h>
 #include <melee/ft/ftcommon.h>
 
-/* ---- per-match state (vendor_engine.py) ----
- * These were file-level statics upstream. They live in a match-heap block
- * so Slippi rollback restores them; the pointer is set once per match. */
+/* ---- per-match state ----
+ * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
+ * restores it; the pointer is set once per match. */
 typedef struct RestSleepState {
     Fighter* sleepers[BAM_FIGHTERS];
 } RestSleepState;

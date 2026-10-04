@@ -126,7 +126,7 @@ FighterKind Rogue_NormalBegin(Fighter_GObj* gobj, int slot)
     S->normal_donor = (unsigned char) donor;
     S->normal_fresh = true;
 #if BAM_DEBUG
-    OSReport("[bam] normal_enter slot=%d donor=%u recipient=%u match=%u\n", slot, donor, fp->kind,
+    BAM_LOG("normal_enter slot=%d donor=%u recipient=%u match=%u\n", slot, donor, fp->kind,
              S->match_generation);
 #endif
     return (FighterKind) donor;
@@ -195,17 +195,17 @@ void Rogue_NormalPrepare(Fighter* fp)
         donor = Rogue_InternalKindForCharacter((CharacterKind) (ck - 1));
         if (donor >= Ft_Kind_Max || donor == fp->kind) continue;
         if (!Rogue_DonorEnsure(S, donor)) {
-            OSReport("[bam] normal_skipped slot=%d kind=%u (out of memory)\n", slot, donor);
+            BAM_NOTE("normal_skipped slot=%d kind=%u (out of memory)\n", slot, donor);
             continue;
         }
         n = family_anims(fp, slot, donor, anims);
         if (!Rogue_DonorReadAnims(S, donor, anims, n, "normal_slices")) {
-            OSReport("[bam] normal_skipped slot=%d kind=%u (no memory for animations)\n", slot, donor);
+            BAM_NOTE("normal_skipped slot=%d kind=%u (no memory for animations)\n", slot, donor);
             continue;
         }
         S->normals[slot] = (unsigned char) (donor + 1);
 #if BAM_DEBUG
-        OSReport("[bam] normal_ready slot=%d donor=%u recipient=%u\n", slot, donor, fp->kind);
+        BAM_LOG("normal_ready slot=%d donor=%u recipient=%u\n", slot, donor, fp->kind);
 #endif
     }
 }

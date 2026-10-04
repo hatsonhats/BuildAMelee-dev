@@ -5,7 +5,7 @@ name = "BuildAMelee"
 # The release version. Players see it on the character select screen, and
 # online play only exchanges builds between identical builds of the same
 # version (tools/bam.py release bumps it).
-version = "1.3.3"
+version = "1.3.4"
 
 [overlay]
 # The overlay sits at the very top of the arena, which the apploader sets to
@@ -30,8 +30,7 @@ compiler = "Wii/1.7"
 cflags = []
 
 [defines]
-BAM_DEBUG = 1
-BAM_TEST_LOADOUT = 0
+BAM_DEBUG = 0             # bam.py build --debug for the detailed log
 BAM_ENABLE_AERIALS = 1
 
 [slippi]
@@ -271,7 +270,7 @@ owners = ["platform/specials", "platform/aerials"]
 strip_unchanged = true
 compiler = "Wii/1.7"
 extra_cflags = ["-lang", "c99"]
-prepend = "#include <melee/rogue/platform/melee/specials/special_engine.h>"
+prepend = "#include <engine/special_engine.h>"
 # Slippi Recording injects at Fighter_Create+0x54: never replace it; the
 # engine's creation hook runs from the fighter-created inject instead.
 # Slippi also injects into these bodies; their edits move to hooks or drop:

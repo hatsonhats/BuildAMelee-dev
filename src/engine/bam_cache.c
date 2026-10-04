@@ -133,7 +133,7 @@ static void arena_open(Arena* a, int heap, u32 cap)
     a->size = size;
     a->lo = a->base;
     a->hi = a->base + size;
-    OSReport("[bam] cache arena heap=%d %u KB at %08x (free was %u KB, largest %u KB)\n", heap, size / 1024,
+    BAM_LOG("cache arena heap=%d %u KB at %08x (free was %u KB, largest %u KB)\n", heap, size / 1024,
              (unsigned) a->base, total / 1024, largest / 1024);
 }
 
@@ -144,10 +144,10 @@ static void release_all(void)
         Arena* a = &arenas[i];
         if (!a->heap) continue;
         if (a->rec->lo != a->base)
-            OSReport("[bam] cache arena heap=%d moved %08x -> %08x\n", a->heap, (unsigned) a->base,
+            BAM_LOG("cache arena heap=%d moved %08x -> %08x\n", a->heap, (unsigned) a->base,
                      (unsigned) a->rec->lo);
         lbHeap_80015CA8(a->heap, (void*) a->rec->lo);
-        OSReport("[bam] cache arena heap=%d used %u of %u KB, released\n", a->heap,
+        BAM_LOG("cache arena heap=%d used %u of %u KB, released\n", a->heap,
                  (a->lo - a->base) / 1024, a->size / 1024);
         memset(a, 0, sizeof(*a));
     }
@@ -173,11 +173,11 @@ static void ensure_open(void)
         while (!preloader_idle() && (u32) ((OSGetTime() - start) / ticks_ms) < 1500) {}
     }
     if (!preloader_idle()) {
-        OSReport("[bam] cache arena: preloader busy, using the match heap\n");
+        BAM_LOG("cache arena: preloader busy, using the match heap\n");
         return;
     }
     if (free_records() < 16) {
-        OSReport("[bam] cache arena: lbMemory has %d records left, using the match heap\n", free_records());
+        BAM_LOG("cache arena: lbMemory has %d records left, using the match heap\n", free_records());
         return;
     }
     arena_open(&arenas[0], 4, 0x400000);
