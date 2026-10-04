@@ -35,6 +35,7 @@ def load(logdir):
     scale = {}
     mscale = {}           # (m, s) -> port 1 model scale
     crashes = {}          # (m, s) -> text
+    reach = {}            # (m, s) -> closest approach of port 1's hitboxes to the dummy
     for f in sorted(Path(logdir).glob('*.log')):
         for ln in f.read_text(errors='replace').splitlines():
             p = ln.split()
@@ -62,6 +63,8 @@ def load(logdir):
                     hits[(int(p[2]), int(p[3]))] = []
                     if len(p) > 7:
                         mscale[(int(p[2]), int(p[3]))] = float(p[7])
+                elif k == 'C':
+                    reach[(int(p[2]), int(p[3]))] = float(p[4])
                 elif k == 'B':
                     scale[(int(p[2]), int(p[3]))] = float(p[4])
                 elif k == 'X':
@@ -71,7 +74,7 @@ def load(logdir):
                     crashes[(m, s)] = ' '.join(p[4:])
             except (ValueError, IndexError):
                 pass
-    return matches, res, hits, scale, crashes, mscale
+    return matches, res, hits, scale, crashes, mscale, reach
 
 
 def special_table():
@@ -187,7 +190,7 @@ def compare(nat, bor, s, world, body):
 
 def analyze(logdir):
     """[(match, step, recipient, donor, move, result, note)], Counter of results."""
-    matches, res, hits, scale, crashes, mscale = load(logdir)
+    matches, res, hits, scale, crashes, mscale, reach = load(logdir)
     counts = collections.Counter()
     rows = []
     for m, (R, D, n) in sorted(matches.items()):
@@ -215,8 +218,20 @@ def analyze(logdir):
                     note = '; '.join(probs[:4])
             if D >= 0 and r and r['res'] == 'OK' and (donor, s) in res and res[(donor, s)]['res'] == 'OK':
                 if r['dmg'] == 0 and res[(donor, s)]['dmg'] > 0 and status == 'OK':
-                    status = 'NOHIT'
-                    note = f"dummy took 0% (donor's own move: {res[(donor, s)]['dmg']}%)"
+                    # Its hitboxes never touched the dummy: spacing, not a
+                    # broken move (REACH). Touched it and no damage: NOHIT.
+                    # Unmeasured (only a projectile's or item's hitboxes):
+                    # NOHIT, to look at.
+                    gap, own = reach.get(key), reach.get((donor, s))
+                    own_txt = f'; donor\'s own: {own:.1f}' if own is not None else ''
+                    if gap is not None and gap > 0:
+                        status = 'REACH'
+                        note = f"hitboxes stayed {gap:.1f} short of the dummy{own_txt}"
+                    else:
+                        status = 'NOHIT'
+                        note = f"dummy took 0% (donor's own move: {res[(donor, s)]['dmg']}%)"
+                        note += f'; hitboxes overlapped it by {-gap:.1f}' if gap is not None else \
+                            '; no fighter hitboxes measured (projectile or item?)'
             counts[status] += 1
             rows.append((m, s, CK[R], CK[D] if D >= 0 else '-', name, status, note))
     return rows, counts

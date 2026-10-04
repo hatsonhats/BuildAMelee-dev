@@ -55,7 +55,8 @@ includes the native matches (0-25) checks more than `--pair` alone.
 |---|---|
 | OK | The move ran and its hitboxes match the donor's own, scaled |
 | HITBOX | Hitboxes differ in size, place or damage from the donor's own |
-| NOHIT | The dummy took no damage although the donor's own move hits it (often harmless: a move that whiffs from that spacing) |
+| NOHIT | The move's hitboxes touched the dummy and dealt no damage, although the donor's own move hits it (or the move only hits with a projectile or item, which is not measured) |
+| REACH | The dummy took no damage because the move's hitboxes never touched it: spacing, not a broken move (informational; the note says how far short, and how far the donor's own move got) |
 | VARIANT | The move ran in another of its states than the donor's own, e.g. Ice Climbers' Squall Hammer without Nana (informational) |
 | NOMOVE | The move never started |
 | STUCK | The move never ended |
@@ -72,9 +73,13 @@ includes the native matches (0-25) checks more than `--pair` alone.
   - Per step: both fighters made idle and placed, the move's inputs played
     (tilts at half stick, smashes on the C-stick, throws after a grab,
     aerials from a full hop), then wait for port 1 to stand again.
+  - Every frame of a step, the closest approach of port 1's hitboxes to the
+    dummy's hurtboxes is measured (the capsules the game tests), which tells
+    REACH from NOHIT.
   - Log lines: `M` match, `S` step start, `H` every active hitbox every frame
     (position relative to the fighter and to its body part, size, damage),
-    `B` borrow scale, `G` effects spawned, `R` result, `E` match end.
+    `B` borrow scale, `C` closest approach to the dummy, `G` effects spawned,
+    `R` result, `E` match end.
 - `qa.toml`: QA-only hooks, the full debug log, and a larger overlay.
 - `tools/qa/sweep.py`: the runner. Each worker has its own Dolphin user folder
   (`build-qa/sweep/<tag>/users/`) with fast settings (unthrottled, no video, no

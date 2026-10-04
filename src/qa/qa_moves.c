@@ -21,6 +21,7 @@
  *   [qa] S m s                    step start (heartbeat for the watchdog)
  *   [qa] H m s f ms i r x y dmg   a hitbox appeared (rel. to fighter, facing right)
  *   [qa] B m s scale              port 1 borrowing during the step
+ *   [qa] C m s gap                closest approach of its hitboxes to the dummy
  *   [qa] R m s res frames bor dmg ms0 ms1 ms2 ms3
  *   [qa] E m                      match done
  * The sweep starts at qa_resume (match * 32 + step), patched into the ISO by
@@ -460,12 +461,74 @@ static const char* result_name(int r)
     return n[r];
 }
 
+
+/* Closest approach of port 1's hitboxes to the dummy's hurtboxes this step:
+ * the gap between the capsules (negative: they overlapped). Tells a move
+ * that never reached the dummy (REACH) from one that touched it and dealt
+ * no damage (NOHIT). Hitboxes sweep from last frame's place (x58) to this
+ * frame's (x4C), as the game tests them. */
+#define NO_REACH 1e9f
+static float reach_gap;
+
+static float seg_seg(const Vec3* p1, const Vec3* q1, const Vec3* p2, const Vec3* q2)
+{
+    Vec3 d1, d2, r, a, b;
+    float aa, ee, ff, cc, bb, den, t, u;
+    d1.x = q1->x - p1->x; d1.y = q1->y - p1->y; d1.z = q1->z - p1->z;
+    d2.x = q2->x - p2->x; d2.y = q2->y - p2->y; d2.z = q2->z - p2->z;
+    r.x = p1->x - p2->x; r.y = p1->y - p2->y; r.z = p1->z - p2->z;
+    aa = d1.x * d1.x + d1.y * d1.y + d1.z * d1.z;
+    ee = d2.x * d2.x + d2.y * d2.y + d2.z * d2.z;
+    ff = d2.x * r.x + d2.y * r.y + d2.z * r.z;
+    if (aa < 1e-6f && ee < 1e-6f) {
+        t = u = 0.0f;
+    } else if (aa < 1e-6f) {
+        t = 0.0f; u = ff / ee;
+    } else {
+        cc = d1.x * r.x + d1.y * r.y + d1.z * r.z;
+        if (ee < 1e-6f) {
+            u = 0.0f; t = -cc / aa;
+        } else {
+            bb = d1.x * d2.x + d1.y * d2.y + d1.z * d2.z;
+            den = aa * ee - bb * bb;
+            t = den > 1e-6f ? (bb * ff - cc * ee) / den : 0.0f;
+            if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
+            u = (bb * t + ff) / ee;
+            if (u < 0.0f) { u = 0.0f; t = -cc / aa; }
+            else if (u > 1.0f) { u = 1.0f; t = (bb - cc) / aa; }
+        }
+    }
+    if (t < 0.0f) t = 0.0f; else if (t > 1.0f) t = 1.0f;
+    if (u < 0.0f) u = 0.0f; else if (u > 1.0f) u = 1.0f;
+    a.x = p1->x + d1.x * t; a.y = p1->y + d1.y * t; a.z = p1->z + d1.z * t;
+    b.x = p2->x + d2.x * u; b.y = p2->y + d2.y * u; b.z = p2->z + d2.z * u;
+    a.x -= b.x; a.y -= b.y; a.z -= b.z;
+    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+static void track_reach(Fighter* p1, Fighter* p2)
+{
+    int i, j;
+    for (i = 0; i < 4; ++i) {
+        HitCapsule* h = &p1->x914[i];
+        float rh;
+        if (h->state == HitCapsule_Disabled) continue;
+        rh = h->scale * p1->x34_scale.y;
+        for (j = 0; j < (int) p2->hurt_capsules_len && j < 15; ++j) {
+            HurtCapsule* c = &p2->hurt_capsules[j].capsule;
+            float g = seg_seg(&h->x58, &h->x4C, &c->a_pos, &c->b_pos) - rh - c->scale * p2->x34_scale.y;
+            if (g < reach_gap) reach_gap = g;
+        }
+    }
+}
+
 static void finish_step(Fighter* p1, Fighter* p2, int res)
 {
     float dmg = p2 ? p2->dmg.x1830_percent - p2_start : 0;
     if (res == 0 && steps[cur_step].kind == K_NORMAL && steps[cur_step].slot >= BAM_NORMAL_FTHROW && grab_at < 0)
         res = 3;
     if (res == 0 && cur_D >= 0 && !saw_borrow) res = 4;
+    if (reach_gap < NO_REACH) OSReport("[qa] C %u %u %.2f\n", cur_match, cur_step, reach_gap);
     OSReport("[qa] R %u %u %s %u %d %.1f %d %d %d %d %d %.1f %.1f %d\n", cur_match, cur_step, result_name(res), rf,
              saw_borrow, dmg, ms_count > 0 ? ms_seen[0] : -1, ms_count > 1 ? ms_seen[1] : -1,
              ms_count > 2 ? ms_seen[2] : -1, ms_count > 3 ? ms_seen[3] : -1, p1 ? (int) p1->motion_id : -1,
@@ -570,6 +633,7 @@ static void qa_frame(void)
             grab_at = air_at = -1; idle_frames = 0; z_at = 0; grab_tries = 0; saw_borrow = 0; logged_scale = 0;
             ms_count = 0; p2_start = p2->dmg.x1830_percent;
             memset(hit_sig, 0, sizeof(hit_sig));
+            reach_gap = NO_REACH;
             stocks_at_start = Player_GetStocks(0);
             OSReport("[qa] S %u %u %d %.1f %.1f %.4f\n", cur_match, cur_step, (int) p2->motion_id,
                      p2->cur_pos.x - p1->cur_pos.x, p2->cur_pos.y - p1->cur_pos.y, p1->co_attrs.model_scaling);
@@ -578,6 +642,7 @@ static void qa_frame(void)
         break;
     case PH_RUN:
         log_hitboxes(p1);
+        track_reach(p1, p2);
         if (Rogue_IsAbilityState(p1)) {
             saw_borrow = 1;
             if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Rogue_BorrowScale(p1)); }
