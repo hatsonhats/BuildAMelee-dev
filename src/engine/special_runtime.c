@@ -328,6 +328,10 @@ int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
     } else if (part == FtPart_NeckN || part == FtPart_HeadN) {
         joint = part_joint(fp, FtPart_HeadN);
         if (joint < 0) joint = part_joint(fp, FtPart_NeckN);
+        if (joint < 0) joint = part_joint(fp, FtPart_BustN);
+        /* Kirby and Jigglypuff are all head: the middle of the body, not
+         * the hip at their feet (a headbutt hit the floor). */
+        if (joint < 0) joint = part_joint(fp, FtPart_WaistN);
     } else if (part >= FtPart_LLegJA && part <= FtPart_LFootJ) {
         joint = limb_joint(fp, FtPart_LLegJA, FtPart_LFootJ, part);
     } else if (part >= FtPart_RLegJA && part <= FtPart_RFootJ) {
