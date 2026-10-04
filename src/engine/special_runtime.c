@@ -301,6 +301,10 @@ int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
     } else if (part >= FtPart_RShoulderN && part <= FtPart_RHandNb) {
         joint = part_joint(fp, FtPart_RHandN);
         if (joint < 0) joint = part_joint(fp, FtPart_RArmJ);
+    } else if (part == FtPart_WaistN) {
+        /* Most fighters have no waist bone: the hip is right below it (the
+         * chest put Jigglypuff's dash attack above a tall fighter's head). */
+        joint = part_joint(fp, FtPart_HipN);
     } else if (part == FtPart_NeckN || part == FtPart_HeadN) {
         joint = part_joint(fp, FtPart_HeadN);
     } else if (part >= FtPart_LLegJA && part <= FtPart_LFootJ) {

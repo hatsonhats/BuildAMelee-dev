@@ -162,7 +162,9 @@ def compare(nat, bor, s, world, body):
     # Active frames in total (a state may differ: a borrowed Peach parasol
     # floats in the common special fall, Peach in her own parasol fall).
     fn, fb = len({h[0] for h in nat}), len({h[0] for h in bor})
-    if n and fb < 0.5 * fn:
+    # Both counts low: a move whose hitboxes end when they connect (a grab,
+    # a dive that catches) can have fewer frames on one side.
+    if n and fb < 0.5 * fn and len(shared) < 0.5 * len(n):
         probs.append((9, f'hitboxes active {fb} of the donor\'s {fn} frames'))
     probs.sort(key=lambda x: -x[0])
     if variant and probs:
