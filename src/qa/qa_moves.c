@@ -547,7 +547,7 @@ static void reach_capsule(Fighter* p2, const HitCapsule* h, float rh)
 
 static void track_reach(Fighter* p1, Fighter* p2)
 {
-    int i, j;
+    int i;
     HSD_GObj* cur;
     /* Its projectiles and items too (fireballs, arrows, eggs). */
     for (cur = HSD_GObjPLinkHead[HSD_GOBJ_PLINK_ITEM]; cur != NULL; cur = cur->next) {
@@ -570,14 +570,8 @@ static void track_reach(Fighter* p1, Fighter* p2)
     }
     for (i = 0; i < 4; ++i) {
         HitCapsule* h = &p1->x914[i];
-        float rh;
         if (h->state == HitCapsule_Disabled) continue;
-        rh = h->scale * p1->x34_scale.y;
-        for (j = 0; j < (int) p2->hurt_capsules_len && j < 15; ++j) {
-            HurtCapsule* c = &p2->hurt_capsules[j].capsule;
-            float g = seg_seg(&h->x58, &h->x4C, &c->a_pos, &c->b_pos) - rh - c->scale * p2->x34_scale.y;
-            if (g < reach_gap) reach_gap = g;
-        }
+        reach_capsule(p2, h, h->scale * p1->x34_scale.y);
     }
 }
 
