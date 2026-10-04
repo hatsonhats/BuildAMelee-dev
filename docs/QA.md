@@ -56,7 +56,7 @@ includes the native matches (0-25) checks more than `--pair` alone.
 | OK | The move ran and its hitboxes match the donor's own, scaled |
 | HITBOX | Hitboxes differ in size, place or damage from the donor's own |
 | NOHIT | The move's hitboxes (the fighter's own or its projectiles' and items') touched the dummy and dealt no damage, although the donor's own move hits it |
-| REACH | The dummy took no damage because the move's hitboxes never touched it: spacing, not a broken move (informational; the note says how far short, and how far the donor's own move got) |
+| REACH | The move's hitboxes never touched the dummy, even after the step was played again (twice at most) with the dummy moved to where they came closest: usually a hitbox that passes over it (the note says how far short, and how far the donor's own move got) |
 | VARIANT | The move ran in another of its states than the donor's own, e.g. Ice Climbers' Squall Hammer without Nana (informational) |
 | NOMOVE | The move never started |
 | STUCK | The move never ended |
@@ -78,7 +78,8 @@ includes the native matches (0-25) checks more than `--pair` alone.
     the donor's own run.
   - Every frame of a step, the closest approach of port 1's hitboxes to the
     dummy's hurtboxes is measured (the capsules the game tests), which tells
-    REACH from NOHIT.
+    REACH from NOHIT. A move that missed is played again with the dummy
+    moved to where its hitboxes came closest, so moves are tested hitting.
   - Log lines: `M` match, `S` step start, `H` every active hitbox every frame
     (position relative to the fighter and to its body part, size, damage),
     `B` borrow scale, `C` closest approach to the dummy, `G` effects spawned,

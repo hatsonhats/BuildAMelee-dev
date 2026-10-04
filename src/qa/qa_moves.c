@@ -22,6 +22,7 @@
  *   [qa] H m s f ms i r x y dmg   a hitbox appeared (rel. to fighter, facing right)
  *   [qa] B m s scale              port 1 borrowing during the step
  *   [qa] C m s gap                closest approach of its hitboxes to the dummy
+ *   [qa] Y m s n shift            the step runs again, dummy moved (it missed)
  *   [qa] I m s f kind x y r       its projectile's first hitbox (rel. to it)
  *   [qa] R m s res frames bor dmg ms0 ms1 ms2 ms3
  *   [qa] E m                      match done
@@ -485,6 +486,14 @@ static const char* result_name(int r)
  * frame's (x4C), as the game tests them. */
 #define NO_REACH 1e9f
 static float reach_gap;
+/* Where port 1's hitbox was at its closest approach, and the dummy then
+ * (world x). A move that never reached the dummy is played again with the
+ * dummy moved there (REACH_RETRIES times at most), so every move is tested
+ * hitting it: the spacing is the test's, not the move's. */
+#define REACH_RETRIES 2
+static float reach_hx, reach_dx;
+static float retry_shift;
+static int retry_count;
 
 static float seg_seg(const Vec3* p1, const Vec3* q1, const Vec3* p2, const Vec3* q2)
 {
@@ -528,7 +537,11 @@ static void reach_capsule(Fighter* p2, const HitCapsule* h, float rh)
     for (j = 0; j < (int) p2->hurt_capsules_len && j < 15; ++j) {
         HurtCapsule* c = &p2->hurt_capsules[j].capsule;
         float g = seg_seg(&h->x58, &h->x4C, &c->a_pos, &c->b_pos) - rh - c->scale * p2->x34_scale.y;
-        if (g < reach_gap) reach_gap = g;
+        if (g < reach_gap) {
+            reach_gap = g;
+            reach_hx = h->x4C.x;
+            reach_dx = (c->a_pos.x + c->b_pos.x) * 0.5f;
+        }
     }
 }
 
@@ -575,12 +588,23 @@ static void finish_step(Fighter* p1, Fighter* p2, int res)
         res = 3;
     if (res == 0 && cur_D >= 0 && !saw_borrow) res = 4;
     if (reach_gap < NO_REACH) OSReport("[qa] C %u %u %.2f\n", cur_match, cur_step, reach_gap);
+    if (res == 0 && dmg == 0 && reach_gap < NO_REACH && reach_gap > 0.0f && retry_count < REACH_RETRIES) {
+        /* Missed for spacing: again, with the dummy where the hitbox was. */
+        ++retry_count;
+        retry_shift += reach_hx - reach_dx;
+        OSReport("[qa] Y %u %u %d %.2f\n", cur_match, cur_step, retry_count, retry_shift * face);
+        input_clear();
+        phase = PH_PREP; pf = 0;
+        return;
+    }
     OSReport("[qa] R %u %u %s %u %d %.1f %d %d %d %d %d %.1f %.1f %d\n", cur_match, cur_step, result_name(res), rf,
              saw_borrow, dmg, ms_count > 0 ? ms_seen[0] : -1, ms_count > 1 ? ms_seen[1] : -1,
              ms_count > 2 ? ms_seen[2] : -1, ms_count > 3 ? ms_seen[3] : -1, p1 ? (int) p1->motion_id : -1,
              p1 ? p1->cur_pos.x : 0, p1 ? p1->cur_pos.y : 0, p1 ? (int) p1->ground_or_air : -1);
     input_clear();
     ++cur_step;
+    retry_count = 0;
+    retry_shift = 0.0f;
     phase = PH_PREP; pf = 0;
 }
 
@@ -671,7 +695,7 @@ static void qa_frame(void)
          * Kong's hand slap) stop at a line's end. */
         place(p1, -30.0f * face);
         gap_fp = p1;
-        place(p2, -30.0f * face + gap_for(s) * face);
+        place(p2, -30.0f * face + gap_for(s) * face + retry_shift);
         p1->dmg.x1830_percent = 0;
         p2->dmg.x1830_percent = 0;
         if (pf >= 3) {

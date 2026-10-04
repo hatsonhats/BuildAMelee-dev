@@ -452,7 +452,7 @@ def report(run: Path):
              'OK       the move ran and its hitboxes match the donor\'s own (scaled)',
              'HITBOX   hitboxes differ in size, place or damage from the donor\'s own',
              'NOHIT    its hitboxes (its own or its projectiles\') touched the dummy and dealt no damage, although the donor\'s own move hits it',
-             'REACH    its hitboxes never touched the dummy (spacing; informational)',
+             'REACH    its hitboxes never touched the dummy, even with the dummy moved to them (passes over it)',
              'VARIANT  the move ran in another of its states than the donor\'s own (informational)',
              'NOMOVE   the move never started    STUCK  the move never ended',
              'CRASH / FREEZE   the emulator crashed or hung on this move (skipped)', '']
