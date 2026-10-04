@@ -116,10 +116,11 @@ def keep(hs, name):
 def region(part):
     """Body parts that stand in for one another when a fighter lacks one
     (special_runtime.c Rogue_AbilityFallbackJoint): a hand and its fingers,
-    the hip and waist, the neck and head. Other parts are their own."""
+    the hip and waist, the neck and head, a shoulder's bones. Other parts are
+    their own."""
     if part is None or part < 0:
         return None
-    for lo, hi in ((21, 32), (39, 50), (4, 5), (33, 34)):
+    for lo, hi in ((21, 32), (39, 50), (4, 5), (33, 34), (17, 19), (35, 37)):
         if lo <= part <= hi:
             return lo
     return part

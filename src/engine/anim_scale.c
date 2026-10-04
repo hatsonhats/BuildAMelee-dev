@@ -515,17 +515,23 @@ static int own_joint(Fighter* fp, int part)
  * recipient lacks it (Kirby has no finger bones) the donor's next part up
  * that it has. -1 if none. */
 static int rest_slot(int part);
-static int prop_part(Fighter* fp, int prop)
+/* The body part something hanging from donor part `part` is carried by:
+ * the part itself, or the nearest one above it the borrower has. Not a
+ * finger even when the borrower has one: fingers are not retargeted, so the
+ * borrower's finger keeps its own frame (Yoshi's is turned 120 degrees from
+ * Marth's). From the hand, which is, with the donor's finger rotations
+ * folded in (part_fold). -1 if none. */
+static int fold_base(Fighter* fp, int part)
 {
     unsigned kind = fp->x597_bits;
-    int part = rogue_prop[prop].part, n = 0;
-    /* Not from a finger even when the borrower has one: fingers are not
-     * retargeted, so the borrower's finger keeps its own frame (Yoshi's is
-     * turned 120 degrees from Marth's). From the hand, which is, with the
-     * donor's finger rotations folded in (prop_relative). */
+    int n = 0;
     while (part != 0xFF && (own_joint(fp, part) < 0 || rest_slot(part) >= ROGUE_REST_PARTS) && n++ < 8)
         part = kind < ROGUE_REST_KINDS ? rogue_part_parent[kind][part] : 0xFF;
     return part == 0xFF || n > 8 ? -1 : part;
+}
+static int prop_part(Fighter* fp, int prop)
+{
+    return fold_base(fp, rogue_prop[prop].part);
 }
 /* The recipient joint a prop entry hangs from, or -1. */
 static int prop_root(Fighter* fp, int prop)
@@ -564,19 +570,6 @@ static int body_slot(int part)
  * (ftanim.c): keep its tracks if it is a prop (including a weapon bone the
  * recipient has a namesake of, like Kirby's hammer bone) or a body part the
  * recipient lacks (folded into the next bone). */
-/* A finger on the way from one of kind's props up to the hand. */
-static int finger_under_prop(unsigned kind, int part)
-{
-    unsigned k;
-    int p, n;
-    for (k = 0; k < ROGUE_PROP_COUNT; ++k) {
-        if (rogue_prop[k].kind != kind) continue;
-        for (p = rogue_prop[k].part, n = 0; p != 0xFF && rest_slot(p) >= ROGUE_REST_PARTS && n < 8;
-             p = rogue_part_parent[kind][p], ++n)
-            if (p == part) return 1;
-    }
-    return 0;
-}
 void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
 {
     int slot = slot_of_fighter(fp);
@@ -595,7 +588,9 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
         /* Fingers between a prop and the hand are folded even when the
          * borrower has them (prop_part); other bones it has are its own. */
-        if (finger_under_prop(kind, part)) used = 1;
+        /* Fingers with rest data are folded even when the borrower has
+         * them (fold_base: props and hitboxes hanging from them). */
+        if (rest_slot(part) >= ROGUE_REST_PARTS) used = 1;
         else if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID) return;
         if (!used) used = body_slot(part) >= 0;
         if (!used) return;
@@ -746,16 +741,16 @@ static void chain_world(Fighter* fp, int row, Mtx out)
 
 /* Transform from the body part a prop hangs from to the prop, including the
  * rest correction between the donor's and the recipient's body part. */
-/* From the body part a prop hangs from to the donor part it hangs from
- * (the rest correction, and the donor bones between them it folds in). */
-static void prop_fold(Fighter* fp, int prop, Mtx out)
+/* From the body part fold_base carries donor part `from` by to that donor
+ * part (the rest correction, and the donor bones between them folded in). */
+static void part_fold(Fighter* fp, int from, Mtx out)
 {
     int slot = slot_of_fighter(fp);
     unsigned source = fp->x597_bits;
     Mtx local;
     Quat c;
     Quaternion cq;
-    int base = prop_part(fp, prop), part;
+    int base = fold_base(fp, from), part;
     /* C(base)^-1, then the donor parts between base and the prop's own part
      * that it hangs from instead: their rotations, and for fingers their
      * offsets too (Ice Climbers' hammer hangs three bones out from the
@@ -766,8 +761,7 @@ static void prop_fold(Fighter* fp, int prop, Mtx out)
     PSMTXQuat(out, &cq);
     if (base >= 0) {
         int path[8], k = 0;
-        for (part = rogue_prop[prop].part; part != 0xFF && part != base && k < 8;
-             part = rogue_part_parent[source][part])
+        for (part = from; part != 0xFF && part != base && k < 8; part = rogue_part_parent[source][part])
             path[k++] = part;
         while (k--) {
             Quat q = part_local(fp, slot, source, path[k], 1);
@@ -790,7 +784,7 @@ static int prop_relative(Fighter* fp, int prop, Mtx out)
     Mtx local;
     for (i = prop; i != 255 && n < 8; i = rogue_prop[i].parent) chain[n++] = i;
     if (i != 255) return 0;
-    prop_fold(fp, prop, out);
+    part_fold(fp, rogue_prop[prop].part, out);
     while (n--) {
         prop_local(fp, slot, chain[n], local);
         PSMTXConcat(out, local, out);
@@ -1010,11 +1004,21 @@ float Rogue_OwnerScale(HSD_GObj* owner)
  * Mr. Game & Watch's arm and what it holds) hang from the borrower's root:
  * prop >= PROP_CHAIN marks chain row prop - PROP_CHAIN. */
 #define PROP_CHAIN 128
+/* prop >= PROP_FINGER: a hitbox on donor finger prop - PROP_FINGER, carried
+ * by the hand with the donor's finger pose (Ness's bat, Game & Watch's jab). */
+#define PROP_FINGER 192
 static void hit_place(Fighter* fp, PropHit* h)
 {
     Mtx rel;
     Vec3 out;
     float s = Rogue_BorrowScale(fp);
+    if (h->prop >= PROP_FINGER) {
+        part_fold(fp, h->prop - PROP_FINGER, rel);
+        PSMTXMultVec(rel, &h->offset, &out);
+        out.x *= s; out.y *= s; out.z *= s;
+        h->hit->b_offset = out;
+        return;
+    }
     if (h->prop >= PROP_CHAIN) {
         Mtx w, inv;
         Vec3 world;
@@ -1040,37 +1044,19 @@ int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
     Mtx rel, grow, w;
     int root;
     float bs;
-    if (!fp || !h || h->fighter != fp || h->prop >= PROP_CHAIN) return -1;
-    root = prop_root(fp, h->prop);
+    int from;
+    if (!fp || !h || h->fighter != fp || (h->prop >= PROP_CHAIN && h->prop < PROP_FINGER)) return -1;
+    from = h->prop >= PROP_FINGER ? h->prop - PROP_FINGER : rogue_prop[h->prop].part;
+    root = fold_base(fp, from);
+    root = root >= 0 ? own_joint(fp, root) : -1;
     if (root < 0 || !fp->parts[root].joint) return -1;
-    prop_fold(fp, h->prop, rel);
-    {
-        /* QA trace: each folded donor finger's rotation as the fold
-         * evaluates it, next to the borrower's own joint for that finger
-         * (which Melee animates with the same donor tracks), if it has one. */
-        unsigned source = fp->x597_bits;
-        int part, k = 0, slot = slot_of_fighter(fp), base = prop_part(fp, h->prop);
-        for (part = rogue_prop[h->prop].part; base >= 0 && part != 0xFF && part != base && k++ < 8;
-             part = rogue_part_parent[source][part]) {
-            Quat q = part_local(fp, slot, source, part, 1);
-            int own = own_joint(fp, part);
-            float e[3];
-            q_to_euler(q, e);
-            if (own >= 0 && fp->parts[own].joint) {
-                HSD_JObj* j = fp->parts[own].joint;
-                OSReport("[qa] F %d %.1f fold %.3f %.3f %.3f own %.3f %.3f %.3f\n", part, fp->cur_anim_frame,
-                         e[0], e[1], e[2], j->rotate.x, j->rotate.y, j->rotate.z);
-            } else {
-                OSReport("[qa] F %d %.1f fold %.3f %.3f %.3f\n", part, fp->cur_anim_frame, e[0], e[1], e[2]);
-            }
-        }
-    }
+    part_fold(fp, from, rel);
     bs = Rogue_BorrowScale(fp);
     PSMTXScale(grow, bs, bs, bs);
     PSMTXConcat(grow, rel, rel);
     PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[root].joint), rel, w);
     pos->x = w[0][3]; pos->y = w[1][3]; pos->z = w[2][3];
-    return rogue_prop[h->prop].part;
+    return from;
 }
 #endif
 /* A move script just made a hitbox (ftAction_8007121C); `bone` is the
@@ -1133,6 +1119,29 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         Quaternion cq;
         int own_part = part;
         if (part == FTPART_INVALID) return;
+        if (rest_slot(part) >= ROGUE_REST_PARTS) {
+            /* A donor finger (what Ness's bat and Game & Watch's jab hang
+             * from): carried by the hand with the donor's finger pose, every
+             * frame, as a prop is (hit_place). */
+            int base = fold_base(fp, part), joint = base >= 0 ? own_joint(fp, base) : -1;
+            if (joint >= 0 && fp->parts[joint].joint) {
+                for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
+                    if (!prop_hits[i].hit) break;
+                if (i < sizeof(prop_hits) / sizeof(prop_hits[0])) {
+                    float bs = Rogue_BorrowScale(fp);
+                    h = &prop_hits[i];
+                    h->fighter = fp;
+                    h->hit = hit;
+                    h->offset = hit->b_offset;
+                    h->offset.x /= bs; h->offset.y /= bs; h->offset.z /= bs;
+                    h->prop = (unsigned char) (PROP_FINGER + part);
+                    h->kind = (unsigned char) source;
+                    hit->jobj = fp->parts[joint].joint;
+                    hit_place(fp, h);
+                    return;
+                }
+            }
+        }
         if (own_joint(fp, part) < 0) {
             /* The recipient lacks the bone (most have no waist): the hitbox
              * rides the bone Rogue_AbilityMapBone chose instead, so carry
