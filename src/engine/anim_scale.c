@@ -757,19 +757,32 @@ static int prop_relative(Fighter* fp, int prop, Mtx out)
     for (i = prop; i != 255 && n < 8; i = rogue_prop[i].parent) chain[n++] = i;
     if (i != 255) return 0;
     /* C(base)^-1, then the donor parts between base and the prop's own part
-     * that the recipient lacks (rotation only). */
+     * that it hangs from instead: their rotations, and for fingers their
+     * offsets too (Ice Climbers' hammer hangs three bones out from the
+     * hand). */
     c = correction(source, fp->kind, base >= 0 ? body_slot(base) : -1);
     c = q_conj(c);
-    if (base >= 0) {
-        Quat folded = { 0.0f, 0.0f, 0.0f, 1.0f };
-        int k = 0;
-        for (part = rogue_prop[prop].part; part != 0xFF && part != base && k++ < 8;
-             part = rogue_part_parent[source][part])
-            folded = q_mul(part_local(fp, slot, source, part, 1), folded);
-        c = q_mul(c, folded);
-    }
     cq.x = c.x; cq.y = c.y; cq.z = c.z; cq.w = c.w;
     PSMTXQuat(out, &cq);
+    if (base >= 0) {
+        int path[8], k = 0;
+        for (part = rogue_prop[prop].part; part != 0xFF && part != base && k < 8;
+             part = rogue_part_parent[source][part])
+            path[k++] = part;
+        while (k--) {
+            Quat q = part_local(fp, slot, source, path[k], 1);
+            int si = rest_slot(path[k]);
+            cq.x = q.x; cq.y = q.y; cq.z = q.z; cq.w = q.w;
+            PSMTXQuat(local, &cq);
+            if (si >= ROGUE_REST_PARTS && source < ROGUE_REST_KINDS) {
+                const short* t = rogue_rest_extra_pos[source][si - ROGUE_REST_PARTS];
+                local[0][3] = t[0] * (1.0f / 256.0f);
+                local[1][3] = t[1] * (1.0f / 256.0f);
+                local[2][3] = t[2] * (1.0f / 256.0f);
+            }
+            PSMTXConcat(out, local, out);
+        }
+    }
     while (n--) {
         prop_local(fp, slot, chain[n], local);
         PSMTXConcat(out, local, out);
