@@ -595,8 +595,8 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
         /* Fingers between a prop and the hand are folded even when the
          * borrower has them (prop_part); other bones it has are its own. */
-        if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID && !finger_under_prop(kind, part))
-            return;
+        if (finger_under_prop(kind, part)) used = 1;
+        else if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID) return;
         if (!used) used = body_slot(part) >= 0;
         if (!used) return;
     }
