@@ -5,7 +5,7 @@ name = "BuildAMelee"
 # The release version. Players see it on the character select screen, and
 # online play only exchanges builds between identical builds of the same
 # version (tools/bam.py release bumps it).
-version = "1.3.2"
+version = "1.3.3"
 
 [overlay]
 # The overlay sits at the very top of the arena, which the apploader sets to
@@ -89,6 +89,22 @@ kind = "inject"
 at = "gm_801A4014+0xD4"
 target = "BAM_OnSceneReady"
 note = "after scene->on_enter() (stage and fighters exist), before the frame loop"
+
+[[hook]]
+id = "replay-builds-write"
+kind = "inject"
+at = "fn_8016E730+0x14"
+target = "BAM_ReplayBuildsWrite"
+args = ["r31"]
+note = "StartMelee data; before Slippi's playback restore (+0x18) and recording (+0x1C)"
+
+[[hook]]
+id = "replay-builds-read"
+kind = "inject"
+at = "fn_8016E730+0x20"
+target = "BAM_ReplayBuildsRead"
+args = ["r31"]
+note = "after Slippi's restore and recording, before fn_8016DCC0 reads the block"
 
 [[hook]]
 id = "scene-exit"

@@ -48,5 +48,13 @@ by default, so without one the slots last until you close the game. To keep
 them: open Slippi Dolphin's settings (Slippi Launcher, Settings, Netplay,
 Configure Dolphin), then Config, GameCube, and set Slot A to Memory Card.
 
+REPLAYS
+
+Slippi replays of BuildAMelee matches remember everyone's build. Replays
+play with the Melee ISO set in the Slippi Launcher, so keep BuildAMelee.iso
+set there to watch them with the moves that were used. Replays play back best
+with the same BuildAMelee version that recorded them; replays from versions
+before 1.3.3 show everyone's own moves.
+
 Patched ISO MD5: {md5}
 xdelta3.exe is xdelta 3.1.0 (https://github.com/jmacd/xdelta-gpl).

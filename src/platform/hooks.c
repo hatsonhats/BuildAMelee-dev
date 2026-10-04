@@ -8,6 +8,7 @@
 void Bam_OnlineSceneEnter(void);
 void Bam_OnlineSceneReady(void);
 void Bam_OnlineSceneExit(void);
+void Bam_ReplayBuildsSceneExit(void);
 
 #ifndef BAM_TEST_LOADOUT
 #define BAM_TEST_LOADOUT 0
@@ -57,6 +58,7 @@ void BAM_OnSceneExit(void)
 {
     Bam_OnSceneExit();
     Bam_OnlineSceneExit();
+    Bam_ReplayBuildsSceneExit();
 }
 
 /* inject gm_801A4014 after scene->on_enter(): the scene created its stage
