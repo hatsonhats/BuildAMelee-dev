@@ -85,7 +85,8 @@ class Toolchain:
         out: Dict[str, UnitFlags] = {}
         block_re = re.compile(r'^build (\S+)\.o:\s+(mwcc\w*)\s+(\S+)[^\n]*\n((?:  .*\n)*)', re.M)
         for m in block_re.finditer(text):
-            obj, rule, src = m.group(1), m.group(2), m.group(3)
+            # configure.py on Windows writes paths with backslashes.
+            obj, rule, src = m.group(1).replace('\\', '/'), m.group(2), m.group(3).replace('\\', '/')
             prefix = 'build/GALE01/src/'
             if not obj.startswith(prefix):
                 continue
@@ -94,7 +95,7 @@ class Toolchain:
             if 'cflags' not in vars_ or 'mw_version' not in vars_:
                 continue
             flags = shlex.split(vars_['cflags'].replace('$', ''), posix=True)
-            out[unit] = UnitFlags(unit, vars_['mw_version'], flags, 'sjis' in rule, src)
+            out[unit] = UnitFlags(unit, vars_['mw_version'].replace('\\', '/'), flags, 'sjis' in rule, src)
         self._unit_flags = out
         return out
 
