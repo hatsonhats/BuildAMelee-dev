@@ -847,13 +847,26 @@ static const float body_size[] = {
     13.06f, /* Mr. Game & Watch */ 20.27f, /* Ganondorf */ 17.36f, /* Roy */
 };
 #define BODY_SIZE_KINDS (sizeof(body_size) / sizeof(body_size[0]))
+/* Model scale per fighter kind (co_attrs.model_scaling), to compare sizes
+ * as drawn: body_size x this is the height on screen. */
+static const float model_scale[] = {
+    1.10f, /* Mario */ 0.96f, /* Fox */ 0.97f, /* Captain Falcon */
+    1.00f, /* Donkey Kong */ 0.92f, /* Kirby */ 0.69f, /* Bowser */
+    1.22f, /* Link */ 1.40f, /* Sheik */ 1.00f, /* Ness */
+    1.15f, /* Peach */ 1.15f, /* Popo */ 1.15f, /* Nana */
+    0.90f, /* Pikachu */ 0.88f, /* Samus */ 1.05f, /* Yoshi */
+    0.94f, /* Jigglypuff */ 1.00f, /* Mewtwo */ 1.25f, /* Luigi */
+    1.15f, /* Marth */ 1.26f, /* Zelda */ 0.96f, /* Young Link */
+    1.10f, /* Dr. Mario */ 1.10f, /* Falco */ 0.50f, /* Pichu */
+    1.02f, /* Mr. Game & Watch */ 1.08f, /* Ganondorf */ 1.08f, /* Roy */
+};
 
 /* How a borrowed move's own parts are sized on this fighter: its weapons,
  * tails and props (rebuilt bones and the donor's meshes), the articles it
- * holds, and its hitboxes. They fit the fighter they are on: scaled by this
- * fighter's body over the donor's, so Marth's sword on Jigglypuff is
- * Jigglypuff-sized and Pichu's tail on Bowser is Bowser-sized, and the
- * hitboxes stay on the parts that are drawn. Both sizes are in skeleton units: the fighter's
+ * holds, and its hitboxes. They grow with a bigger fighter (Pichu's tail on
+ * Bowser is Bowser-sized) but never shrink below the donor's own size
+ * (Marth's sword on Jigglypuff is Marth's sword), and the hitboxes stay on
+ * the parts that are drawn. Both sizes are in skeleton units: the fighter's
  * model scale applies on top, as it does to everything it draws. 1 when not
  * borrowing. */
 float Rogue_BorrowScale(Fighter* fp)
@@ -865,8 +878,17 @@ float Rogue_BorrowScale(Fighter* fp)
     if (source == fp->kind || source >= BODY_SIZE_KINDS || (unsigned) fp->kind >= BODY_SIZE_KINDS) return 1.0f;
     own = body_size[fp->kind];
     donor = body_size[source];
-    s = own / donor;
-    return s < 0.4f ? 0.4f : s > 2.5f ? 2.5f : s;
+    /* On screen the move is (own x its model scale) / (donor x the donor's)
+     * the donor's own size: never smaller than the donor's (a big
+     * character's move keeps its size on a small one), at most 2.5x. */
+    {
+        float own_ms = model_scale[fp->kind], donor_ms = model_scale[source];
+        float shown = (own * own_ms) / (donor * donor_ms);
+        if (shown < 1.0f) shown = 1.0f;
+        if (shown > 2.5f) shown = 2.5f;
+        s = shown * donor_ms / own_ms;
+    }
+    return s;
 }
 float Rogue_OwnerScale(HSD_GObj* owner)
 {
