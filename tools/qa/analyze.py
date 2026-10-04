@@ -160,7 +160,9 @@ def compare(nat, bor, s, world, body):
         if r_exp > 0 and abs(c[3] / r_exp - 1) > 0.15:
             probs.append((0, f'slot{key[2]} f{key[1]} radius {c[3]:.2f} expected {r_exp:.2f}'))
         rw = max(c[3], 1.0)
-        if a[9] >= 0 and region(a[9]) == region(c[9]):
+        # Kirby and Jigglypuff carry a head hitbox on the waist (no head).
+        same = region(a[9]) == region(c[9]) or (region(a[9]) == 33 and c[9] == 5)
+        if a[9] >= 0 and same:
             ex, ey = (a[4] - a[10]) * world, (a[5] - a[11]) * world
             gx, gy = c[4] - c[10], c[5] - c[11]
             rel = f'from part {a[9]}'
