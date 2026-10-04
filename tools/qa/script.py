@@ -23,6 +23,12 @@ def main(src, dst):
         if p == ['mode', 'ui']:  # menus only: the sweep stays off, the CSS stays up
             ui = 1
             continue
+        if p == ['mode', 'uimatch']:  # CSS (SIS reset like Slippi's code entry), one match, CSS again
+            ui = 2
+            continue
+        if p == ['mode', 'uimatch-nowipe']:  # the same without the reset
+            ui = 3
+            continue
         at = int(p[1]); hold = int(p[p.index('hold') + 1]) if 'hold' in p else 6
         b = x = y = cx = cy = 0
         if p[2] == 'press':

@@ -1,0 +1,2 @@
+mode uimatch
+at 2000 press A

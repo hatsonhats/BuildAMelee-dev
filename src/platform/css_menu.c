@@ -267,7 +267,10 @@ static void ui_create(void)
      * freed) froze the game there. */
     FONT = 0;
     if (!HSD_SisLib_804D1124[FONT]) { BAM_LOG("css: CSS font not loaded\n"); return; }
-    if (!mem) mem = HSD_MemAlloc(sizeof(MenuMem)); /* kept across the keyboard */
+    /* The block lives in this CSS visit's scene heap: reused only when the
+     * panel comes back from Melee's keyboard in the same visit. Any other
+     * old pointer is stale (the match rebuilt the heap since). */
+    if (!mem || kb_state != KB_BACK) mem = HSD_MemAlloc(sizeof(MenuMem));
     if (!mem) { BAM_LOG("css: no memory for the panel\n"); return; }
     canvas = HSD_SisLib_803A611C(FONT, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
     BamText_Create(&hint, FONT, canvas, hint_buf, sizeof(hint_buf));
@@ -360,10 +363,13 @@ static int panel_create(void)
 
 static void ui_destroy(void)
 {
-    if (!ui_ready) return;
-    panel_destroy();
-    BamText_Destroy(&hint);
-    ui_ready = 0;
+    if (ui_ready) {
+        panel_destroy();
+        BamText_Destroy(&hint);
+        ui_ready = 0;
+    }
+    /* Also after Slippi's code entry hid the panel (ui_ready 0): the block
+     * must not outlive this CSS visit's heap. */
     if (mem) HSD_Free(mem);
     mem = NULL;
 }

@@ -1,0 +1,2 @@
+mode uimatch-nowipe
+at 2000 press A

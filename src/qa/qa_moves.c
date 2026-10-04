@@ -568,6 +568,31 @@ extern CSSData* mnCharSel_804D6CB0;
 int QA_CssAuto(void)
 {
     extern int qa_ui_mode;
+    extern void HSD_SisLib_803A5E70(void);
+    if (qa_ui_mode >= 2) {
+        /* First CSS: the panel's texts are wiped (as Slippi's code entry
+         * does), then a one-step match; the CSS after it stays up. */
+        static unsigned visit_frames;
+        if (started) return 0;
+        if (mnCharSel_804D6CB0) {
+            mnCharSel_804D6CB0->vs.start.players[0].ckind = 9;
+            mnCharSel_804D6CB0->vs.start.players[0].slot_type = 0;
+        }
+        ++visit_frames;
+        if (visit_frames == 120 && qa_ui_mode == 2) { OSReport("[qa] wipe SIS\n"); HSD_SisLib_803A5E70(); }
+        if (visit_frames == 180) {
+            OSReport("[qa] to the match\n");
+            next_match();
+            nsteps = 1;
+            {
+                int q;
+                for (q = 0; q < 4; ++q)
+                    mnCharSel_804D6CB0->vs.start.players[q] = gmMainLib_804D3EE0->modes.vs_melee.start.players[q];
+            }
+            gm_801A4B60();
+        }
+        return 0;
+    }
     if (qa_ui_mode) {
         /* Menu tests: port 1 plays Marth; the script drives the panel. */
         if (mnCharSel_804D6CB0) {
