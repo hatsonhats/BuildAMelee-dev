@@ -545,6 +545,19 @@ static int body_slot(int part)
  * (ftanim.c): keep its tracks if it is a prop (including a weapon bone the
  * recipient has a namesake of, like Kirby's hammer bone) or a body part the
  * recipient lacks (folded into the next bone). */
+/* A finger on the way from one of kind's props up to the hand. */
+static int finger_under_prop(unsigned kind, int part)
+{
+    unsigned k;
+    int p, n;
+    for (k = 0; k < ROGUE_PROP_COUNT; ++k) {
+        if (rogue_prop[k].kind != kind) continue;
+        for (p = rogue_prop[k].part, n = 0; p != 0xFF && rest_slot(p) >= ROGUE_REST_PARTS && n < 8;
+             p = rogue_part_parent[kind][p], ++n)
+            if (p == part) return 1;
+    }
+    return 0;
+}
 void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
 {
     int slot = slot_of_fighter(fp);
@@ -561,9 +574,9 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
         if (part == FTPART_INVALID) return;
         for (k = 0; !used && k < ROGUE_PROP_COUNT; ++k)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
-        /* A finger a prop hangs from is folded even when the borrower has
-         * it (prop_part); other bones the borrower has are its own. */
-        if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID && !(used && rest_slot(part) >= ROGUE_REST_PARTS))
+        /* Fingers between a prop and the hand are folded even when the
+         * borrower has them (prop_part); other bones it has are its own. */
+        if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID && !finger_under_prop(kind, part))
             return;
         if (!used) used = body_slot(part) >= 0;
         if (!used) return;
