@@ -110,6 +110,18 @@ def keep(hs, name):
     return [h for h in hs if not 212 <= h[1] <= 218]
 
 
+def region(part):
+    """Body parts that stand in for one another when a fighter lacks one
+    (special_runtime.c Rogue_AbilityFallbackJoint): a hand and its fingers,
+    the hip and waist, the neck and head. Other parts are their own."""
+    if part is None or part < 0:
+        return None
+    for lo, hi in ((21, 32), (39, 50), (4, 5), (33, 34)):
+        if lo <= part <= hi:
+            return lo
+    return part
+
+
 def compare(nat, bor, s, world, body):
     """Problems of a borrowed move's hitboxes against the donor's own, paired
     by motion, animation frame and hitbox slot.
@@ -138,12 +150,13 @@ def compare(nat, bor, s, world, body):
     shared = sorted(set(n) & set(b))
     for key in shared:
         a, c = n[key], b[key]
-        # A throw's hitboxes never shrink below the donor's (anim_scale.c).
-        r_exp = a[3] * (max(s, 1.0) if 219 <= key[0] <= 222 else s)
+        # Radii are in world units (anim_scale.c Rogue_HitboxScale); a
+        # throw's hitboxes never shrink below the donor's.
+        r_exp = a[3] * (max(world, 1.0) if 219 <= key[0] <= 222 else world)
         if r_exp > 0 and abs(c[3] / r_exp - 1) > 0.15:
             probs.append((0, f'slot{key[2]} f{key[1]} radius {c[3]:.2f} expected {r_exp:.2f}'))
-        rw = max(c[3] * world / s, 1.0)
-        if a[9] >= 0 and a[9] == c[9]:
+        rw = max(c[3], 1.0)
+        if a[9] >= 0 and region(a[9]) == region(c[9]):
             ex, ey = (a[4] - a[10]) * world, (a[5] - a[11]) * world
             gx, gy = c[4] - c[10], c[5] - c[11]
             rel = f'from part {a[9]}'

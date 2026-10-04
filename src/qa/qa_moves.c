@@ -284,7 +284,7 @@ static int idle(Fighter* fp)
     return fp->motion_id == ftCo_MS_Wait && fp->ground_or_air == GA_Ground;
 }
 
-static float gap_for(const Step* s)
+static float gap_native(const Step* s)
 {
     if (s->kind == K_NORMAL) {
         if (s->slot == BAM_NORMAL_DASH) return 38;
@@ -292,6 +292,23 @@ static float gap_for(const Step* s)
         return 12;
     }
     return 14;
+}
+
+/* The dummy's distance. A borrowed move is drawn at Rogue_ShownScale of the
+ * donor's own size, so its reach is too: the gap to the dummy's near side
+ * (its half width, about DUMMY_HALF) scales with it, and a move that reaches
+ * the dummy for the donor reaches it here. Not for throws (a grab range)
+ * nor dash attacks (a run-up). */
+#define DUMMY_HALF 3.0f
+static Fighter* gap_fp;
+static float gap_for(const Step* s)
+{
+    float g = gap_native(s), k;
+    if (cur_D < 0 || !gap_fp || (s->kind == K_NORMAL && (s->slot >= BAM_NORMAL_FTHROW || s->slot == BAM_NORMAL_DASH)))
+        return g;
+    k = Rogue_ShownScale(gap_fp->kind, Rogue_InternalKindForCharacter((CharacterKind) cur_D));
+    if (k <= 0.0f) return g;
+    return DUMMY_HALF + (g - DUMMY_HALF) * k;
 }
 
 static void input_clear(void)
@@ -542,6 +559,7 @@ static void qa_frame(void)
          * lines there, and moves that measure along the floor (Donkey
          * Kong's hand slap) stop at a line's end. */
         place(p1, -30.0f * face);
+        gap_fp = p1;
         place(p2, -30.0f * face + gap_for(s) * face);
         p1->dmg.x1830_percent = 0;
         p2->dmg.x1830_percent = 0;

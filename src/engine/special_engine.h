@@ -116,6 +116,11 @@ void Rogue_DonorPose(Fighter* fp, struct HSD_JObj* const* jobjs, const unsigned 
  * hitboxes) on this fighter: its body over the donor's, 1 when not
  * borrowing (anim_scale.c). */
 float Rogue_BorrowScale(Fighter* fp);
+/* The same in world units, for hitbox radii. */
+float Rogue_HitboxScale(Fighter* fp);
+/* A move of FighterKind source on FighterKind own: its size on screen against
+ * the source's own (0 when they are the same). */
+float Rogue_ShownScale(unsigned own, unsigned source);
 /* The scale an article sizes itself by from its owner: the owner's model
  * scale, times Rogue_BorrowScale while the owner borrows. */
 float Rogue_OwnerScale(HSD_GObj* owner);

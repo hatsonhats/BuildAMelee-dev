@@ -886,7 +886,7 @@ id = "normal-hitbox-scale-command"
 owner = "platform/specials/normals"
 file = "src/melee/ft/ftaction.c"
 anchor = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value;"
-replacement = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value * Rogue_BorrowScale(fp);"
+replacement = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value * Rogue_HitboxScale(fp);"
 occurrences = 1
 reason = "A borrowed move resizing its hitbox keeps it fitted to this fighter (Rogue_HitboxCreated)."
 

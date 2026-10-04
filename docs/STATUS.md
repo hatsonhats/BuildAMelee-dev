@@ -17,6 +17,19 @@ Slippi Online (Direct) play.
   parasol float now has Peach's open-parasol hitbox, and the float is decided
   in the game simulation instead of the renderer (rollback-safe); Pichu's
   height (an oversized head hurtbox had made it taller than Pikachu).
+  Second sweep: hitbox radii are in world units (no model scale applies to
+  them) but were sized like skeleton offsets, so moves from fighters with a
+  small model scale (Bowser, Pichu, Pikachu, Samus) had hitboxes too small
+  for what was drawn and often missed; a body part the borrower lacks now
+  falls back along the limb (a shoulder hitbox stays at the shoulder on
+  Kirby, not the hand) and its hitbox offset is turned into that bone's
+  frame (Jigglypuff's dash attack on fighters without a waist bone); finger
+  bones have rest-pose data, so props and hitboxes hanging from them (Ice
+  Climbers' hammer, Ness's bat, Mario's cape) keep their orientation on
+  fighters without those fingers. Slippi Online replays now record the
+  builds too (Slippi Online replaced the match block after they were
+  written). The sweep places the dummy by the borrowed move's size and
+  compares hand and finger hitboxes relative to the hand.
 - 1.3.3: Slippi replays play back the builds that were used (recorded in the
   spare player entries of the match setup block; src/platform/replay_builds.c);
   borrowed moves follow 70% of the body ratio (ratio^0.7), within 0.8x-1.55x

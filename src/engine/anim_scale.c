@@ -199,16 +199,19 @@ static void q_to_euler(Quat q, float e[3])
         e[2] = 0.0f;
     }
 }
+#pragma push
+#pragma dont_inline on
 static int rest_world(unsigned kind, unsigned i, Quat* q)
 {
     const short* v;
-    if (kind >= ROGUE_REST_KINDS || i >= ROGUE_REST_PARTS) return 0;
-    v = rogue_rest_world[kind][i];
+    if (kind >= ROGUE_REST_KINDS || i >= ROGUE_REST_PARTS + ROGUE_REST_EXTRA) return 0;
+    v = i < ROGUE_REST_PARTS ? rogue_rest_world[kind][i] : rogue_rest_extra[kind][i - ROGUE_REST_PARTS];
     if (!v[0] && !v[1] && !v[2] && !v[3]) return 0;
     q->x = v[0] * (1.0f / 32767.0f); q->y = v[1] * (1.0f / 32767.0f);
     q->z = v[2] * (1.0f / 32767.0f); q->w = v[3] * (1.0f / 32767.0f);
     return 1;
 }
+#pragma pop
 /* Rest rotation of the donor's body-less joints between a part and its
  * parent part (Kirby's arm hangs from two of them); none for most. */
 static Quat mid_quat(unsigned kind, int part)
@@ -509,13 +512,20 @@ static int prop_root(Fighter* fp, int prop)
     if (joint < 0 || (unsigned) joint >= ftPartsTable[fp->kind]->parts_num || !fp->parts[joint].joint) return -1;
     return joint;
 }
+/* Slot of a body part's rest rotation: the retargeted parts, then the
+ * fingers (rest_world only; rotate_retarget walks the first ones). */
+#pragma push
+#pragma dont_inline on
 static int rest_slot(int part)
 {
     int i;
     for (i = 0; i < ROGUE_REST_PARTS; ++i)
         if (rogue_rest_part[i] == part) return i;
+    for (i = 0; i < ROGUE_REST_EXTRA; ++i)
+        if (rogue_rest_extra_part[i] == part) return ROGUE_REST_PARTS + i;
     return -1;
 }
+#pragma pop
 
 /* Melee is retargeting donor joint `joint` of the current animation
  * (ftanim.c): keep its tracks if it is a prop (including a weapon bone the
@@ -536,7 +546,7 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
         if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID) return;
         int part = (unsigned) joint < from->parts_num ? from->joint_to_part[joint] : FTPART_INVALID, k, used = 0;
         if (part == FTPART_INVALID) return;
-        used = rest_slot(part) >= 0;
+        used = rest_slot(part) >= 0 && rest_slot(part) < ROGUE_REST_PARTS;
         for (k = 0; !used && k < ROGUE_PROP_COUNT; ++k)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
         if (!used) return;
@@ -868,31 +878,48 @@ static const float model_scale[] = {
  * holds, and its hitboxes. They follow 70% of the body ratio (ratio^0.7),
  * kept within 0.8x..1.55x of the donor's own size (Marth's sword on Jigglypuff stays
  * near Marth's; Pichu's tail on Bowser grows, not to Bowser size), and the hitboxes stay on
- * the parts that are drawn. Both sizes are in skeleton units: the fighter's
- * model scale applies on top, as it does to everything it draws. 1 when not
- * borrowing. */
+ * the parts that are drawn.
+ * Rogue_ShownScale: that size on screen, against the donor's own (0 when
+ * own and source are the same kind). */
+#pragma push
+#pragma dont_inline on
+float Rogue_ShownScale(unsigned own, unsigned source)
+{
+    float shown;
+    if (source == own || source >= BODY_SIZE_KINDS || own >= BODY_SIZE_KINDS) return 0.0f;
+    shown = (body_size[own] * model_scale[own]) / (body_size[source] * model_scale[source]);
+    /* About 70% of the size difference (in log space), then clamped. */
+    shown = powf(shown, 0.70f);
+    if (shown < 0.80f) shown = 0.80f;
+    else if (shown > 1.55f) shown = 1.55f;
+    return shown;
+}
+
+static float shown_scale(Fighter* fp, unsigned* source)
+{
+    if (!fp || !Rogue_IsAbilityState(fp)) return 0.0f;
+    *source = Rogue_AbilitySourceKind(fp);
+    return Rogue_ShownScale(fp->kind, *source);
+}
+
+/* In the fighter's own skeleton units: the shown size over the model scale
+ * difference, as the skeleton applies this fighter's model scale. */
 float Rogue_BorrowScale(Fighter* fp)
 {
     unsigned source;
-    float own, donor, s;
-    if (!fp || !Rogue_IsAbilityState(fp)) return 1.0f;
-    source = Rogue_AbilitySourceKind(fp);
-    if (source == fp->kind || source >= BODY_SIZE_KINDS || (unsigned) fp->kind >= BODY_SIZE_KINDS) return 1.0f;
-    own = body_size[fp->kind];
-    donor = body_size[source];
-    /* On screen the move is (own x its model scale) / (donor x the donor's)
-     * the donor's own size: ratio^0.7, kept within 0.8x..1.55x. */
-    {
-        float own_ms = model_scale[fp->kind], donor_ms = model_scale[source];
-        float shown = (own * own_ms) / (donor * donor_ms);
-        /* About 70% of the size difference (in log space), then clamped. */
-        shown = powf(shown, 0.70f);
-        if (shown < 0.80f) shown = 0.80f;
-        else if (shown > 1.55f) shown = 1.55f;
-        s = shown * donor_ms / own_ms;
-    }
-    return s;
+    float shown = shown_scale(fp, &source);
+    if (shown == 0.0f) return 1.0f;
+    return shown * model_scale[source] / model_scale[fp->kind];
 }
+
+/* In world units: hitbox radii, which no model scale applies to. */
+float Rogue_HitboxScale(Fighter* fp)
+{
+    unsigned source;
+    float shown = shown_scale(fp, &source);
+    return shown == 0.0f ? 1.0f : shown;
+}
+#pragma pop
 float Rogue_OwnerScale(HSD_GObj* owner)
 {
     Fighter* fp = owner ? GET_FIGHTER(owner) : NULL;
@@ -941,9 +968,13 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     {
         float s = Rogue_BorrowScale(fp);
         hit->b_offset.x *= s; hit->b_offset.y *= s; hit->b_offset.z *= s;
-        /* A throw's hitboxes are aimed at the fighter being thrown, who
+        /* The radius is in world units (the model scale sizes the skeleton,
+         * not hitboxes): the shown size, else a move from a fighter with a
+         * small model scale (Bowser, Pichu) has hitboxes too small for it.
+         * A throw's hitboxes are aimed at the fighter being thrown, who
          * keeps their own size: never smaller than the donor's (Bowser's
          * down throw on Mario-sized fighters missed the victim entirely). */
+        s = Rogue_HitboxScale(fp);
         if (fp->motion_id >= ftCo_MS_ThrowF && fp->motion_id <= ftCo_MS_ThrowLw && s < 1.0f) s = 1.0f;
         hit->scale *= s;
     }
@@ -977,8 +1008,28 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         Quat c;
         Mtx m;
         Quaternion cq;
-        if (part == FTPART_INVALID || own_joint(fp, part) < 0) return;
-        c = correction(source, fp->kind, rest_slot(part));
+        int own_part = part;
+        if (part == FTPART_INVALID) return;
+        if (own_joint(fp, part) < 0) {
+            /* The recipient lacks the bone (most have no waist): the hitbox
+             * rides the bone Rogue_AbilityMapBone chose instead, so carry
+             * the offset from the donor's bone frame into that one's (an
+             * offset in Jigglypuff's waist frame pointed up a tall
+             * fighter's hip, over its head). */
+            const FighterPartsTable* to = ftPartsTable[fp->kind];
+            unsigned j;
+            own_part = FTPART_INVALID;
+            for (j = 0; j < to->parts_num; ++j)
+                if (fp->parts[j].joint == hit->jobj) { own_part = to->joint_to_part[j]; break; }
+            if (own_part == FTPART_INVALID) return;
+        }
+        {
+            Quat d, r;
+            int ds = rest_slot(part), rs = rest_slot(own_part);
+            if (ds < 0 || rs < 0 || !rest_world(source, (unsigned) ds, &d) || !rest_world(fp->kind, (unsigned) rs, &r))
+                return;
+            c = q_mul(q_conj(d), r);
+        }
         if (q_identity(c)) return;
         cq.x = -c.x; cq.y = -c.y; cq.z = -c.z; cq.w = c.w;
         PSMTXQuat(m, &cq);

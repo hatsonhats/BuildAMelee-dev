@@ -83,7 +83,13 @@ includes the native matches (0-25) checks more than `--pair` alone.
   crash or freeze it records the step and relaunches from the next one.
 - `tools/qa/analyze.py`: pairs each borrowed hitbox with the donor's own by
   motion, animation frame and slot, and checks size, position relative to
-  the body part it rides on, and damage.
+  the body part it rides on (a hand and its fingers count as one part, as
+  do the hip and waist), and damage.
+- The dummy stands 12 units in front for ground attacks and 14 for aerials
+  and specials, for the donor's own move; for a borrowed move that distance
+  (less the dummy's half width) is scaled by the move's size on screen, so a
+  move that reaches the dummy for its donor reaches it here too. Throws and
+  dash attacks keep the donor's distance.
 
 Menu tests (`qa/ui_*.txt`, `qa/css.txt`) are QA scripts for the same build
 (`bam.py build --qa NAME`), run by hand in Dolphin.

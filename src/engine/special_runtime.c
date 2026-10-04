@@ -290,15 +290,35 @@ static float reach2(Fighter* fp, int joint, const Vec3* center)
     p.x -= center->x; p.y -= center->y; p.z -= center->z;
     return p.x * p.x + p.y * p.y + p.z * p.z;
 }
+/* The nearest part along a limb (shoulder to hand, hip to foot) that the
+ * fighter has, nearer the body first on a tie. -1 if none. */
+#pragma push
+#pragma dont_inline on
+static int limb_joint(Fighter* fp, int first, int last, int part)
+{
+    int d, joint;
+    for (d = 0; d <= last - first; ++d) {
+        if (part - d >= first && (joint = part_joint(fp, part - d)) >= 0) return joint;
+        if (part + d <= last && (joint = part_joint(fp, part + d)) >= 0) return joint;
+    }
+    return -1;
+}
+#pragma pop
 int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
 {
     static const int tail[] = { FtPart_BustN, FtPart_HipN, FtPart_TransN };
     int joint = -1, left, right, chest;
     unsigned i;
-    if (part >= FtPart_LShoulderN && part <= FtPart_LHandNb) {
+    if (part >= FtPart_LShoulderN && part <= FtPart_LHandN) {
+        /* Along the arm: a shoulder hitbox stays at the shoulder on a
+         * fighter with no shoulder bone (Kirby, Pikachu), not at the hand. */
+        joint = limb_joint(fp, FtPart_LShoulderN, FtPart_LHandN, part);
+    } else if (part > FtPart_LHandN && part <= FtPart_LHandNb) {
         joint = part_joint(fp, FtPart_LHandN);
         if (joint < 0) joint = part_joint(fp, FtPart_LArmJ);
-    } else if (part >= FtPart_RShoulderN && part <= FtPart_RHandNb) {
+    } else if (part >= FtPart_RShoulderN && part <= FtPart_RHandN) {
+        joint = limb_joint(fp, FtPart_RShoulderN, FtPart_RHandN, part);
+    } else if (part > FtPart_RHandN && part <= FtPart_RHandNb) {
         joint = part_joint(fp, FtPart_RHandN);
         if (joint < 0) joint = part_joint(fp, FtPart_RArmJ);
     } else if (part == FtPart_WaistN) {
@@ -307,10 +327,11 @@ int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
         joint = part_joint(fp, FtPart_HipN);
     } else if (part == FtPart_NeckN || part == FtPart_HeadN) {
         joint = part_joint(fp, FtPart_HeadN);
+        if (joint < 0) joint = part_joint(fp, FtPart_NeckN);
     } else if (part >= FtPart_LLegJA && part <= FtPart_LFootJ) {
-        joint = part_joint(fp, FtPart_LFootJ);
+        joint = limb_joint(fp, FtPart_LLegJA, FtPart_LFootJ, part);
     } else if (part >= FtPart_RLegJA && part <= FtPart_RFootJ) {
-        joint = part_joint(fp, FtPart_RFootJ);
+        joint = limb_joint(fp, FtPart_RLegJA, FtPart_RFootJ, part);
     } else if (part < 0 || part > FtPart_TransN2) {
         /* A donor-only bone (sword, cannon, gun, prop): it rides on whichever
          * hand is extended furthest from the chest when the move needs it. */
