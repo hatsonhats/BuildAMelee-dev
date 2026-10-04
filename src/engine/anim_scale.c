@@ -1044,6 +1044,27 @@ int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
     root = prop_root(fp, h->prop);
     if (root < 0 || !fp->parts[root].joint) return -1;
     prop_fold(fp, h->prop, rel);
+    {
+        /* QA trace: each folded donor finger's rotation as the fold
+         * evaluates it, next to the borrower's own joint for that finger
+         * (which Melee animates with the same donor tracks), if it has one. */
+        unsigned source = fp->x597_bits;
+        int part, k = 0, slot = slot_of_fighter(fp), base = prop_part(fp, h->prop);
+        for (part = rogue_prop[h->prop].part; base >= 0 && part != 0xFF && part != base && k++ < 8;
+             part = rogue_part_parent[source][part]) {
+            Quat q = part_local(fp, slot, source, part, 1);
+            int own = own_joint(fp, part);
+            float e[3];
+            q_to_euler(q, e);
+            if (own >= 0 && fp->parts[own].joint) {
+                HSD_JObj* j = fp->parts[own].joint;
+                OSReport("[qa] F %d %.1f fold %.3f %.3f %.3f own %.3f %.3f %.3f\n", part, fp->cur_anim_frame,
+                         e[0], e[1], e[2], j->rotate.x, j->rotate.y, j->rotate.z);
+            } else {
+                OSReport("[qa] F %d %.1f fold %.3f %.3f %.3f\n", part, fp->cur_anim_frame, e[0], e[1], e[2]);
+            }
+        }
+    }
     bs = Rogue_BorrowScale(fp);
     PSMTXScale(grow, bs, bs, bs);
     PSMTXConcat(grow, rel, rel);
