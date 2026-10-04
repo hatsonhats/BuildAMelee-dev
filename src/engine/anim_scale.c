@@ -849,10 +849,10 @@ static const float body_size[] = {
 
 /* How a borrowed move's own parts are sized on this fighter: its weapons,
  * tails and props (rebuilt bones and the donor's meshes), the articles it
- * holds, and its hitboxes. They fit the fighter they are on: scaled by this
- * fighter's body over the donor's, so Marth's sword on Pichu is Pichu-sized
- * and Pichu's tail on Bowser is Bowser-sized, and the hitboxes stay on the
- * parts that are drawn. Both sizes are in skeleton units: the fighter's
+ * holds, and its hitboxes. They lean toward the fighter they are on:
+ * scaled by the square root of this fighter's body over the donor's, so
+ * Marth's sword on Pichu is smaller and Pichu's tail on Bowser bigger, and
+ * the hitboxes stay on the parts that are drawn. Both sizes are in skeleton units: the fighter's
  * model scale applies on top, as it does to everything it draws. 1 when not
  * borrowing. */
 float Rogue_BorrowScale(Fighter* fp)
@@ -864,8 +864,12 @@ float Rogue_BorrowScale(Fighter* fp)
     if (source == fp->kind || source >= BODY_SIZE_KINDS || (unsigned) fp->kind >= BODY_SIZE_KINDS) return 1.0f;
     own = body_size[fp->kind];
     donor = body_size[source];
-    s = own / donor;
-    return s < 0.4f ? 0.4f : s > 2.5f ? 2.5f : s;
+    /* Half way between the donor's size and the fighter's (the square root
+     * of the body ratio): fully proportional made a small character's move
+     * huge on a big one (Pichu's on Bowser: 3.4x) and a big one's tiny on a
+     * small one (Bowser's on Pichu: 0.3x). */
+    s = sqrtf(own / donor);
+    return s < 0.5f ? 0.5f : s > 2.0f ? 2.0f : s;
 }
 float Rogue_OwnerScale(HSD_GObj* owner)
 {
