@@ -140,6 +140,12 @@ def find_dolphin(arg: str | None) -> Path:
                         return p / name
             if p.is_file():
                 return p
+            # Dolphin's Windows download may not include DolphinNoGUI.exe:
+            # fall back to the Dolphin.exe next to where it was expected.
+            for name in ('DolphinNoGUI.exe', 'Dolphin.exe', 'dolphin-emu-nogui', 'dolphin-emu'):
+                if (p.parent / name).is_file():
+                    print(f'{p.name} not found; using {name}')
+                    return p.parent / name
             sys.exit(f'Dolphin not found at {c}')
     for name in ('dolphin-emu-nogui', 'DolphinNoGUI', 'dolphin-emu'):
         w = shutil.which(name)
