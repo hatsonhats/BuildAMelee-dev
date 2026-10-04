@@ -1,0 +1,2 @@
+mode size
+at 1 press B hold 1

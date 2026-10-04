@@ -97,10 +97,9 @@ def step_names(from_ck, matches, res):
     return list(NORMALS) + AERIALS + ['B:' + n for n in SPECIAL_NAMES.get(from_ck, [])]
 
 
-# Rest head heights in skeleton units (src/engine/anim_scale.c body_size),
-# by CharacterKind.
-BODY = dict(zip(CK, [18.66, 23.36, 11.10, 8.60, 6.00, 29.53, 12.90, 8.29, 8.29, 13.90, 14.90, 7.45, 12.65, 8.00,
-                     6.23, 6.00, 18.55, 13.00, 12.65, 11.62, 11.10, 12.95, 8.29, 13.90, 8.70, 18.66]))
+# Body heights in skeleton units (src/engine/anim_scale.c body_size: top of
+# the hurtboxes over model scale), by CharacterKind.
+BODY = dict(zip(CK, [19.19, 17.09, 16.46, 13.06, 10.57, 32.59, 14.86, 12.96, 13.23, 16.67, 18.75, 13.26, 15.84, 13.22, 11.46, 13.20, 21.17, 16.02, 14.89, 12.71, 16.89, 15.64, 13.27, 17.36, 25.00, 20.27]))
 
 
 def keep(hs, name):

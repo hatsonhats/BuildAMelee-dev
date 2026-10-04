@@ -493,6 +493,32 @@ static void qa_frame(void)
             if (!idle(p1) && p1->motion_id != ftCo_MS_RebirthWait) ftCommon_8007D92C(p1->gobj);
         }
         if (idle(p1) && idle(p2)) {
+            /* Body size (native matches): standing ECB top and the top of
+             * the hurtboxes, over the ground, in world units. */
+            if (idle_frames == 8 && cur_step == 0 && cur_D < 0) {
+                unsigned i;
+                float top = -1e9f, bot = 1e9f;
+                for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
+                    HurtCapsule* c = &p1->hurt_capsules[i].capsule;
+                    float hi = (c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y) + c->scale;
+                    float lo = (c->a_pos.y < c->b_pos.y ? c->a_pos.y : c->b_pos.y) - c->scale;
+                    if (hi > top) top = hi;
+                    if (lo < bot) bot = lo;
+                }
+                {
+                    float ctop = -1e9f, rmax = 0;
+                    for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
+                        HurtCapsule* c = &p1->hurt_capsules[i].capsule;
+                        float hi = c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y;
+                        if (hi > ctop) ctop = hi;
+                        if (c->scale > rmax) rmax = c->scale;
+                    }
+                    OSReport("[qa] SIZE %d %.3f %.3f %.3f %.3f %.3f %.3f\n", cur_R, p1->co_attrs.model_scaling,
+                             p1->coll_data.ecb.top.y, top - p1->cur_pos.y, bot - p1->cur_pos.y,
+                             ctop - p1->cur_pos.y, rmax);
+                }
+                { extern int qa_ui_mode; if (qa_ui_mode == 4) { cur_step = nsteps; return; } }
+            }
             if (++idle_frames >= 10) { phase = PH_PLACE; pf = 0; }
         } else {
             idle_frames = 0;
@@ -569,7 +595,7 @@ int QA_CssAuto(void)
 {
     extern int qa_ui_mode;
     extern void HSD_SisLib_803A5E70(void);
-    if (qa_ui_mode >= 2) {
+    if (qa_ui_mode >= 2 && qa_ui_mode <= 3) {
         /* First CSS: the panel's texts are wiped (as Slippi's code entry
          * does), then a one-step match; the CSS after it stays up. */
         static unsigned visit_frames;
@@ -593,7 +619,7 @@ int QA_CssAuto(void)
         }
         return 0;
     }
-    if (qa_ui_mode) {
+    if (qa_ui_mode == 1) {
         /* Menu tests: port 1 plays Marth; the script drives the panel. */
         if (mnCharSel_804D6CB0) {
             mnCharSel_804D6CB0->vs.start.players[0].ckind = 9;

@@ -830,29 +830,30 @@ static PropHit* hit_record(const HitCapsule* hit)
         if (prop_hits[i].hit == hit) return &prop_hits[i];
     return NULL;
 }
-/* Body size per fighter kind: the head's height in the rest pose, in the
- * skeleton's own units (before model scaling), measured from the retail
- * models (Kirby, Jigglypuff and Yoshi have no head bone: estimated from
- * their height). */
+/* Body size per fighter kind: the standing height to the top of the
+ * hurtboxes, measured in game (QA "SIZE" lines, tools/qa: bam.py build --qa
+ * size), divided by the fighter's model scale so it is in skeleton units.
+ * The old table (head bone height) made Bowser 2.1x Marth and Jigglypuff
+ * 0.43x; by the body they are 1.17x and 0.65x. */
 static const float body_size[] = {
-    8.29f,  /* Mario */      11.10f, /* Fox */        18.66f, /* Captain Falcon */
-    23.36f, /* Donkey Kong */ 6.00f, /* Kirby */      29.53f, /* Bowser */
-    12.90f, /* Link */       11.62f, /* Sheik */       7.45f, /* Ness */
-    12.65f, /* Peach */       6.23f, /* Popo */        6.23f, /* Nana */
-    8.00f,  /* Pikachu */    18.55f, /* Samus */      13.00f, /* Yoshi */
-    6.00f,  /* Jigglypuff */ 14.90f, /* Mewtwo */      8.29f, /* Luigi */
-    13.90f, /* Marth */      12.65f, /* Zelda */      12.95f, /* Young Link */
-    8.29f,  /* Dr. Mario */  11.10f, /* Falco */       8.70f, /* Pichu */
-    8.60f,  /* Mr. Game & Watch */ 18.66f, /* Ganondorf */ 13.90f, /* Roy */
+    13.23f, /* Mario */ 16.46f, /* Fox */ 19.19f, /* Captain Falcon */
+    17.09f, /* Donkey Kong */ 10.57f, /* Kirby */ 32.59f, /* Bowser */
+    14.86f, /* Link */ 12.71f, /* Sheik */ 13.26f, /* Ness */
+    15.84f, /* Peach */ 11.46f, /* Popo */ 11.46f, /* Nana */
+    13.22f, /* Pikachu */ 21.17f, /* Samus */ 16.02f, /* Yoshi */
+    13.20f, /* Jigglypuff */ 18.75f, /* Mewtwo */ 12.96f, /* Luigi */
+    16.67f, /* Marth */ 14.89f, /* Zelda */ 15.64f, /* Young Link */
+    13.27f, /* Dr. Mario */ 16.89f, /* Falco */ 25.00f, /* Pichu */
+    13.06f, /* Mr. Game & Watch */ 20.27f, /* Ganondorf */ 17.36f, /* Roy */
 };
 #define BODY_SIZE_KINDS (sizeof(body_size) / sizeof(body_size[0]))
 
 /* How a borrowed move's own parts are sized on this fighter: its weapons,
  * tails and props (rebuilt bones and the donor's meshes), the articles it
- * holds, and its hitboxes. They lean toward the fighter they are on:
- * scaled by the square root of this fighter's body over the donor's, so
- * Marth's sword on Pichu is smaller and Pichu's tail on Bowser bigger, and
- * the hitboxes stay on the parts that are drawn. Both sizes are in skeleton units: the fighter's
+ * holds, and its hitboxes. They fit the fighter they are on: scaled by this
+ * fighter's body over the donor's, so Marth's sword on Jigglypuff is
+ * Jigglypuff-sized and Pichu's tail on Bowser is Bowser-sized, and the
+ * hitboxes stay on the parts that are drawn. Both sizes are in skeleton units: the fighter's
  * model scale applies on top, as it does to everything it draws. 1 when not
  * borrowing. */
 float Rogue_BorrowScale(Fighter* fp)
@@ -864,12 +865,8 @@ float Rogue_BorrowScale(Fighter* fp)
     if (source == fp->kind || source >= BODY_SIZE_KINDS || (unsigned) fp->kind >= BODY_SIZE_KINDS) return 1.0f;
     own = body_size[fp->kind];
     donor = body_size[source];
-    /* Half way between the donor's size and the fighter's (the square root
-     * of the body ratio): fully proportional made a small character's move
-     * huge on a big one (Pichu's on Bowser: 3.4x) and a big one's tiny on a
-     * small one (Bowser's on Pichu: 0.3x). */
-    s = sqrtf(own / donor);
-    return s < 0.5f ? 0.5f : s > 2.0f ? 2.0f : s;
+    s = own / donor;
+    return s < 0.4f ? 0.4f : s > 2.5f ? 2.5f : s;
 }
 float Rogue_OwnerScale(HSD_GObj* owner)
 {

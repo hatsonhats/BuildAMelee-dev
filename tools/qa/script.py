@@ -29,6 +29,9 @@ def main(src, dst):
         if p == ['mode', 'uimatch-nowipe']:  # the same without the reset
             ui = 3
             continue
+        if p == ['mode', 'size']:  # sweep, but each match ends after its body-size line
+            ui = 4
+            continue
         at = int(p[1]); hold = int(p[p.index('hold') + 1]) if 'hold' in p else 6
         b = x = y = cx = cy = 0
         if p[2] == 'press':
