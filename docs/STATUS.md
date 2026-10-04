@@ -1,9 +1,11 @@
 # Status
 
-**v1.3.1** - all 21 move slots borrowable on every character; local and
+**v1.3.2** - all 21 move slots borrowable on every character; local and
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.3.2: fixed a crash after a borrowed Peach up B; borrowed moves are never
+  drawn smaller than on their own character (they still grow on bigger ones).
 - 1.3.1: borrowed moves sized by each character's measured body height
   (Marth's sword on Jigglypuff was far too small, Pichu's moves on Bowser
   too big).
