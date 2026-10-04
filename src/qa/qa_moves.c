@@ -22,6 +22,7 @@
  *   [qa] H m s f ms i r x y dmg   a hitbox appeared (rel. to fighter, facing right)
  *   [qa] B m s scale              port 1 borrowing during the step
  *   [qa] C m s gap                closest approach of its hitboxes to the dummy
+ *   [qa] I m s f kind x y r       its projectile's first hitbox (rel. to it)
  *   [qa] R m s res frames bor dmg ms0 ms1 ms2 ms3
  *   [qa] E m                      match done
  * The sweep starts at qa_resume (match * 32 + step), patched into the ISO by
@@ -47,6 +48,10 @@
 #include <string.h>
 #include <math.h>
 #include <sysdolphin/baselib/random.h>
+#include <sysdolphin/baselib/gobj.h>
+#include <melee/it/types.h>
+#include <melee/it/inlines.h>
+#include <melee/it/forward.h>
 #include <melee/ft/fighter.h>
 #include <melee/lb/lb_00B0.h>
 #include <melee/ft/ftdata.h>
@@ -517,9 +522,33 @@ static float seg_seg(const Vec3* p1, const Vec3* q1, const Vec3* p2, const Vec3*
     return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
 }
 
+static void reach_capsule(Fighter* p2, const HitCapsule* h, float rh)
+{
+    int j;
+    for (j = 0; j < (int) p2->hurt_capsules_len && j < 15; ++j) {
+        HurtCapsule* c = &p2->hurt_capsules[j].capsule;
+        float g = seg_seg(&h->x58, &h->x4C, &c->a_pos, &c->b_pos) - rh - c->scale * p2->x34_scale.y;
+        if (g < reach_gap) reach_gap = g;
+    }
+}
+
 static void track_reach(Fighter* p1, Fighter* p2)
 {
     int i, j;
+    HSD_GObj* cur;
+    /* Its projectiles and items too (fireballs, arrows, eggs). */
+    for (cur = HSD_GObjPLinkHead[HSD_GOBJ_PLINK_ITEM]; cur != NULL; cur = cur->next) {
+        Item* ip = GET_ITEM(cur);
+        if (!ip || ip->owner != p1->gobj) continue;
+        for (i = 0; i < 4; ++i) {
+            HitCapsule* h = &ip->x5D4_hitboxes[i].hit;
+            if (h->state == HitCapsule_Disabled) continue;
+            reach_capsule(p2, h, h->scale * ip->scl);
+            if (i == 0)
+                OSReport("[qa] I %u %u %u %d %.2f %.2f %.2f\n", cur_match, cur_step, rf, (int) ip->kind,
+                         (h->x4C.x - p1->cur_pos.x) * face, h->x4C.y - p1->cur_pos.y, h->scale * ip->scl);
+        }
+    }
     for (i = 0; i < 4; ++i) {
         HitCapsule* h = &p1->x914[i];
         float rh;

@@ -213,6 +213,10 @@ def analyze(logdir):
                 msr = mscale.get(key, 1.0)
                 msd = mscale.get((donor, s), 1.0)
                 probs, worst = compare(nat, bor, sc, sc * msr / msd, BODY[CK[R]] * msr)
+                if r['dmg'] > 0:
+                    # It connected: a move whose hitboxes end on hit (Skull
+                    # Bash) can be active for fewer frames than the donor's.
+                    probs = [p for p in probs if not p.startswith('hitboxes active')]
                 if probs:
                     variant = probs[0].startswith('played in another state')
                     status = ('VARIANT' if variant else 'HITBOX') if status == 'OK' else status
@@ -232,7 +236,7 @@ def analyze(logdir):
                         status = 'NOHIT'
                         note = f"dummy took 0% (donor's own move: {res[(donor, s)]['dmg']}%)"
                         note += f'; hitboxes overlapped it by {-gap:.1f}' if gap is not None else \
-                            '; no fighter hitboxes measured (projectile or item?)'
+                            '; no hitboxes measured'
             counts[status] += 1
             rows.append((m, s, CK[R], CK[D] if D >= 0 else '-', name, status, note))
     return rows, counts

@@ -12,6 +12,7 @@ typedef struct Scaled {
     HSD_JObj* jobj;
     float own[3], donor[3], ratio;
     float own_hip, donor_hip, size; /* rest hip heights; Rogue_BorrowScale */
+    int lift;                       /* a body bone: lifts are capped */
 } Scaled;
 typedef struct Quat { float x, y, z, w; } Quat;
 typedef struct RotFix {
@@ -42,7 +43,7 @@ typedef struct PropHit {
 typedef struct PropAnchor { HSD_JObj* jobj; short prop, root; } PropAnchor;
 #define ANCHORS 4
 typedef struct AnimScaleState {
-    Scaled scaled[BAM_FIGHTERS * 6];
+    Scaled scaled[BAM_FIGHTERS * 8];
     unsigned scaled_count;
     RotFix rotfix[BAM_FIGHTERS * ROTFIX_PER_FIGHTER];
     unsigned char rotfix_part[BAM_FIGHTERS * ROTFIX_PER_FIGHTER];
@@ -428,6 +429,21 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
             s->own_hip = own->hip;
             s->donor_hip = donor->hip;
             s->size = Rogue_BorrowScale(fp);
+            s->lift = 1;
+        }
+    }
+    {
+        /* TransN2 carries what a move throws out from the body (Ness's
+         * yo-yo in his up and down smash): the donor's positions, at the
+         * move's size. */
+        int joint = part_joint_raw(fp, FtPart_TransN2);
+        if (joint != FTPART_INVALID && joint >= 0 && fp->parts[joint].joint &&
+            scaled_count < sizeof(scaled) / sizeof(scaled[0])) {
+            Scaled* s = &scaled[scaled_count++];
+            memset(s, 0, sizeof(*s));
+            s->fighter = fp;
+            s->jobj = fp->parts[joint].joint;
+            s->ratio = Rogue_BorrowScale(fp);
         }
     }
 }
@@ -439,7 +455,7 @@ float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
         if (scaled[i].jobj == jobj) {
             const Scaled* e = &scaled[i];
             float d = value - e->donor[axis], move = d * e->ratio;
-            if (axis == 1 && d > 0.0f) {
+            if (e->lift && axis == 1 && d > 0.0f) {
                 /* A lift (Jigglypuff's dash attack and up smash hop half
                  * her height): no higher off the ground than the donor's
                  * body goes, at the move's size, so the attack stays at the

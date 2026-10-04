@@ -55,7 +55,7 @@ includes the native matches (0-25) checks more than `--pair` alone.
 |---|---|
 | OK | The move ran and its hitboxes match the donor's own, scaled |
 | HITBOX | Hitboxes differ in size, place or damage from the donor's own |
-| NOHIT | The move's hitboxes touched the dummy and dealt no damage, although the donor's own move hits it (or the move only hits with a projectile or item, which is not measured) |
+| NOHIT | The move's hitboxes (the fighter's own or its projectiles' and items') touched the dummy and dealt no damage, although the donor's own move hits it |
 | REACH | The dummy took no damage because the move's hitboxes never touched it: spacing, not a broken move (informational; the note says how far short, and how far the donor's own move got) |
 | VARIANT | The move ran in another of its states than the donor's own, e.g. Ice Climbers' Squall Hammer without Nana (informational) |
 | NOMOVE | The move never started |

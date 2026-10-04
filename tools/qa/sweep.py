@@ -451,7 +451,7 @@ def report(run: Path):
              'results: ' + ', '.join(f'{k} {v}' for k, v in sorted(counts.items(), key=lambda kv: -kv[1])), '',
              'OK       the move ran and its hitboxes match the donor\'s own (scaled)',
              'HITBOX   hitboxes differ in size, place or damage from the donor\'s own',
-             'NOHIT    its hitboxes touched the dummy (or are a projectile\'s) and dealt no damage, although the donor\'s own move hits it',
+             'NOHIT    its hitboxes (its own or its projectiles\') touched the dummy and dealt no damage, although the donor\'s own move hits it',
              'REACH    its hitboxes never touched the dummy (spacing; informational)',
              'VARIANT  the move ran in another of its states than the donor\'s own (informational)',
              'NOMOVE   the move never started    STUCK  the move never ended',
