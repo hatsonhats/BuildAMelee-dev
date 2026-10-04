@@ -297,8 +297,10 @@ static float gap_native(const Step* s)
 /* The dummy's distance. A borrowed move is drawn at Rogue_ShownScale of the
  * donor's own size, so its reach is too: the gap to the dummy's near side
  * (its half width, about DUMMY_HALF) scales with it, and a move that reaches
- * the dummy for the donor reaches it here. Not for throws (a grab range)
- * nor dash attacks (a run-up). */
+ * the dummy for the donor reaches it here. Only closer, never further: a
+ * bigger move does not reach further up or down, and a hit that only just
+ * landed for the donor then missed. Not for throws (a grab range) nor dash
+ * attacks (a run-up). */
 #define DUMMY_HALF 3.0f
 static Fighter* gap_fp;
 static float gap_for(const Step* s)
@@ -307,7 +309,7 @@ static float gap_for(const Step* s)
     if (cur_D < 0 || !gap_fp || (s->kind == K_NORMAL && (s->slot >= BAM_NORMAL_FTHROW || s->slot == BAM_NORMAL_DASH)))
         return g;
     k = Rogue_ShownScale(gap_fp->kind, Rogue_InternalKindForCharacter((CharacterKind) cur_D));
-    if (k <= 0.0f) return g;
+    if (k <= 0.0f || k >= 1.0f) return g;
     return DUMMY_HALF + (g - DUMMY_HALF) * k;
 }
 

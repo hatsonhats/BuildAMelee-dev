@@ -24,9 +24,9 @@ Slippi Online (Direct) play.
   falls back along the limb (a shoulder hitbox stays at the shoulder on
   Kirby, not the hand) and its hitbox offset is turned into that bone's
   frame (Jigglypuff's dash attack on fighters without a waist bone); finger
-  bones have rest-pose data, so props and hitboxes hanging from them (Ice
-  Climbers' hammer, Ness's bat, Mario's cape) keep their orientation on
-  fighters without those fingers. Slippi Online replays now record the
+  bones have rest-pose data (the files' own rotations), so props and
+  hitboxes hanging from them (Ice Climbers' hammer, Ness's bat) keep their
+  orientation on fighters without those fingers. Slippi Online replays now record the
   builds too (Slippi Online replaced the match block after they were
   written). The sweep places the dummy by the borrowed move's size and
   compares hand and finger hitboxes relative to the hand.

@@ -87,9 +87,10 @@ includes the native matches (0-25) checks more than `--pair` alone.
   do the hip and waist), and damage.
 - The dummy stands 12 units in front for ground attacks and 14 for aerials
   and specials, for the donor's own move; for a borrowed move that distance
-  (less the dummy's half width) is scaled by the move's size on screen, so a
-  move that reaches the dummy for its donor reaches it here too. Throws and
-  dash attacks keep the donor's distance.
+  (less the dummy's half width) shrinks with a smaller move's size on
+  screen, so a move that reaches the dummy for its donor reaches it here
+  too (it never grows for a bigger one). Throws and dash attacks keep the
+  donor's distance.
 
 Menu tests (`qa/ui_*.txt`, `qa/css.txt`) are QA scripts for the same build
 (`bam.py build --qa NAME`), run by hand in Dolphin.

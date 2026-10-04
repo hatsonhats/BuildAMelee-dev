@@ -526,6 +526,15 @@ static int rest_slot(int part)
     return -1;
 }
 #pragma pop
+/* A body part the same fighter-to-fighter correction applies to. The
+ * fingers are not retargeted (each fighter keeps its own finger pose), so a
+ * prop or hitbox on a finger both fighters have keeps the donor's offset as
+ * is; their rest data only carries offsets onto another bone. */
+static int body_slot(int part)
+{
+    int i = rest_slot(part);
+    return i < ROGUE_REST_PARTS ? i : -1;
+}
 
 /* Melee is retargeting donor joint `joint` of the current animation
  * (ftanim.c): keep its tracks if it is a prop (including a weapon bone the
@@ -546,7 +555,7 @@ void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
         if (ftPartsRemap(fp->kind, kind, joint) != FTPART_INVALID) return;
         int part = (unsigned) joint < from->parts_num ? from->joint_to_part[joint] : FTPART_INVALID, k, used = 0;
         if (part == FTPART_INVALID) return;
-        used = rest_slot(part) >= 0 && rest_slot(part) < ROGUE_REST_PARTS;
+        used = body_slot(part) >= 0;
         for (k = 0; !used && k < ROGUE_PROP_COUNT; ++k)
             used = rogue_prop[k].kind == kind && rogue_prop[k].part == part;
         if (!used) return;
@@ -599,8 +608,15 @@ static Quat part_local(Fighter* fp, int slot, unsigned kind, int part)
     PropEval v;
     int up = rogue_part_parent[kind][part], joint = ftPartsTable[kind]->part_to_joint[part];
     int si = rest_slot(part), sp = up != 0xFF ? rest_slot(up) : -1;
-    if (si < 0 || !rest_world(kind, (unsigned) si, &d)) {
-        /* No rest data (a finger bone): the tracks alone, from zero. */
+    if (si >= ROGUE_REST_PARTS && kind < ROGUE_REST_KINDS) {
+        /* A finger: its own rest values as the file has them, which the
+         * tracks override channel by channel (a rotation rebuilt from the
+         * world rest can split into other angles and mix badly). */
+        const short* r = rogue_rest_extra_rot[kind][si - ROGUE_REST_PARTS];
+        v.v[1] = r[0] * (1.0f / 4096.0f); v.v[2] = r[1] * (1.0f / 4096.0f); v.v[3] = r[2] * (1.0f / 4096.0f);
+        if (joint == FTPART_INVALID) return none;
+    } else if (si < 0 || !rest_world(kind, (unsigned) si, &d)) {
+        /* No rest data: the tracks alone, from zero. */
         v.v[1] = v.v[2] = v.v[3] = 0.0f;
         if (joint == FTPART_INVALID) return none;
     } else {
@@ -699,7 +715,7 @@ static int prop_relative(Fighter* fp, int prop, Mtx out)
     if (i != 255) return 0;
     /* C(base)^-1, then the donor parts between base and the prop's own part
      * that the recipient lacks (rotation only). */
-    c = correction(source, fp->kind, base >= 0 ? rest_slot(base) : -1);
+    c = correction(source, fp->kind, base >= 0 ? body_slot(base) : -1);
     c = q_conj(c);
     if (base >= 0) {
         Quat folded = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -777,7 +793,7 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
         PSMTXConcat(HSD_JObjGetMtxPtr(base), rel, world);
     } else if (prop_active(fp, source) && a->prop < 0) {
         int part = ftPartsTable[fp->kind]->joint_to_part[a->root];
-        Quat c = correction(source, fp->kind, part != FTPART_INVALID ? rest_slot(part) : -1);
+        Quat c = correction(source, fp->kind, part != FTPART_INVALID ? body_slot(part) : -1);
         Quaternion q;
         q.x = -c.x; q.y = -c.y; q.z = -c.z; q.w = c.w;
         PSMTXQuat(rel, &q);
@@ -1026,6 +1042,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         {
             Quat d, r;
             int ds = rest_slot(part), rs = rest_slot(own_part);
+            if (own_part == part) ds = rs = body_slot(part);
             if (ds < 0 || rs < 0 || !rest_world(source, (unsigned) ds, &d) || !rest_world(fp->kind, (unsigned) rs, &r))
                 return;
             c = q_mul(q_conj(d), r);
@@ -1237,7 +1254,7 @@ static void pose_pass(Fighter* fp)
         if (e && e->kind == source && !fp->parts[j].flags_b0 && !fp->parts[j].flags_b5) {
             float out[3];
             Quat want = q_mul(donor_world(fp, slot, source, part, &d, 0),
-                correction(source, fp->kind, rest_slot(part)));
+                correction(source, fp->kind, body_slot(part)));
             q_to_euler(q_mul(q_conj(parent), want), out);
             HSD_JObjSetRotationX(jobj, out[0]);
             HSD_JObjSetRotationY(jobj, out[1]);
@@ -1340,7 +1357,7 @@ void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* p
             PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[own].joint), rel, w);
         } else if ((int) d != free_joint && d < from->parts_num && (part = from->joint_to_part[d]) != FTPART_INVALID &&
                    (own = own_joint(fp, part)) >= 0) {
-            Quat c = correction(source, fp->kind, rest_slot(part));
+            Quat c = correction(source, fp->kind, body_slot(part));
             Quaternion q;
             Mtx turn;
             q.x = -c.x; q.y = -c.y; q.z = -c.z; q.w = c.w;
