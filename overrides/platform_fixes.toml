@@ -33,6 +33,15 @@ replacement = "result = it_802B55C8(gobj, &vec1, Rogue_AbilityMapBone(fp, FtPart
 reason = "The charging item's persistent attachment stores a raw recipient bone index. Remap it at creation just like its spawn position; the donor hand index is not a valid joint on Ice Climbers."
 
 [[fix]]
+id = "samus-charge-shot-release-height"
+owner = "platform/specials/samus"
+file = "src/melee/ft/kinds/ftSamus/ftsamusspecialn.c"
+anchor = "        vec1.z = 0;\n        held_item = fp->item_gobj;"
+replacement = "        {\n            extern void Rogue_ProjectileOrigin(Fighter* fp, Vec3* pos);\n            Rogue_ProjectileOrigin(fp, &vec1);\n        }\n        vec1.z = 0;\n        held_item = fp->item_gobj;"
+occurrences = 1
+reason = "On a fighter whose throw bone sits low (Jigglypuff, Ice Climbers) the shot was released into the floor and vanished at once."
+
+[[fix]]
 id = "mario-cape-missing-thumb"
 owner = "platform/specials/mario"
 file = "src/melee/ft/kinds/ftMario/ftmariospecials.c"

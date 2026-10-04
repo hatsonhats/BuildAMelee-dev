@@ -1010,6 +1010,16 @@ float Rogue_HitboxScale(Fighter* fp)
     return shown == 0.0f ? 1.0f : shown;
 }
 #pragma pop
+/* Where a borrowed projectile leaves from: not lower than about the middle
+ * of the borrower's body, so a shot from a short fighter's low bone does not
+ * start in the floor (Samus's Charge Shot from Jigglypuff). */
+void Rogue_ProjectileOrigin(Fighter* fp, Vec3* pos)
+{
+    float low;
+    if (!fp || !pos || !Rogue_IsAbilityState(fp) || (unsigned) fp->kind >= BODY_SIZE_KINDS) return;
+    low = fp->cur_pos.y + 0.45f * body_size[fp->kind] * model_scale[fp->kind];
+    if (pos->y < low) pos->y = low;
+}
 float Rogue_OwnerScale(HSD_GObj* owner)
 {
     Fighter* fp = owner ? GET_FIGHTER(owner) : NULL;
