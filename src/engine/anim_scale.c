@@ -602,20 +602,23 @@ static void eval_tracks(int slot, unsigned kind, int joint, float frame, PropEva
     }
 }
 /* The donor's animated local rotation of one of its body parts. */
-static Quat part_local(Fighter* fp, int slot, unsigned kind, int part)
+/* finger_rest: a finger's own rest values under its tracks (a prop folded
+ * onto another bone); else a finger starts from zero, as the per-frame
+ * retarget has always folded them. */
+static Quat part_local(Fighter* fp, int slot, unsigned kind, int part, int finger_rest)
 {
     Quat d, dp, rest, none = { 0.0f, 0.0f, 0.0f, 1.0f };
     PropEval v;
     int up = rogue_part_parent[kind][part], joint = ftPartsTable[kind]->part_to_joint[part];
     int si = rest_slot(part), sp = up != 0xFF ? rest_slot(up) : -1;
-    if (si >= ROGUE_REST_PARTS && kind < ROGUE_REST_KINDS) {
+    if (finger_rest && si >= ROGUE_REST_PARTS && kind < ROGUE_REST_KINDS) {
         /* A finger: its own rest values as the file has them, which the
          * tracks override channel by channel (a rotation rebuilt from the
          * world rest can split into other angles and mix badly). */
         const short* r = rogue_rest_extra_rot[kind][si - ROGUE_REST_PARTS];
         v.v[1] = r[0] * (1.0f / 4096.0f); v.v[2] = r[1] * (1.0f / 4096.0f); v.v[3] = r[2] * (1.0f / 4096.0f);
         if (joint == FTPART_INVALID) return none;
-    } else if (si < 0 || !rest_world(kind, (unsigned) si, &d)) {
+    } else if (si < 0 || si >= ROGUE_REST_PARTS || !rest_world(kind, (unsigned) si, &d)) {
         /* No rest data: the tracks alone, from zero. */
         v.v[1] = v.v[2] = v.v[3] = 0.0f;
         if (joint == FTPART_INVALID) return none;
@@ -633,7 +636,7 @@ static Quat fold_quat(const RotFix* e)
     Fighter* fp = bam_match->fighters[e->slot].fighter;
     unsigned i;
     if (!fp) return q;
-    for (i = 0; i < e->nfold; ++i) q = q_mul(q, part_local(fp, e->slot, e->kind, e->fold[i]));
+    for (i = 0; i < e->nfold; ++i) q = q_mul(q, part_local(fp, e->slot, e->kind, e->fold[i], 0));
     return q;
 }
 /* Local transform of a prop entry at the fighter's current animation frame. */
@@ -722,7 +725,7 @@ static int prop_relative(Fighter* fp, int prop, Mtx out)
         int k = 0;
         for (part = rogue_prop[prop].part; part != 0xFF && part != base && k++ < 8;
              part = rogue_part_parent[source][part])
-            folded = q_mul(part_local(fp, slot, source, part), folded);
+            folded = q_mul(part_local(fp, slot, source, part, 1), folded);
         c = q_mul(c, folded);
     }
     cq.x = c.x; cq.y = c.y; cq.z = c.z; cq.w = c.w;
@@ -1208,7 +1211,7 @@ static Quat donor_world(Fighter* fp, int slot, unsigned source, int part, DonorP
         RotFix* e = rotfix_find(fp->parts[joint].joint);
         local = q_mul(mid_quat(source, part), e ? q_euler(e->donor) : jobj_local(fp->parts[joint].joint));
     } else {
-        local = part_local(fp, slot, source, part);
+        local = part_local(fp, slot, source, part, 0);
     }
     d->world[part] = q_mul(up_world, local);
     d->done[part] = 1;

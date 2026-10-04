@@ -73,6 +73,9 @@ includes the native matches (0-25) checks more than `--pair` alone.
   - Per step: both fighters made idle and placed, the move's inputs played
     (tilts at half stick, smashes on the C-stick, throws after a grab,
     aerials from a full hop), then wait for port 1 to stand again.
+  - Each move starts from the same random seed, so moves that roll (Peach's
+    forward smash item, Judgment, Green Missile's misfire) roll the same as
+    the donor's own run.
   - Every frame of a step, the closest approach of port 1's hitboxes to the
     dummy's hurtboxes is measured (the capsules the game tests), which tells
     REACH from NOHIT.

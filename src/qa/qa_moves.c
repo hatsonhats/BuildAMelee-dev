@@ -46,6 +46,7 @@
 #include <dolphin/os.h>
 #include <string.h>
 #include <math.h>
+#include <sysdolphin/baselib/random.h>
 #include <melee/ft/fighter.h>
 #include <melee/lb/lb_00B0.h>
 #include <melee/ft/ftdata.h>
@@ -329,8 +330,13 @@ static int busy(Fighter* fp)
 }
 
 static void drive_raw(const Step* s, Fighter* fp);
+/* Every step starts from the same random seed, so a move that rolls (Peach's
+ * forward smash item, Judgment's number, Green Missile's misfire) rolls the
+ * same for the donor's own run and every borrowed one. */
+#define QA_SEED 0x5EED1234u
 static void drive(const Step* s, Fighter* fp)
 {
+    *HSD_RandSeedPtr = QA_SEED;
     drive_raw(s, fp);
     qa_drive_x = (s8) (qa_drive_x * face);
     qa_drive_cx = (s8) (qa_drive_cx * face);
