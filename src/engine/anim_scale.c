@@ -893,7 +893,46 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
         PSMTXCopy(HSD_JObjGetMtxPtr(base), world);
     }
     HSD_JObjCopyMtx(a->jobj, world);
-    a->jobj->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT;
+    a->jobj->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT | JOBJ_USE_QUATERNION;
+    {
+        /* The anchor has no parent: lb_8000B1CC (where an absorb, reflect or
+         * shield bubble is, and articles' positions) then reads its SRT, not
+         * its matrix, unless it has a rotation or scale. Keep both: the
+         * bubble of a borrowed Oil Panic sat at the stage's origin. */
+        float sx = sqrtf(world[0][0] * world[0][0] + world[1][0] * world[1][0] + world[2][0] * world[2][0]);
+        float sy = sqrtf(world[0][1] * world[0][1] + world[1][1] * world[1][1] + world[2][1] * world[2][1]);
+        float sz = sqrtf(world[0][2] * world[0][2] + world[1][2] * world[1][2] + world[2][2] * world[2][2]);
+        float m00 = world[0][0] / sx, m11 = world[1][1] / sy, m22 = world[2][2] / sz, t = m00 + m11 + m22, r;
+        Quaternion q;
+        if (t > 0.0f) {
+            r = sqrtf(1.0f + t) * 2.0f;
+            q.w = 0.25f * r;
+            q.x = (world[2][1] / sy - world[1][2] / sz) / r;
+            q.y = (world[0][2] / sz - world[2][0] / sx) / r;
+            q.z = (world[1][0] / sx - world[0][1] / sy) / r;
+        } else if (m00 > m11 && m00 > m22) {
+            r = sqrtf(1.0f + m00 - m11 - m22) * 2.0f;
+            q.w = (world[2][1] / sy - world[1][2] / sz) / r;
+            q.x = 0.25f * r;
+            q.y = (world[0][1] / sy + world[1][0] / sx) / r;
+            q.z = (world[0][2] / sz + world[2][0] / sx) / r;
+        } else if (m11 > m22) {
+            r = sqrtf(1.0f + m11 - m00 - m22) * 2.0f;
+            q.w = (world[0][2] / sz - world[2][0] / sx) / r;
+            q.x = (world[0][1] / sy + world[1][0] / sx) / r;
+            q.y = 0.25f * r;
+            q.z = (world[1][2] / sz + world[2][1] / sy) / r;
+        } else {
+            r = sqrtf(1.0f + m22 - m00 - m11) * 2.0f;
+            q.w = (world[1][0] / sx - world[0][1] / sy) / r;
+            q.x = (world[0][2] / sz + world[2][0] / sx) / r;
+            q.y = (world[1][2] / sz + world[2][1] / sy) / r;
+            q.z = 0.25f * r;
+        }
+        a->jobj->rotate = q;
+        a->jobj->scale.x = sx; a->jobj->scale.y = sy; a->jobj->scale.z = sz;
+        a->jobj->translate.x = world[0][3]; a->jobj->translate.y = world[1][3]; a->jobj->translate.z = world[2][3];
+    }
 }
 /* The joint an article attaches to (it_80274F48): `part` is this fighter's
  * joint index. */
@@ -943,6 +982,9 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
         if (!anchors[slot][i].jobj) return part_joint(fp, part);
         anchors[slot][i].prop = (short) prop;
         anchors[slot][i].root = (short) part;
+        /* Diagnostics for articles held edge-on (Mr. Game & Watch's). */
+        BAM_NOTE("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Rogue_AbilitySourceKind(fp), part,
+                 (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
     }
     anchor_place(fp, &anchors[slot][i]);
 #if BAM_DEBUG
