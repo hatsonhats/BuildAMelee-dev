@@ -4,6 +4,7 @@
 #include <dolphin/os.h>
 #include <melee/ft/fighter.h>
 #include <melee/ft/types.h>
+#include "training.h"
 
 void Bam_OnlineSceneEnter(void);
 void Bam_OnlineSceneReady(void);
@@ -40,6 +41,7 @@ void BAM_OnSceneExit(void)
     Bam_OnSceneExit();
     Bam_OnlineSceneExit();
     Bam_ReplayBuildsSceneExit();
+    Bam_TrainingSceneExit();
 }
 
 /* inject gm_801A4014 after scene->on_enter(): the scene created its stage
@@ -61,7 +63,8 @@ void BAM_OnFrame(void)
 {
     unsigned i;
     Bam_WatchdogFrame();
-    if (!bam_match) return;
+    Bam_TrainingFrame();
+    if (!bam_match || Bam_TrainingFrozen()) return;
     for (i = 0; i < BAM_FIGHTERS; ++i)
         if (bam_match->fighters[i].fighter) {
             Rogue_AbilityFighterFrame(bam_match->fighters[i].fighter);
@@ -81,6 +84,7 @@ void BAM_OnLandingAirLag(u32* regs)
     f64* fpr = (f64*) ((u8*) regs + 0x90);
     if (msid != -1 && fp != NULL)
         fpr[1] = Rogue_AerialLandingLag(fp, fp->motion_id, (float) fpr[1]);
+    Bam_TrainingLanding(fp, msid);
 }
 
 /* inject at the entry of every native aerial-jump enter (multi-jump

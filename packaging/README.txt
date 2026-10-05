@@ -30,6 +30,22 @@ the build panel.
   A                Next slot / press the selected button
   Start, B or Z    Lock in and close
 
+TRAINING MODE
+-------------
+1-P Mode, Training: build your fighter on the character select screen
+with Z as in VS. In the match, on your controller:
+
+  D-Up             Build menu (your moves, saved builds and options);
+                   the game freezes while it is open. Resuming after a
+                   move change restarts the match with the new build.
+  D-Down           Freeze / resume
+  D-Right          While frozen: advance one frame (hold to repeat)
+  D-Left           Move info (motion, frame, percent, borrowed move)
+
+The Options tab shows hitboxes and hurtboxes, turns screen shake off and
+flashes your fighter red on a missed L-cancel. The D-pad does not taunt
+in training.
+
 SAVED BUILDS AND SHARE CODES
 ----------------------------
 The last tab of the build panel, SAVED, has three save slots and your

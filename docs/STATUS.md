@@ -4,6 +4,11 @@
 Slippi Online (Direct) play.
 
 ## Changes
+- Unreleased: Training Mode with builds (src/platform/training.c): the Z
+  panel on the Training CSS; in the match D-Up opens the panel (plus an
+  Options tab: hitboxes, hurtboxes, screen shake, missed L-cancel flash,
+  move info), D-Down freezes, D-Right steps a frame, D-Left move info.
+  A build change restarts the match (gmtrainingmode.c platform fixes).
 - 1.3.4: a borrowed Kirby inhale swallows without copying (Kirby himself
   still copies), so the copy-ability moves run with retail code; release
   builds keep only the essential log lines (`bam.py build --debug` for all);

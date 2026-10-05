@@ -31,6 +31,7 @@
 #include <engine/aerial_catalog.h>
 #include "ui_text.h"
 #include "build_store.h"
+#include "training.h"
 #include <melee/mn/types.h>
 #include <melee/mn/mnmain.h>
 #include <melee/mn/mnnamenew.h>
@@ -61,12 +62,15 @@ extern SIS* HSD_SisLib_804D1124[5];
 #define MOVE_ROWS (FIRST_NORMAL + BAM_NORMAL_SLOTS)
 #define ROW_SLOT0 MOVE_ROWS
 #define ROW_CODE (ROW_SLOT0 + BAM_SAVE_SLOTS)
-#define ROW_RANDOM (ROW_CODE + 1)
-#define ROW_LOCK (ROW_CODE + 2)
+#define ROW_OPT0 (ROW_CODE + 1) /* training match only */
+#define ROW_RANDOM (ROW_OPT0 + BAM_OPT_COUNT)
+#define ROW_LOCK (ROW_RANDOM + 1)
 #define ROWS (ROW_LOCK + 1)
 /* Tabs down the left of the panel, one group of rows each. */
-#define PAGES 6
+#define PAGES 7     /* in a training match; the CSS shows the first 6 */
+#define CSS_PAGES 6
 #define PAGE_SAVED 5
+#define PAGE_OPTIONS 6
 typedef struct PanelTab { const char* tab; const char* sub; const char* title; unsigned char first, count; } PanelTab;
 static const PanelTab tabs[PAGES] = {
     { "SPECIALS", 0, "Special Moves", 0, BAM_SPECIAL_SLOTS },
@@ -75,7 +79,13 @@ static const PanelTab tabs[PAGES] = {
     { "SMASH", "ATTACKS", "Smash Attacks", FIRST_NORMAL + BAM_NORMAL_FSMASH, 3 },
     { "THROWS", 0, "Throws", FIRST_NORMAL + BAM_NORMAL_FTHROW, 4 },
     { "SAVED", 0, "Saved Builds", ROW_SLOT0, BAM_SAVE_SLOTS + 1 },
+    { "OPTIONS", 0, "Training Options", ROW_OPT0, BAM_OPT_COUNT },
 };
+/* The panel inside a training match (BamPanel_Match*): an Options tab, and
+ * RESUME / RESTART for the two buttons. */
+static int in_match;
+static BamLoadout match_before;
+static int npages(void) { return in_match ? PAGES : CSS_PAGES; }
 /* Layout, in the CSS's 640 x 480 screen space: a header, tabs down the
  * left, the tab's moves on the right, two buttons and a key strip. */
 #define PANEL_X 64.0f
@@ -394,7 +404,7 @@ static unsigned custom_count(const BamLoadout* l, unsigned first, unsigned count
 static int page_of(int r)
 {
     int p;
-    for (p = 0; p < PAGES; ++p)
+    for (p = 0; p < npages(); ++p)
         if (r >= tabs[p].first && r < tabs[p].first + tabs[p].count) return p;
     return 0;
 }
@@ -640,7 +650,7 @@ static void draw_saved_row(unsigned i, float y)
         Bam_CodeFromLoadout(&bam_loadouts[open_port], code);
         Bam_CodeText(code, buf);
         put_fit(vx, cy, ROW_TEXT, right - vx - 60, BLUE, buf);
-        if (selected) pill(right, cy, "A ENTER", GOLD, INK);
+        if (selected && !in_match) pill(right, cy, "A ENTER", GOLD, INK);
         return;
     }
     {
@@ -660,15 +670,32 @@ static void draw_saved_row(unsigned i, float y)
     }
 }
 
-static void draw_tab(int t, float y)
+/* Options tab (training): the option, its state, and one line of help
+ * under the last row. */
+static void draw_option_row(unsigned i, float y)
+{
+    unsigned o = i - ROW_OPT0;
+    int selected = row == (int) i, on = BamTraining_OptionOn(o);
+    float cy = y + ROW_H * 0.5f, x = CONT_X + 14, right = CONT_X + CONT_W - 12;
+    rbox(CONT_X, y, CONT_W, ROW_H, selected ? CARD_ON : CARD, 255, 2);
+    if (selected) quad(CONT_X, y + 6, 3, ROW_H - 12, GOLD, 255);
+    put_fit(x, cy, ROW_TEXT, right - x - 60, selected ? WHITE : DIM, BamTraining_OptionName(o));
+    if (on) pill(right, cy, "ON", GOLD, INK);
+    else put_center(right - 40, 40, cy, 0.5f, 0x566078, "OFF");
+    if (selected)
+        put_fit(CONT_X + 2, ROW_Y + ROW_STEP * BAM_OPT_COUNT + 6, 0.5f, CONT_W - 4, SOFT, BamTraining_OptionHelp(o));
+}
+
+static void draw_tab(int t, float y, float h)
 {
     const PanelTab* tb = &tabs[t];
     int on = page == t;
-    unsigned n = t == PAGE_SAVED ? saved_count() : custom_count(&bam_loadouts[open_port], tb->first, tb->count);
-    float cy = y + TAB_H * 0.5f;
+    unsigned n = t == PAGE_SAVED ? saved_count() : t == PAGE_OPTIONS ? 0 :
+                 custom_count(&bam_loadouts[open_port], tb->first, tb->count);
+    float cy = y + h * 0.5f;
     if (on) {
-        rbox(SIDE_X, y, SIDE_W, TAB_H, CARD_ON, 255, 2);
-        quad(SIDE_X, y + 7, 3, TAB_H - 14, GOLD, 255);
+        rbox(SIDE_X, y, SIDE_W, h, CARD_ON, 255, 2);
+        quad(SIDE_X, y + 7, 3, h - 14, GOLD, 255);
     }
     put(SIDE_X + 14, cy, 0.62f, on ? WHITE : DIM, tb->tab);
     if (n) {
@@ -697,7 +724,12 @@ static void draw_keys(void)
                                              "Start", "Done" };
     static const char* const saved_keys[] = { "L/R", "Tab", "A", "Load", "X", "Save", "Y", "Delete",
                                               "Start", "Done" };
-    const char* const* keys = page == PAGE_SAVED ? saved_keys : move_keys;
+    static const char* const match_keys[] = { "L/R", "Tab", "Left/Right", "Change", "X", "Random", "Y", "Reset",
+                                              "B", "Resume" };
+    static const char* const option_keys[] = { "L/R", "Tab", "Up/Down", "Option", "A", "Toggle", "Left/Right",
+                                               "Toggle", "B", "Resume" };
+    const char* const* keys = page == PAGE_SAVED ? saved_keys : page == PAGE_OPTIONS ? option_keys :
+                              in_match ? match_keys : move_keys;
     const float s = 0.54f, gap = 6, spread = 18;
     float total = 0, x, cy = FOOT_Y + 22;
     unsigned i;
@@ -732,11 +764,13 @@ static void draw_panel(void)
     x = PANEL_X + PANEL_W - 18 - text_w(ckind_names[ckind], 0.66f);
     put(x, hy, 0.66f, SOFT, ckind_names[ckind]);
     buf[0] = 'P'; buf[1] = (char) ('1' + open_port); buf[2] = 0;
-    pill(x - 8, hy, buf, GOLD, INK);
+    pill(x - 8, hy, in_match ? "TRAINING" : buf, GOLD, INK);
     quad(PANEL_X + 12, PANEL_Y + HEAD_H, PANEL_W - 24, 1, LINE, 255);
 
     /* Tabs. */
-    for (t = 0; t < PAGES; ++t) draw_tab(t, TAB_Y + TAB_STEP * t);
+    /* Seven tabs (training) fit the same height a little tighter. */
+    for (t = 0; t < npages(); ++t)
+        draw_tab(t, TAB_Y + (in_match ? 31.0f : TAB_STEP) * t, in_match ? 28.0f : TAB_H);
     quad(CONT_X - 8, TITLE_Y, 1, BTN_Y + BTN_H - TITLE_Y, LINE, 255);
 
     /* The tab's moves (or slots, or the code being typed). */
@@ -747,6 +781,10 @@ static void draw_panel(void)
     } else if (page == PAGE_SAVED) {
         put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, DIM,
                   bam_store_on_card ? "On memory card" : "Kept until you quit");
+    } else if (page == PAGE_OPTIONS) {
+        put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, DIM, "Applied right away");
+    } else if (in_match && memcmp(l, &match_before, sizeof(match_before))) {
+        put_right(CONT_X + CONT_W - 2, TITLE_Y + 12, 0.54f, GOLD, "Restarts when you resume");
     } else {
         memcpy(buf, "0 of 0 borrowed", 16);
         buf[0] = (char) ('0' + n); buf[5] = (char) ('0' + tb->count);
@@ -754,10 +792,12 @@ static void draw_panel(void)
     }
     for (i = 0; i < tb->count; ++i) {
         if (page == PAGE_SAVED) draw_saved_row(tb->first + i, ROW_Y + ROW_STEP * i);
+        else if (page == PAGE_OPTIONS) draw_option_row(tb->first + i, ROW_Y + ROW_STEP * i);
         else draw_row(tb->first + i, ROW_Y + ROW_STEP * i);
     }
-    draw_button(CONT_X, (CONT_W - 10) * 0.5f, "RANDOMIZE", row == ROW_RANDOM, 0);
-    draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, "LOCK IN", row == ROW_LOCK, 1);
+    draw_button(CONT_X, (CONT_W - 10) * 0.5f, in_match ? "RESUME" : "RANDOMIZE", row == ROW_RANDOM, 0);
+    draw_button(CONT_X + (CONT_W + 10) * 0.5f, (CONT_W - 10) * 0.5f, in_match ? "RESTART" : "LOCK IN",
+                row == ROW_LOCK, 1);
 
     quad(PANEL_X + 12, FOOT_Y, PANEL_W - 24, 1, LINE, 255);
     draw_keys();
@@ -1151,14 +1191,16 @@ static void slot_input(BamLoadout* l, unsigned slot, u32 t)
     }
 }
 
-static void panel_input(HSD_PadStatus* pad)
+/* 0: the panel stays open; 1: close (lock in / resume); 2: restart the
+ * training match (in a match only). */
+static int panel_input(HSD_PadStatus* pad)
 {
     BamLoadout* l = &bam_loadouts[open_port];
     int dir = read_dir(open_port, pad);
     u32 t = pad->trigger;
     /* L/R: turn the page. */
     if (t & (HSD_PAD_L | HSD_PAD_R)) {
-        page = (page + ((t & HSD_PAD_R) ? 1 : PAGES - 1)) % PAGES;
+        page = (page + ((t & HSD_PAD_R) ? 1 : npages() - 1)) % npages();
         row = page_first(page);
         dir = 0;
     }
@@ -1169,7 +1211,7 @@ static void panel_input(HSD_PadStatus* pad)
         else if (dir == DIR_RIGHT) row = ROW_LOCK;
         else if (dir == DIR_UP) row = page_last(page);
         else if (dir == DIR_DOWN) {
-            page = (page + 1) % PAGES;
+            page = (page + 1) % npages();
             row = page_first(page);
         }
         dir = 0;
@@ -1183,10 +1225,15 @@ static void panel_input(HSD_PadStatus* pad)
         t &= ~(HSD_PAD_A | HSD_PAD_X | HSD_PAD_Y);
     } else if (row == ROW_CODE) {
         if (t & HSD_PAD_A) {
+            if (in_match) { say("Type codes on the character screen", WARN); return 0; }
             kb_open();
-            return;
+            return 0;
         }
         t &= ~(HSD_PAD_X | HSD_PAD_Y);
+    } else if (row >= ROW_OPT0 && row < ROW_RANDOM) {
+        if ((t & HSD_PAD_A) || dir == DIR_LEFT || dir == DIR_RIGHT)
+            BamTraining_OptionToggle((unsigned) (row - ROW_OPT0));
+        t &= ~(HSD_PAD_A | HSD_PAD_X | HSD_PAD_Y);
     }
     if (t & HSD_PAD_X) randomize(l);
     if ((dir == DIR_LEFT || dir == DIR_RIGHT) && row < MOVE_ROWS) {
@@ -1195,15 +1242,20 @@ static void panel_input(HSD_PadStatus* pad)
     }
     if (t & HSD_PAD_Y) {
         if (row < MOVE_ROWS) clear_row(l, (unsigned) row);
-        else memset(l, 0, sizeof(*l)); /* on the buttons: reset everything */
+        else if (row >= ROW_RANDOM) memset(l, 0, sizeof(*l)); /* on the buttons: reset everything */
         loadout_fix(l);
     }
-    if ((t & (HSD_PAD_START | HSD_PAD_B | HSD_PAD_Z)) || ((t & HSD_PAD_A) && row == ROW_LOCK)) {
-        close_panel();
-        return;
+    if (in_match) {
+        /* B / Start / RESUME close; a changed build restarts the match. */
+        if ((t & HSD_PAD_A) && row == ROW_LOCK) return 2;
+        if ((t & (HSD_PAD_START | HSD_PAD_B)) || ((t & HSD_PAD_A) && row == ROW_RANDOM)) return 1;
+        if (t & HSD_PAD_A) row = row == page_last(page) ? ROW_RANDOM : row + 1;
+        return 0;
     }
+    if ((t & (HSD_PAD_START | HSD_PAD_B | HSD_PAD_Z)) || ((t & HSD_PAD_A) && row == ROW_LOCK)) return 1;
     if ((t & HSD_PAD_A) && row == ROW_RANDOM) randomize(l);
     else if (t & HSD_PAD_A) row = row == page_last(page) ? ROW_LOCK : row + 1; /* A: next row */
+    return 0;
 }
 
 /* Preload the borrowed characters' files while the players are still on the
@@ -1341,7 +1393,7 @@ void BAM_CssFrame(void)
             if (p == open_port && valid) { ckind = k; loadout_fix(&bam_loadouts[p]); }
         }
         if (open_port == p) {
-            if (!just_opened) panel_input(pad);
+            if (!just_opened && panel_input(pad)) close_panel();
             swallow(pad);
         } else if (open_port < 0 && valid && (pad->trigger & HSD_PAD_Z)) {
             open_panel(p, k);
@@ -1366,4 +1418,48 @@ void BAM_CssExit(void)
         int p;
         for (p = 0; p < 4; ++p) last_ckind[p] = -1;
     }
+}
+
+/* ---- the panel in a training match (training.c) ----------------------------
+ * The same panel on the training match's own SIS canvas, for the player's
+ * build (loadout 0 in the match). The match is frozen while it is open. */
+int BamPanel_MatchOpen(int font, int canv, int kind)
+{
+    if (open_port >= 0) return 1;
+    if ((unsigned) kind >= 26) return 0;
+    in_match = 1;
+    FONT = font;
+    canvas = canv;
+    if (!mem) mem = HSD_MemAlloc(sizeof(MenuMem));
+    if (!mem) { in_match = 0; BAM_NOTE("training: no memory for the build menu\n"); return 0; }
+    ui_ready = 1;
+    open_panel(0, kind);
+    if (open_port < 0) { BamPanel_MatchClose(); return 0; }
+    /* The build the match runs with: a different one on resume restarts. */
+    match_before = bam_loadouts[0];
+    return 1;
+}
+
+int BamPanel_MatchFrame(HSD_PadStatus* pad)
+{
+    int act = 0;
+    if (open_port < 0) return 1;
+    if (just_opened) just_opened = 0;
+    else act = panel_input(pad);
+    if (act == 1 && memcmp(&bam_loadouts[0], &match_before, sizeof(match_before))) act = 2;
+    if (!act) draw_panel();
+    return act;
+}
+
+void BamPanel_MatchClose(void)
+{
+    if (open_port >= 0) {
+        loadout_fix(&bam_loadouts[open_port]);
+        open_port = -1;
+    }
+    panel_destroy();
+    if (mem) HSD_Free(mem);
+    mem = NULL;
+    ui_ready = 0;
+    in_match = 0;
 }

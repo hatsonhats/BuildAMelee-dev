@@ -4,6 +4,10 @@
 #include <melee/gm/forward.h>
 #include <dolphin/mtx.h>
 #include <engine/bam_fighter.h>
+/* Training options (platform/training.c): bubble filters for the native
+ * develop-mode display, 1 outside training. */
+int Bam_DrawHitboxes(void);
+int Bam_DrawHurtboxes(void);
 
 typedef enum RogueAbilitySlot {
     ROGUE_ABILITY_NEUTRAL, ROGUE_ABILITY_SIDE,
