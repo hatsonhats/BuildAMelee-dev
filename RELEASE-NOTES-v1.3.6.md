@@ -5,6 +5,7 @@
 - Mr. Game & Watch's down special catches, fills and fires when borrowed: its absorb bubble sat at the borrower's feet. Borrowed reflectors and Ness's PSI Magnet use the right bubble position and callback too.
 - Mr. Game & Watch's key, box, pan, bucket, Judge hammer and other items are black instead of white on whoever borrows them, and the items of his ground attacks and specials (torch, manhole, greenhouse, Judge sign) face the screen as his aerial props do.
 - Peach's up special: the parasol stays visible through the float, and tapping down closes it straight into a fast fall.
+- Effects of borrowed moves are sized to match their hitboxes (Pichu's forward smash sparks on big fighters).
 - A fully charged borrowed Charge Shot, Giant Punch, Needle Storm, Shadow Ball or Oil Panic keeps the fighter flashing, as it does on the original character.
 - Swords, tails and props from borrowed moves (Marth's and Roy's swords, Mewtwo's tail, Peach's dress and items, Mr. Game & Watch's props, Kirby's stone and more) now load a trimmed model of just those parts, a fraction of the memory, so they show up even in full matches instead of falling back to a Beam Sword or disappearing.
 
