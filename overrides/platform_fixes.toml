@@ -1047,3 +1047,12 @@ file = "src/melee/ft/kinds/ftCommon/ftCo_ItemParasolOpen.c"
 anchor = "void ftCo_800CEFE0(Fighter_GObj* gobj, int arg1)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n"
 replacement = "void ftCo_800CEFE0(Fighter_GObj* gobj, int arg1)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    {\n        extern bool Rogue_ParasolOpen(HSD_GObj* gobj);\n        if (Rogue_ParasolOpen(gobj)) return;\n    }\n"
 reason = "A borrowed Peach up special ends in the special fall with the parasol float kept by BuildAMelee, not in the common held-parasol states: their parasol item is removed with the borrowed move, which left the float invisible and impossible to close."
+
+[[fix]]
+id = "borrowed-effect-scale"
+owner = "platform/specials"
+file = "src/melee/ef/eflib.c"
+anchor = "        HSD_JObjGetScale(GET_JOBJ(gobj), &scale);"
+occurrences = 4
+replacement = "        HSD_JObjGetScale(GET_JOBJ(gobj), &scale);\n        {\n            extern float Rogue_EffectScale(HSD_GObj* gobj);\n            scale.y *= Rogue_EffectScale(gobj);\n        }"
+reason = "A borrowed move's effects are sized as its hitboxes are placed (the borrow scale): Pichu's forward smash sparks on Bowser came out at his feet, short of the hitboxes."

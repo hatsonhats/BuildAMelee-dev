@@ -1105,6 +1105,14 @@ float Rogue_BorrowScale(Fighter* fp)
     return shown * model_scale[source] / model_scale[fp->kind];
 }
 
+/* Effects a fighter spawns sized by its own scale (eflib.c): a borrowed
+ * move's are sized as its hitbox offsets are, so they line up. */
+float Rogue_EffectScale(HSD_GObj* gobj)
+{
+    if (!gobj || gobj->classifier != HSD_GOBJ_CLASS_FIGHTER) return 1.0f;
+    return Rogue_BorrowScale(GET_FIGHTER(gobj));
+}
+
 /* In world units: hitbox radii, which no model scale applies to. */
 float Rogue_HitboxScale(Fighter* fp)
 {
