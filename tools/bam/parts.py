@@ -118,7 +118,7 @@ def _vertex_extents(dat: Dat, pobj: int) -> Dict[int, int]:
     pos, end = display, min(len(dat.data), display + n_display * 32)
     while pos + 3 <= end:
         op = dat.data[pos]
-        if op & 0xF8 == 0:  # NOP / end
+        if (op & 0xF8) == 0:  # NOP / end
             break
         count = struct.unpack_from('>H', dat.data, pos + 1)[0]
         pos += 3
