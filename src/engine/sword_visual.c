@@ -390,6 +390,13 @@ static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
     }
     memset(arc, 0, sizeof(HSD_Archive));
     lbFile_8001668C(name, buf, &length);
+    /* HSD_ArchiveParse halts the game on a malformed archive: check its
+     * header first and fall back to the full costume. */
+    if (length < 0x20 || *(u32*) buf != length || ((u32*) buf)[1] + 0x20 > length) {
+        BAM_NOTE("donor parts kind=%u: %s is malformed (%u bytes, header %u)\n", kind, name, (unsigned) length,
+                 *(u32*) buf);
+        return 0;
+    }
     lbArchive_InitializeDAT(arc, buf, length);
     joint = HSD_ArchiveGetPublicAddress(arc, cs->joint_name);
     if (!joint) {

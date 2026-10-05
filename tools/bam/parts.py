@@ -293,10 +293,13 @@ def trim(raw: bytes, joint_root: str, wanted: Set[int]) -> Tuple[bytes, int, int
     body = bytes(out)
     reloc_bytes = b''.join(struct.pack('>I', r) for r in sorted(relocs))
     root_table = struct.pack('>II', new(root), 0)
-    total = 0x20 + len(body) + len(reloc_bytes) + len(root_table) + len(names)
+    tail = reloc_bytes + root_table + names
+    tail += b'\0' * ((-(0x20 + len(body) + len(tail))) % 32)
+    # HSD_ArchiveParse requires the header's size to equal the file's length.
+    total = 0x20 + len(body) + len(tail)
     header = struct.pack('>5I', total, len(body), len(relocs), 1, 0) + b'\0' * 12
-    archive = header + body + reloc_bytes + root_table + names
-    archive += b'\0' * ((-len(archive)) % 32)
+    archive = header + body + tail
+    assert len(archive) == total
     return archive, kept, len(dobjs)
 
 
