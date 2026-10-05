@@ -33,7 +33,7 @@ typedef struct PropTrack {
     const FigaTrack* track;
     unsigned char joint, count, kind;
 } PropTrack;
-#define PROP_TRACKS 32
+#define PROP_TRACKS 80 /* Peach's dress alone is 49 bones */
 typedef struct PropHit {
     const Fighter* fighter;
     HitCapsule* hit;
