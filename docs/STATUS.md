@@ -4,7 +4,7 @@
 Slippi Online (Direct) play.
 
 ## Changes
-- Unreleased: trimmed donor models. The patched disc gets Pl<code>Bm.dat
+- 1.3.6: trimmed donor models. The patched disc gets Pl<code>Bm.dat
   per donor whose parts moves draw (tools/bam/parts.py: whole skeleton,
   only the drawn meshes keep geometry and textures; 30-115 KB instead of
   130-790 KB). sword_visual.c loads them before the full costume, down to a
