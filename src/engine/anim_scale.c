@@ -1477,16 +1477,73 @@ static bool mesh_hidden(unsigned kind, unsigned joint, unsigned shown)
             return true;
     return false;
 }
+/* Clothing the borrower wears instead of carries: Peach's dress (her skirt
+ * bones under joint 17, mesh group 2) on her down smash. A carried part
+ * keeps the move's size and hangs where the donor's body would be; a dress
+ * has to fit the borrower: it is sized so it reaches from the borrower's
+ * waist to the floor (and never smaller than their body calls for, so round
+ * Jigglypuff and Kirby wear it over their lower half), and centred between
+ * the borrower's legs, where the donor's hips would hang it behind a body
+ * built differently (Donkey Kong's). */
+typedef struct Wear { unsigned char kind, group, root, hip; } Wear;
+static const Wear wears[] = { { Ft_Kind_Peach, 2, 17, 4 } };
+static const Wear* wear_of(unsigned source, unsigned shown)
+{
+    unsigned i;
+    for (i = 0; i < sizeof(wears) / sizeof(wears[0]); ++i)
+        if (wears[i].kind == source && (shown & (1U << wears[i].group))) return &wears[i];
+    return NULL;
+}
+/* The wearer's frame for the donor's hip: the borrower's hip turned onto
+ * the donor's (as body parts are), moved to between the legs and up so the
+ * hem is on the floor, at the size that fits. 0 if the borrower has no hip. */
+static int wear_base(Fighter* fp, unsigned source, Mtx out)
+{
+    int hip = own_joint(fp, FtPart_HipN), l = own_joint(fp, FtPart_LLegJA), r = own_joint(fp, FtPart_RLegJA);
+    float own_hip, donor_hip, s, lift, k;
+    Quat c;
+    Quaternion q;
+    Mtx turn, grow;
+    if (hip < 0 || fp->kind >= BODY_KINDS || source >= BODY_KINDS || fp->kind >= BODY_SIZE_KINDS ||
+        source >= BODY_SIZE_KINDS)
+        return 0;
+    own_hip = body_rest[fp->kind].hip;
+    donor_hip = body_rest[source].hip;
+    s = own_hip / donor_hip;
+    k = body_size[fp->kind] / body_size[source];
+    if (s < k) s = k;
+    if (s < 0.4f) s = 0.4f;
+    if (s > 2.5f) s = 2.5f;
+    lift = s * donor_hip - own_hip;
+    if (lift < 0.0f) lift = 0.0f;
+    c = correction(source, fp->kind, body_slot(FtPart_HipN));
+    q.x = -c.x; q.y = -c.y; q.z = -c.z; q.w = c.w;
+    PSMTXQuat(turn, &q);
+    PSMTXScale(grow, s, s, s);
+    PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[hip].joint), turn, out);
+    PSMTXConcat(out, grow, out);
+    if (l >= 0 && r >= 0) {
+        MtxPtr a = HSD_JObjGetMtxPtr(fp->parts[l].joint), b = HSD_JObjGetMtxPtr(fp->parts[r].joint);
+        out[0][3] = (a[0][3] + b[0][3]) * 0.5f;
+        out[2][3] = (a[2][3] + b[2][3]) * 0.5f;
+    }
+    /* Skeleton units to world: the fighter's model scale. */
+    out[1][3] += lift * fp->x34_scale.y;
+    return 1;
+}
+
 void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* parents, unsigned n, int free_joint,
                      unsigned shown)
 {
     unsigned source = fp->x597_bits, d;
     const FighterPartsTable* from;
     float bs = Rogue_BorrowScale(fp);
-    Mtx grow;
+    Mtx grow, worn;
+    const Wear* wear = wear_of(source, shown);
     if (source >= ROGUE_REST_KINDS) return;
     from = ftPartsTable[source];
     PSMTXScale(grow, bs, bs, bs);
+    if (wear && !wear_base(fp, source, worn)) wear = NULL;
     for (d = 0; d < n; ++d) {
         HSD_JObj* j = jobjs[d];
         int prop = prop_find(source, (int) d), part, own;
@@ -1496,7 +1553,21 @@ void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* p
         Mtx rel, w;
         int row = chain_find(source, (int) d);
         if (!j) continue;
-        if (row >= 0 && (rogue_chain[row].parent == 255 || up)) {
+        if (wear && (d == wear->hip || (prop >= 0 && rogue_prop[prop].joint == wear->root))) {
+            /* Worn: the donor's hip and the root of the clothing's bones
+             * on the wearer's frame (the hip's correction is in it). */
+            if (d == wear->hip || !prop_relative(fp, prop, rel)) PSMTXCopy(worn, w);
+            else {
+                Quat c = correction(source, fp->kind, body_slot(FtPart_HipN));
+                Quaternion q;
+                Mtx undo;
+                /* prop_relative starts with the hip's correction too. */
+                q.x = c.x; q.y = c.y; q.z = c.z; q.w = c.w;
+                PSMTXQuat(undo, &q);
+                PSMTXConcat(undo, rel, rel);
+                PSMTXConcat(worn, rel, w);
+            }
+        } else if (row >= 0 && (rogue_chain[row].parent == 255 || up)) {
             /* Through the donor's own skeleton from the root. */
             if (rogue_chain[row].parent == 255) chain_base(fp, w);
             else {
