@@ -500,3 +500,37 @@ HSD_JObj* Rogue_EfJointFp(Fighter* fp, HSD_JObj* loaded, int joint)
 }
 HSD_JObj* Rogue_EfJoint85(Fighter* fp, HSD_JObj* loaded) { return Rogue_EfJointFp(fp, loaded, 85); }
 HSD_JObj* Rogue_EfJoint44(Fighter* fp, HSD_JObj* loaded) { return Rogue_EfJointFp(fp, loaded, 44); }
+
+/* A borrowed move's full charge (Samus's Charge Shot, Donkey Kong's Giant
+ * Punch, Sheik's needles, Mewtwo's Shadow Ball, Mr. Game & Watch's Oil
+ * Panic) flashes the fighter as it does the donor: every motion change
+ * clears the flash and asks the fighter's own kind to start it again
+ * (ftcolanim.c), which knows nothing of the borrowed charge. Asked here of
+ * each donor, with its charge and attributes in place. */
+#include <melee/ft/ftdata.h>
+void Rogue_ChargeFlash(Fighter* fp)
+{
+    static const unsigned char kinds[] = { Ft_Kind_Donkey, Ft_Kind_Seak, Ft_Kind_Samus, Ft_Kind_Mewtwo,
+                                           Ft_Kind_GameWatch };
+    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    FighterKind active;
+    unsigned i;
+    if (!fp || S->fighter != fp) return;
+    active = Rogue_IsAbilityState(fp) ? Rogue_AbilitySourceKind(fp) : fp->kind;
+    for (i = 0; i < sizeof(kinds); ++i) {
+        FighterKind k = (FighterKind) kinds[i];
+        if (k == fp->kind || !S->loaded_sources[k] || !ftData_UnkMotionStates4[k])
+            continue;
+        if (k == active) {
+            ftData_UnkMotionStates4[k](fp->gobj);
+        } else {
+            union Fighter_FighterVars vars = fp->u;
+            void* attrs = fp->dat_attrs;
+            fp->u = S->source_vars[k];
+            fp->dat_attrs = bam_match->donor_attrs[k].bytes;
+            ftData_UnkMotionStates4[k](fp->gobj);
+            fp->u = vars;
+            fp->dat_attrs = attrs;
+        }
+    }
+}

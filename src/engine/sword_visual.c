@@ -17,6 +17,7 @@
 #include <sysdolphin/baselib/jobj.h>
 #include <sysdolphin/baselib/mtx.h>
 #include <melee/ft/kinds/ftPeach/ftpeach.h>
+#include <melee/ft/ft_0877.h>
 #include <string.h>
 
 /* ---- per-match state ----
@@ -733,6 +734,15 @@ bool Rogue_ParasolFloat(HSD_GObj* gobj)
         fp->input.lstick[0].y <= p_ftCommonData->close_parasol_threshold) {
         parasol_hit_off_clear(fp, slot, fp->motion_id == ftCo_MS_FallSpecial);
         parasol_float[slot] = 0;
+        if (fp->motion_id == ftCo_MS_FallSpecial && fp->ground_or_air == GA_Air &&
+            fp->input.lstick[0].y <= -p_ftCommonData->x88 && !fp->fall_fast) {
+            /* Closing it with a tap down drops into a fast fall at once
+             * (the float's slow fall, or its rise, kept the special fall's
+             * fast fall check from ever passing). */
+            fp->fall_fast = true;
+            fp->mv.co.fallspecial.xC = 1;
+            ft_PlaySFX(fp, 0x96, 0x7F, 0x40);
+        }
         return false;
     }
     if (!parasol_hit[slot] && (hand = item_hand(fp)) >= 0) {
@@ -789,6 +799,14 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     source = Rogue_AbilitySourceKind(fp);
     replaced = donor_display(fp, (unsigned) slot, pass, vmtx);
     item = Rogue_PropWeaponMtx(fp, place);
+    if (item == 2 && (hand = item_hand(fp)) >= 0 && weapon_model((unsigned) slot, 2)) {
+        /* Where the parasol sits on the hand, for the float that follows,
+         * even while the donor's own model draws it: unset, the float drew
+         * it at no size (invisible). */
+        Mtx inv, at;
+        PSMTXConcat(place, weapon_attach[slot][2], at);
+        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv)) PSMTXConcat(inv, at, parasol_rel[slot]);
+    }
     if (item >= 0 && (replaced & (1U << item))) return;
     if (item < 0 && (replaced & 1U)) return;
     if (item < 0) {
@@ -804,12 +822,6 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     model = weapon_model((unsigned) slot, item);
     if (!model) return;
     PSMTXConcat(place, weapon_attach[slot][item], place);
-    if (item == 2 && (hand = item_hand(fp)) >= 0) {
-        /* Where the parasol sits on the hand, for the float that follows. */
-        Mtx inv;
-        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv))
-            PSMTXConcat(inv, place, parasol_rel[slot]);
-    }
     HSD_JObjCopyMtx(model, place);
     model->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT;
     HSD_JObjSetMtxDirty(model);

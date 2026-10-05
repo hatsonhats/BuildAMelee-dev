@@ -1030,3 +1030,12 @@ file = "src/melee/ft/ftparts.c"
 anchor = "        joint = Rogue_AbilityFallbackJoint(fp, part);"
 replacement = "        joint = Rogue_AbilityFallbackJoint(fp, part);\n        {\n            extern void Rogue_NoteHeldPart(Fighter* fp, int part, int joint);\n            Rogue_NoteHeldPart(fp, part, joint);\n        }"
 reason = "An article a borrowed move holds on a body part this fighter lacks (Mr. Game & Watch's Judge sign on his right thumb) is held in the donor's frame of that part, not of the hand it falls back to (the sign was edge-on)."
+
+[[fix]]
+id = "borrowed-charge-flash"
+owner = "platform/specials"
+file = "src/melee/ft/ftcolanim.c"
+anchor = "if (ftData_UnkMotionStates4[fp->kind] != NULL) {"
+occurrences = 4
+replacement = "{\n        extern void Rogue_ChargeFlash(Fighter* fp);\n        Rogue_ChargeFlash(fp);\n    }\n    if (ftData_UnkMotionStates4[fp->kind] != NULL) {"
+reason = "A fully charged borrowed move (Charge Shot, Giant Punch, needles, Shadow Ball, Oil Panic) keeps flashing the fighter, as the donor's does, after the motion changes."
