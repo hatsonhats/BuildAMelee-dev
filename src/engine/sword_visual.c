@@ -50,7 +50,7 @@ typedef struct SwordVisualState {
     unsigned char donor_vis_kind[BAM_FIGHTERS];
     unsigned char parasol_float[BAM_FIGHTERS];
     unsigned char parasol_hit[BAM_FIGHTERS];     /* hitbox id + 1 while it is on */
-    Vec3 parasol_hit_off[BAM_FIGHTERS];          /* canopy, in the hand's frame */
+    Vec3 parasol_hit_off[BAM_FIGHTERS];          /* canopy, in the root's frame */
     Mtx weapon_attach[BAM_FIGHTERS][WEAPON_ITEMS];
     Mtx parasol_rel[BAM_FIGHTERS];
     /* Trimmed donor models loaded this match (Pl<code>Bm.dat). */
@@ -646,13 +646,12 @@ static HSD_JObj* weapon_model(unsigned slot, int item)
  * leaves that state or closes it (stick down). The parasol stays drawn in
  * the hand meanwhile. */
 
-static int item_hand(Fighter* fp)
+/* The float keeps the parasol where the borrowed up special left it on the
+ * body (the root), not in the hand: the special fall's own pose has the
+ * hand down, and the parasol hung sideways with its hitbox in the body. */
+static int parasol_base(Fighter* fp)
 {
-    int hand;
-    if (!fp->ft_data || !fp->ft_data->x8) return -1;
-    hand = fp->ft_data->x8->x10;
-    if (hand < 0 || (unsigned) hand >= ftPartsTable[fp->kind]->parts_num || !fp->parts[hand].joint) return -1;
-    return hand;
+    return fp->parts[0].joint ? 0 : -1;
 }
 void ftAction_8007121C(Fighter_GObj* gobj, CommandInfo* cmd);
 
@@ -701,7 +700,7 @@ static void parasol_hit_off_clear(Fighter* fp, int slot, int disable)
 {
     if (parasol_hit[slot] && disable) {
         HitCapsule* h = &fp->x914[parasol_hit[slot] - 1];
-        int hand = item_hand(fp);
+        int hand = parasol_base(fp);
         if (hand >= 0 && h->jobj == fp->parts[hand].joint) h->state = HitCapsule_Disabled;
     }
     parasol_hit[slot] = 0;
@@ -715,7 +714,7 @@ void Rogue_ParasolTrack(Fighter* fp)
     Mtx w;
     if (slot < 0) return;
     if (Rogue_IsAbilityState(fp)) {
-        if (Rogue_PropWeaponMtx(fp, w) != 2 || (hand = item_hand(fp)) < 0) return;
+        if (Rogue_PropWeaponMtx(fp, w) != 2 || (hand = parasol_base(fp)) < 0) return;
         parasol_float[slot] = 1;
         parasol_hit_off_set(fp, slot, hand, w);
         return;
@@ -766,7 +765,7 @@ bool Rogue_ParasolFloat(HSD_GObj* gobj)
         }
         return false;
     }
-    if (!parasol_hit[slot] && (hand = item_hand(fp)) >= 0) {
+    if (!parasol_hit[slot] && (hand = parasol_base(fp)) >= 0) {
         union CmdUnion* cmd = parasol_hit_cmd();
         if (cmd) {
             CommandInfo ci;
@@ -788,7 +787,7 @@ static void parasol_display(Fighter* fp, int slot, int pass, MtxPtr vmtx)
 {
     HSD_JObj* model;
     Mtx place;
-    int hand = item_hand(fp);
+    int hand = parasol_base(fp);
     if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air || hand < 0) return;
     model = weapon_model((unsigned) slot, 2);
     if (!model) return;
@@ -820,7 +819,7 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     source = Rogue_AbilitySourceKind(fp);
     replaced = donor_display(fp, (unsigned) slot, pass, vmtx);
     item = Rogue_PropWeaponMtx(fp, place);
-    if (item == 2 && (hand = item_hand(fp)) >= 0 && weapon_model((unsigned) slot, 2)) {
+    if (item == 2 && (hand = parasol_base(fp)) >= 0 && weapon_model((unsigned) slot, 2)) {
         /* Where the parasol sits on the hand, for the float that follows,
          * even while the donor's own model draws it: unset, the float drew
          * it at no size (invisible). */
