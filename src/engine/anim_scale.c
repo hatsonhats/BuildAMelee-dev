@@ -871,12 +871,24 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
         PSMTXConcat(HSD_JObjGetMtxPtr(base), rel, world);
     } else if (prop_active(fp, source) && a->prop < 0) {
         int part = ftPartsTable[fp->kind]->joint_to_part[a->root];
-        Quat c = correction(source, fp->kind, part != FTPART_INVALID ? body_slot(part) : -1);
-        Quaternion q;
-        q.x = -c.x; q.y = -c.y; q.z = -c.z; q.w = c.w;
-        PSMTXQuat(rel, &q);
-        PSMTXConcat(rel, grow, rel);
-        PSMTXConcat(HSD_JObjGetMtxPtr(base), rel, world);
+        int from = part != FTPART_INVALID ? fold_base(fp, part) : -1, own = from >= 0 ? own_joint(fp, from) : -1;
+        if (from >= 0 && from != part && own >= 0) {
+            /* Held on a finger (Mr. Game & Watch's Judge sign on his right
+             * thumb): fingers are not retargeted, so the borrower's thumb
+             * points its own way (the sign was edge-on). Carried from the
+             * hand with the donor's finger rotations folded in, as props
+             * hanging from fingers are. */
+            part_fold(fp, part, rel);
+            PSMTXConcat(grow, rel, rel);
+            PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[own].joint), rel, world);
+        } else {
+            Quat c = correction(source, fp->kind, part != FTPART_INVALID ? body_slot(part) : -1);
+            Quaternion q;
+            q.x = -c.x; q.y = -c.y; q.z = -c.z; q.w = c.w;
+            PSMTXQuat(rel, &q);
+            PSMTXConcat(rel, grow, rel);
+            PSMTXConcat(HSD_JObjGetMtxPtr(base), rel, world);
+        }
     } else {
         PSMTXCopy(HSD_JObjGetMtxPtr(base), world);
     }
@@ -937,6 +949,22 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
     BAM_LOG("item_anchor donor=%u joint=%d prop=%d\n", Rogue_AbilitySourceKind(fp), part, prop);
 #endif
     return anchors[slot][i].jobj;
+}
+
+/* The joint an absorb, reflect or shield bubble rides on (ftcoll.c platform
+ * fixes): the move's bone id is the donor's, so on a borrower it is mapped
+ * like a hitbox's (Mr. Game & Watch's Oil Panic bucket is on his own thumb
+ * bone: the borrower's joint of that number put the absorb bubble at the
+ * legs, and nothing landed in the bucket), and held in the donor's frame
+ * (a rebuilt or root-posed bone follows its pose) as articles are. */
+HSD_JObj* Rogue_DonorBoneJObj(Fighter* fp, int bone)
+{
+    int joint;
+    if (!Rogue_IsAbilityState(fp) || Rogue_AbilitySourceKind(fp) == fp->kind)
+        return fp->parts[bone].joint;
+    joint = Rogue_AbilityMapBone(fp, bone);
+    if (joint < 0 || (unsigned) joint >= ftPartsTable[fp->kind]->parts_num || !fp->parts[joint].joint) joint = 0;
+    return Rogue_ItemAnchor(fp->gobj, joint);
 }
 
 static PropHit* hit_record(const HitCapsule* hit)

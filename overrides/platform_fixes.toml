@@ -998,3 +998,27 @@ file = "src/melee/ft/ftlib.c"
 anchor = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{"
 replacement = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{\n    extern int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline);\n    if (Rogue_DonorItemColor(gobj, dst, 1)) return;"
 reason = "Same for their outline color."
+
+[[fix]]
+id = "borrowed-absorb-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->absorb_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, absorb->x0_bone_id)].joint;"
+replacement = "    fp->absorb_hit.bone = Rogue_DonorBoneJObj(fp, absorb->x0_bone_id);"
+reason = "A borrowed absorb (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) names the donor's bone: the mapped joint of a bone posed from the root (Oil Panic's bucket on Mr. Game & Watch's thumb) is the root itself, so the bubble sat at the feet and nothing reached the bucket. It now rides on the donor's posed bone, as articles do."
+
+[[fix]]
+id = "borrowed-reflect-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->reflect_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, reflect->x0_bone_id)].joint;"
+replacement = "    fp->reflect_hit.bone = Rogue_DonorBoneJObj(fp, reflect->x0_bone_id);"
+reason = "Same for a borrowed reflector's bubble (Fox's and Falco's Reflector, Mario's Cape, Ness's bat)."
+
+[[fix]]
+id = "borrowed-shield-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->shield_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, shield->bone)].joint;"
+replacement = "    fp->shield_hit.bone = Rogue_DonorBoneJObj(fp, shield->bone);"
+reason = "Same for a move's own shield bubble."

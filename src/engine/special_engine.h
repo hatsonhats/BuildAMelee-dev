@@ -72,6 +72,8 @@ int Rogue_AbilityMapBone(Fighter* fp, int bone);
 int Rogue_AbilityFallbackJoint(Fighter* fp, int part);
 /* Recipient joint a rebuilt donor-only bone hangs from, or -1 (anim_scale.c). */
 int Rogue_PropJoint(Fighter* fp, int bone);
+/* Joint an absorb/reflect/shield bubble with donor bone id `bone` rides on. */
+struct HSD_JObj* Rogue_DonorBoneJObj(Fighter* fp, int bone);
 /* World matrix of a borrowed weapon along the donor's weapon bone; returns
  * the item (0 Beam Sword, 1 Hammer) or -1 if the current move has none. */
 int Rogue_PropWeaponMtx(Fighter* fp, Mtx out);
