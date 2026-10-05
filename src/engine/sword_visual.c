@@ -18,6 +18,8 @@
 #include <sysdolphin/baselib/mtx.h>
 #include <melee/ft/kinds/ftPeach/ftpeach.h>
 #include <melee/ft/ft_0877.h>
+#include <melee/ft/kinds/ftPeach/types.h>
+#include <melee/ft/kinds/ftCommon/ftCo_FallSpecial.h>
 #include <string.h>
 
 /* ---- per-match state ----
@@ -722,6 +724,25 @@ void Rogue_ParasolTrack(Fighter* fp)
         parasol_hit_off_clear(fp, slot, 0);
         parasol_float[slot] = 0;
     }
+}
+
+/* ftCo_800CEFE0, where Peach's up special opens her parasol: a borrower
+ * goes into the special fall instead, floating on the parasol kept here (the
+ * common held-parasol states it went to need the parasol item, which goes
+ * away with the borrowed move: the parasol vanished and could not be
+ * closed). True when it did. */
+bool Rogue_ParasolOpen(HSD_GObj* gobj)
+{
+    Fighter* fp = GET_FIGHTER(gobj);
+    int slot = slot_of(fp);
+    ftPe_DatAttrs* da;
+    if (slot < 0 || fp->kind == Ft_Kind_Peach || !Rogue_IsAbilityState(fp) ||
+        Rogue_AbilitySourceKind(fp) != Ft_Kind_Peach)
+        return false;
+    da = fp->dat_attrs;
+    parasol_float[slot] = 1;
+    ftCo_80096900(gobj, 0, 1, false, da->x70, da->x74);
+    return true;
 }
 
 /* ftCo_FallSpecial_Phys: true while the borrower floats on Peach's parasol. */
