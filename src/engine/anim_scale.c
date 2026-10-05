@@ -950,6 +950,18 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
     return fp->parts[0].joint;
 }
 
+/* The donor body part last asked for that this fighter lacks, and the joint
+ * it fell back to (ftParts_GetBoneIndex): an article attached to that joint
+ * next is held in the frame of the part asked for. */
+static signed char held_part[BAM_FIGHTERS], held_joint[BAM_FIGHTERS]; /* joint + 1; 0: none */
+void Rogue_NoteHeldPart(Fighter* fp, int part, int joint)
+{
+    int slot = slot_of_fighter(fp);
+    if (slot < 0) return;
+    held_part[slot] = (signed char) part;
+    held_joint[slot] = (signed char) (joint + 1);
+}
+
 HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
 {
     Fighter* fp = GET_FIGHTER(gobj);
@@ -969,6 +981,10 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
          * borrower's own hand it faced along the wrong axis (seen edge-on). */
         unsigned source = Rogue_AbilitySourceKind(fp);
         int ftpart = ftPartsTable[fp->kind]->joint_to_part[part], row;
+        if (held_joint[slot] == part + 1) {
+            ftpart = held_part[slot];
+            held_joint[slot] = 0;
+        }
         if (source < Ft_Kind_Max && ftpart != FTPART_INVALID && (unsigned) ftpart < ftPartsTable[source]->parts_num) {
             int joint = ftPartsTable[source]->part_to_joint[ftpart];
             if (joint != FTPART_INVALID && (row = chain_find(source, joint)) >= 0) prop = -2 - row;

@@ -1022,3 +1022,11 @@ file = "src/melee/ft/ftcoll.c"
 anchor = "    fp->shield_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, shield->bone)].joint;"
 replacement = "    fp->shield_hit.bone = Rogue_DonorBoneJObj(fp, shield->bone);"
 reason = "Same for a move's own shield bubble."
+
+[[fix]]
+id = "borrowed-held-part"
+owner = "platform/specials"
+file = "src/melee/ft/ftparts.c"
+anchor = "        joint = Rogue_AbilityFallbackJoint(fp, part);"
+replacement = "        joint = Rogue_AbilityFallbackJoint(fp, part);\n        {\n            extern void Rogue_NoteHeldPart(Fighter* fp, int part, int joint);\n            Rogue_NoteHeldPart(fp, part, joint);\n        }"
+reason = "An article a borrowed move holds on a body part this fighter lacks (Mr. Game & Watch's Judge sign on his right thumb) is held in the donor's frame of that part, not of the hand it falls back to (the sign was edge-on)."
