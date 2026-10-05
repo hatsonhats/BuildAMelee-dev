@@ -4,7 +4,7 @@
 Slippi Online (Direct) play.
 
 ## Changes
-- Unreleased: Training Mode with builds (src/platform/training.c): the Z
+- 1.3.5: Training Mode with builds (src/platform/training.c): the Z
   panel on the Training CSS; in the match D-Up opens the panel (plus an
   Options tab: hitboxes, hurtboxes, screen shake, missed L-cancel flash,
   move info), D-Down freezes, D-Right steps a frame, D-Left move info.
