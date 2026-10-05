@@ -105,11 +105,13 @@ def cmd_iso(args):
     out = Path(args.out) if args.out else p.build_dir / 'output/BuildAMelee.iso'
     info = verify(Path(src), quick=args.quick)
     print(f'source ok: {info["image"]}')
-    off = assemble(Path(src), dol, out)
+    from bam.parts import for_image
+    files = for_image(Path(src), ROOT, p.overlay_base + p.overlay_reserve)
+    off = assemble(Path(src), dol, out, files)
     import re as _re
     m = _re.search(rb'\0(\d+\.\d+(?:\.\d+)?-[0-9a-f]{6})\0', dol.read_bytes())
     print(f'BuildAMelee build {m.group(1).decode() if m else "?"}  (dolphin.log should show the same "build")')
-    print(f'wrote {out}\n  DOL {dol} placed at disc offset 0x{off:X}; GALE01 header and filesystem unchanged')
+    print(f'wrote {out}\n  DOL {dol} placed at disc offset 0x{off:X}; {len(files)} trimmed donor models added')
 
 
 def cmd_release(args):

@@ -12,11 +12,14 @@ version = "1.3.6"
 # the FST address: 0x81829800 in Slippi Dolphin for this disc. Every byte
 # between base and the arena top comes out of Melee's character preload
 # cache, and a smaller cache makes the Slippi Online CSS run out of memory,
-# so end the overlay exactly at the top (base + reserve = 0x81829800).
+# so end the overlay just below the top. The patched disc's filesystem table
+# is slightly larger than retail's (trimmed donor models, tools/bam/parts.py),
+# which lowers the top by a few hundred bytes; base + reserve = 0x81829400
+# leaves 1 KB for that, and the build checks it.
 # BAM_ReserveOverlay panics with a clear message if the top is lower (a real
 # console puts it at 0x817F8AC0; this build targets Slippi Dolphin).
 base = "0x817C9800"
-reserve = "0x00060000"
+reserve = "0x0005FC00"
 # The apploader refuses DOL sections above 0x81200000 (0x80700000 on retail
 # consoles). The image ships at __ArenaLo (untouched until OSInit's
 # ClearArena) and a stub run from the ClearArena hook copies it to `base`.

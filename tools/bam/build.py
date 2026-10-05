@@ -627,6 +627,8 @@ class Builder:
                 raise BuildError('ISO output requested but paths.melee_iso is not set')
             from .iso import assemble, verify
             verify(Path(src_iso), quick=True)
-            off = assemble(Path(src_iso), dol_path, Path(iso_out))
-            self.log(f'[bam] wrote {iso_out} (DOL at disc offset 0x{off:X}, GALE01 header and FST untouched)')
+            from .parts import for_image
+            files = for_image(Path(src_iso), self.p.root, p.overlay_base + p.overlay_reserve, self.log)
+            off = assemble(Path(src_iso), dol_path, Path(iso_out), files)
+            self.log(f'[bam] wrote {iso_out} (DOL at disc offset 0x{off:X}, {len(files)} trimmed donor models added)')
         return BuildResult(dol_path, out_dir / 'overlay.map', report_path, len(full), patches, diffs)

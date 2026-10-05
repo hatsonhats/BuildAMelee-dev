@@ -50,9 +50,12 @@ typedef struct SwordVisualState {
     Vec3 parasol_hit_off[BAM_FIGHTERS];          /* canopy, in the hand's frame */
     Mtx weapon_attach[BAM_FIGHTERS][WEAPON_ITEMS];
     Mtx parasol_rel[BAM_FIGHTERS];
+    /* Trimmed donor models loaded this match (Pl<code>Bm.dat). */
+    HSD_Joint* part_joint[Ft_Kind_Max];
 } SwordVisualState;
 static SwordVisualState* bam_sword_visual;
 #define donor_models (bam_sword_visual->donor_models)
+#define part_joint (bam_sword_visual->part_joint)
 #define donor_vis (bam_sword_visual->donor_vis)
 #define donor_vis_kind (bam_sword_visual->donor_vis_kind)
 #define parasol_float (bam_sword_visual->parasol_float)
@@ -269,6 +272,7 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
     m->kind = kind;
     if ((!count && !vis_donor(kind, -1)) || kind >= Ft_Kind_Max) return NULL;
     desc = CostumeListsForeachCharacter[kind].costume_list[0].joint;
+    if (!desc) desc = part_joint[kind];
     if (!desc) {
         BAM_LOG("donor_model kind=%u not loaded\n", kind);
         return NULL;
@@ -347,6 +351,56 @@ static int model_into_cache(unsigned kind, const Fighter_CostumeStrings* cs)
     return 1;
 }
 
+/* The donor's trimmed model (tools/bam/parts.py writes Pl<code>Bm.dat into
+ * the patched disc): its whole skeleton and every mesh in order, but only the
+ * meshes borrowed moves draw keep their geometry and textures, 30-110 KB
+ * instead of the 130-790 KB costume. It goes in the preload-cache block when
+ * there is room, else the match heap down to a lower floor than the full
+ * costume (it is that much smaller). 0 when the disc has none (an image
+ * patched by an older tool) or there is no room. */
+#define PARTS_FLOOR 0x100000
+#include <dolphin/dvd.h>
+#include <sysdolphin/baselib/memory.h>
+static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
+{
+    char name[16];
+    unsigned size, i;
+    size_t length = 0;
+    u8* buf = NULL;
+    HSD_Archive* arc = NULL;
+    HSD_Joint* joint;
+    for (i = 0; cs->dat_filename[i] && i < sizeof(name) - 1; ++i) name[i] = cs->dat_filename[i];
+    name[i] = 0;
+    if (i != 10 || name[4] != 'N' || name[5] != 'r') return 0; /* Pl<code>Nr.dat */
+    name[4] = 'B';
+    name[5] = 'm';
+    if (DVDConvertPathToEntrynum(lbFileGetFullName(name)) < 0) return 0;
+    size = (unsigned) lbFileGetSize(name);
+    if (!size) return 0;
+    if (BamCache_Room(1) >= OSRoundUp32B(size) + 0x60) {
+        buf = BamCache_Alloc(1, OSRoundUp32B(size));
+        arc = BamCache_Alloc(1, sizeof(HSD_Archive));
+    } else if (Bam_HeapRoom() >= size + PARTS_FLOOR) {
+        buf = HSD_MemAlloc(OSRoundUp32B(size));
+        arc = HSD_MemAlloc(sizeof(HSD_Archive));
+    }
+    if (!buf || !arc) {
+        BAM_NOTE("donor parts kind=%u skipped (%u KB free, parts %u KB)\n", kind, Bam_HeapRoom() / 1024, size / 1024);
+        return 0;
+    }
+    memset(arc, 0, sizeof(HSD_Archive));
+    lbFile_8001668C(name, buf, &length);
+    lbArchive_InitializeDAT(arc, buf, length);
+    joint = HSD_ArchiveGetPublicAddress(arc, cs->joint_name);
+    if (!joint) {
+        BAM_NOTE("donor parts kind=%u: %s has no %s\n", kind, name, cs->joint_name);
+        return 0;
+    }
+    part_joint[kind] = joint;
+    BAM_LOG("donor_parts_load kind=%u %u KB\n", kind, size / 1024);
+    return 1;
+}
+
 void Rogue_DonorModelsLoad(void)
 {
     extern Fighter_CostumeStrings* ftData_803C2360[Ft_Kind_Max];
@@ -357,11 +411,12 @@ void Rogue_DonorModelsLoad(void)
         model_wanted[kind] = 0;
         if (CostumeListsForeachCharacter[kind].costume_list[0].joint) continue;
         if (!ftData_803C2360[kind] || !ftData_803C2360[kind][0].dat_filename) continue;
+        if (bam_sword_visual && parts_load(kind, &ftData_803C2360[kind][0])) continue;
         if (model_into_cache(kind, &ftData_803C2360[kind][0])) continue;
         size = (unsigned) lbFileGetSize(ftData_803C2360[kind][0].dat_filename);
         room = Bam_HeapRoom();
         if (room < size + BAM_HEAP_FLOOR) {
-            BAM_LOG("donor_model_load kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
+            BAM_NOTE("donor_model_load kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
             continue;
         }
         ftData_80085820(kind, 0);

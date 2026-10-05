@@ -94,7 +94,9 @@ def release(root: Path, version: str | None, decomp: str | None = None) -> Path:
     out = root / 'build' / 'release'
     out.mkdir(parents=True, exist_ok=True)
     iso = out / 'BuildAMelee.iso'
-    assemble(clean, res.dol, iso)
+    from .parts import for_image
+    files = for_image(clean, root, p.overlay_base + p.overlay_reserve)
+    assemble(clean, res.dol, iso, files)
     iso_md5 = file_hash(iso, 'md5')
 
     xd = local_xdelta(root)
