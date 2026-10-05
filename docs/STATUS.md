@@ -4,6 +4,8 @@
 Slippi Online (Direct) play.
 
 ## Changes
+- 1.3.6: a borrowed Peach down smash draws her dress on the borrower
+  (her skirt bones rebuilt like a tail; prop tracks per fighter 80).
 - 1.3.5: Training Mode with builds (src/platform/training.c): the Z
   panel on the Training CSS; in the match D-Up opens the panel (plus an
   Options tab: hitboxes, hurtboxes, screen shake, missed L-cancel flash,
