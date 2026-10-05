@@ -252,6 +252,36 @@ static void cut_pobjs(DonorModel* m, unsigned i, HSD_DObj* dobj, unsigned mask)
 }
 /* The donor's model for this borrower, loaded on first use: every mesh hidden
  * except the listed ones (shown per frame). NULL if the donor has none. */
+/* Mr. Game & Watch's model is white; his color is set on its materials at
+ * load (ftGw_Init_OnLoad: GAMEWATCH_COLOR of his costume, the first here),
+ * and his articles ask their owner for it (ftLib_8008770C). */
+static void gw_color(HSD_JObj* j)
+{
+    const GXColor* c = (const GXColor*) (bam_match->donor_attrs[Ft_Kind_GameWatch].bytes + 4);
+    for (; j; j = j->next) {
+        HSD_DObj* d;
+        if (!(j->flags & (JOBJ_SPLINE | JOBJ_PTCL)))
+            for (d = HSD_JObjGetDObj(j); d; d = d->next)
+                if (d->mobj && d->mobj->mat) d->mobj->mat->diffuse = *c;
+        if (!(j->flags & JOBJ_INSTANCE)) gw_color(j->child);
+    }
+}
+/* ftLib_8008770C / ftLib_80087744 (platform fix): the color an article of
+ * Mr. Game & Watch's takes from its owner. A borrower holding his moves
+ * gives his (first costume's) color and outline, not Kirby's copy colors
+ * the game falls back to for anyone else (they came out white). */
+int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
+{
+    Fighter* fp = GET_FIGHTER(gobj);
+    RogueFighterState* S;
+    if (!fp || fp->kind == Ft_Kind_GameWatch || !bam_match) return 0;
+    S = Rogue_FighterCtx(fp);
+    if (S->fighter != fp || !S->loaded_sources[Ft_Kind_GameWatch]) return 0;
+    if (fp->kind == Ft_Kind_Kirby && !Rogue_IsAbilityState(fp)) return 0; /* his own copy ability */
+    *(GXColor*) dst = *(const GXColor*) (bam_match->donor_attrs[Ft_Kind_GameWatch].bytes + (outline ? 0x14 : 4));
+    return 1;
+}
+
 static DonorModel* donor_model(unsigned slot, unsigned kind)
 {
     DonorModel* m = donor_models[slot];
@@ -281,6 +311,7 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
     m->root = HSD_JObjLoadJoint(desc);
     ftPartsPObjClearDefaultClass();
     if (!m->root) return NULL;
+    if (kind == Ft_Kind_GameWatch && bam_match) gw_color(m->root);
     donor_index(m, m->root, 0xFF);
     /* DObjs are numbered as the fighter numbers them: joint order, then each
      * joint's DObj chain (spline and particle joints carry none). */

@@ -974,3 +974,27 @@ file = "src/melee/it/itdraw.c"
 anchor = "            if (!ip->xDC8_word.flags.x13 && ip->xDAA_flag.b1) {"
 replacement = "            if (!ip->xDC8_word.flags.x13 && ip->xDAA_flag.b1 && Bam_DrawHurtboxes()) {"
 reason = "Item hurtbox bubbles follow the training SHOW HURTBOXES option."
+
+[[fix]]
+id = "borrowed-absorb-callback"
+owner = "platform/specials"
+file = "src/melee/ft/fighter.c"
+anchor = "                if (ftData_OnAbsorb[fp->kind]) {\n                    ftData_OnAbsorb[fp->kind](gobj);\n                }"
+replacement = "                {\n                    FighterKind absorb_kind = Rogue_IsAbilityState(fp) ? Rogue_AbilitySourceKind(fp) : fp->kind;\n                    if (ftData_OnAbsorb[absorb_kind]) {\n                        ftData_OnAbsorb[absorb_kind](gobj);\n                    }\n                }"
+reason = "A borrowed absorbing move (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) caught projectiles without filling: the absorb callback was looked up by the borrower's kind. During a borrowed move it is the donor's (its variables are installed then)."
+
+[[fix]]
+id = "borrowed-gw-item-color"
+owner = "platform/specials"
+file = "src/melee/ft/ftlib.c"
+anchor = "void ftLib_8008770C(HSD_GObj* gobj, void* dst)\n{"
+replacement = "void ftLib_8008770C(HSD_GObj* gobj, void* dst)\n{\n    extern int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline);\n    if (Rogue_DonorItemColor(gobj, dst, 0)) return;"
+reason = "Mr. Game & Watch's articles (Judge hammer, turtle, torch, sausages) take their color from their owner; on a borrower the game read Kirby's copy colors and they came out white."
+
+[[fix]]
+id = "borrowed-gw-item-outline"
+owner = "platform/specials"
+file = "src/melee/ft/ftlib.c"
+anchor = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{"
+replacement = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{\n    extern int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline);\n    if (Rogue_DonorItemColor(gobj, dst, 1)) return;"
+reason = "Same for their outline color."

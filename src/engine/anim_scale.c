@@ -911,6 +911,18 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
         prop = last_prop[slot] - 1;
     else if (last_root[slot] == part && last_prop[slot] < 0 && -last_prop[slot] <= ROGUE_CHAIN_COUNT)
         prop = -2 - (-last_prop[slot] - 1);
+    else {
+        /* An article held by a donor body part posed through the donor's
+         * own skeleton (Mr. Game & Watch's hand: his Judge sign, turtle,
+         * torch): it rides on that pose, as his props do. On the
+         * borrower's own hand it faced along the wrong axis (seen edge-on). */
+        unsigned source = Rogue_AbilitySourceKind(fp);
+        int ftpart = ftPartsTable[fp->kind]->joint_to_part[part], row;
+        if (source < Ft_Kind_Max && ftpart != FTPART_INVALID && (unsigned) ftpart < ftPartsTable[source]->parts_num) {
+            int joint = ftPartsTable[source]->part_to_joint[ftpart];
+            if (joint != FTPART_INVALID && (row = chain_find(source, joint)) >= 0) prop = -2 - row;
+        }
+    }
     for (i = 0; i < ANCHORS; ++i)
         if (anchors[slot][i].jobj && anchors[slot][i].prop == prop && anchors[slot][i].root == part) break;
     if (i == ANCHORS) {
