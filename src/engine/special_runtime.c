@@ -363,7 +363,7 @@ int Rogue_AbilityMapBone(Fighter* fp, int bone)
     source = Rogue_AbilitySourceKind(fp);
     /* A donor bone rebuilt on the recipient (Marth's sword, Kirby's hammer
      * bone): the body part it hangs from; hitboxes on it follow the rebuilt
-     * bone (anim_scale.c). Checked first: Kirby's hammer bone shares its
+     * bone (anim/props.c). Checked first: Kirby's hammer bone shares its
      * body-part slot with other fighters' thumbs. */
     mapped = Rogue_PropJoint(fp, bone);
     if (mapped >= 0) return mapped;

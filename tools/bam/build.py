@@ -146,7 +146,7 @@ class Builder:
         return [obj]
 
     def bone_tables(self) -> Path:
-        """build/generated/engine/anim_rest.inc from the player's ISO
+        """build/generated/engine/bone_tables.{h,inc} from the player's ISO
         (bonetables.py). Rewritten only when its content changes, so the
         sources that include it rebuild only then."""
         from .bonetables import generate
@@ -155,15 +155,17 @@ class Builder:
         if not iso:
             raise BuildError('the bone tables are read from your ISO: set paths.melee_iso in config/local.toml '
                              'or put the ISO in .iso/')
-        dest = self.p.build_dir / 'generated' / 'engine' / 'anim_rest.inc'
+        dest = self.p.build_dir / 'generated' / 'engine' / 'bone_tables.inc'
         dest.parent.mkdir(parents=True, exist_ok=True)
-        tmp = dest.with_suffix('.tmp')
+        tmp = self.p.build_dir / 'generated' / 'tmp' / dest.name
+        tmp.parent.mkdir(parents=True, exist_ok=True)
         generate(disc_reader(Path(iso)), tmp, self.log)
-        if dest.is_file() and dest.read_bytes() == tmp.read_bytes():
-            tmp.unlink()
-        else:
-            tmp.replace(dest)
-            self.log('  GEN  engine/anim_rest.inc')
+        for t, d in ((tmp, dest), (tmp.with_suffix('.h'), dest.with_suffix('.h'))):
+            if d.is_file() and d.read_bytes() == t.read_bytes():
+                t.unlink()
+            else:
+                t.replace(d)
+                self.log(f'  GEN  engine/{d.name}')
         self._hdr_mtime = None
         return dest
 

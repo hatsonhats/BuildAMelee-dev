@@ -70,14 +70,14 @@ int Rogue_AbilityMapBone(Fighter* fp, int bone);
  * weapon parts, head for head parts, otherwise the hand extended furthest
  * from the chest (swords, cannons, props), then chest, hip, root. */
 int Rogue_AbilityFallbackJoint(Fighter* fp, int part);
-/* Recipient joint a rebuilt donor-only bone hangs from, or -1 (anim_scale.c). */
+/* Recipient joint a rebuilt donor-only bone hangs from, or -1 (anim/props.c). */
 int Rogue_PropJoint(Fighter* fp, int bone);
 /* Joint an absorb/reflect/shield bubble with donor bone id `bone` rides on. */
 struct HSD_JObj* Rogue_DonorBoneJObj(Fighter* fp, int bone);
 /* World matrix of a borrowed weapon along the donor's weapon bone; returns
  * the item (0 Beam Sword, 1 Hammer) or -1 if the current move has none. */
 int Rogue_PropWeaponMtx(Fighter* fp, Mtx out);
-/* The donor's own meshes for rebuilt bones (anim_scale.c, anim_rest.inc):
+/* The donor's own meshes for rebuilt bones (anim/pose.c, bone_tables.h):
  * groups to show for the current move (item_of_group: weapon item a group
  * replaces, 255 none), the donor's mesh rows, and posing its model. */
 unsigned Rogue_DonorMeshShow(Fighter* fp, unsigned char item_of_group[8]);
@@ -120,7 +120,7 @@ void Rogue_DonorPose(Fighter* fp, struct HSD_JObj* const* jobjs, const unsigned 
                      int free_joint, unsigned shown);
 /* Size of a borrowed move's own parts (weapons, props, held articles,
  * hitboxes) on this fighter: its body over the donor's, 1 when not
- * borrowing (anim_scale.c). */
+ * borrowing (anim/scale.c). */
 float Rogue_BorrowScale(Fighter* fp);
 /* The same in world units, for hitbox radii. */
 float Rogue_HitboxScale(Fighter* fp);
@@ -153,7 +153,7 @@ struct ftCo_DatAttrs* Rogue_NormalCoAttrs(Fighter* fp);
 bool Rogue_AerialTryEnter(Fighter_GObj* gobj, int motion);
 float Rogue_AerialLandingLag(Fighter* fp, int motion, float native_lag);
 MotionState* Rogue_AerialMotionState(Fighter* fp, int motion);
-/* Borrowed-move body scaling (anim_scale.c): called when an animation is
+/* Borrowed-move body scaling (anim/retarget.c): called when an animation is
  * applied; animated translations of registered body bones are mapped from
  * the donor's body to the recipient's. */
 void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part);
@@ -163,7 +163,7 @@ void Rogue_AnimScaleReset(void);
 void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value);
 /* Per-frame upkeep for borrowed moves (Fire Breath refill). */
 void Rogue_AbilityFighterFrame(Fighter* fp);
-/* Beam Sword model in the hand during borrowed sword moves (sword_visual.c). */
+/* Beam Sword model in the hand during borrowed sword moves (visual/weapons.c). */
 void Rogue_SwordDisplay(struct HSD_GObj* gobj, int pass, MtxPtr vmtx);
 void Rogue_SwordRelease(const Fighter* fp);
 /* Donor model-part group switches kept for the donor's model (true: kept),
@@ -182,6 +182,6 @@ bool Rogue_RestSleep(Fighter_GObj* gobj);
 bool Rogue_RestSleeping(Fighter* fp);
 void Rogue_RestSleepClear(Fighter* fp);
 bool Rogue_ParasolFloat(HSD_GObj* gobj);
-/* Every frame: a borrowed Peach up special's parasol float (sword_visual.c). */
+/* Every frame: a borrowed Peach up special's parasol float (visual/parasol.c). */
 void Rogue_ParasolTrack(Fighter* fp);
 #endif

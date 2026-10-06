@@ -39,7 +39,7 @@ BAM_ENABLE_AERIALS = 1
 [state]
 # Writable globals allowed in src/engine. Anything the game simulation reads
 # during a match must live in a block allocated on the match heap at match
-# start (Bam_MatchBegin; see AnimScaleState in anim_scale.c), because Slippi
+# start (Bam_MatchBegin; see AnimScaleState in src/engine/anim/internal.h), because Slippi
 # rollback restores the heap but not the overlay. The build refuses any
 # other writable global in src/engine. Each entry: name = "why it is safe".
 [state.engine_globals]

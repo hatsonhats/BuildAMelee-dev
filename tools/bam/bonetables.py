@@ -1,7 +1,7 @@
 """The bone tables borrowed moves are posed and placed with.
 
 Generated at build time from the player's own disc into
-build/generated/engine/anim_rest.inc (never committed: it is data from the
+build/generated/engine/bone_tables.h and .inc (never committed: data from the
 game's files). `bam.py gen-tables` writes it on its own.
 
 Read from the disc:
@@ -11,7 +11,7 @@ Read from the disc:
     Pl<Xx>Nr.dat   each fighter's skeleton and meshes
     Pl<Xx>.dat     each fighter's move scripts (which bones hitboxes use)
 
-Tables written (C, included by src/engine/anim_scale.c):
+Tables written (C: bone_tables.h declares them, src/engine/bone_tables.c holds them):
     rogue_rest_world / rogue_rest_extra*   rest rotation of every body part
         (and the finger parts), so a borrowed animation can be retargeted
         from the donor's bone orientations to the borrower's
@@ -753,7 +753,35 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
               f'#define ROGUE_CHAIN_COUNT {len(chains)}',
               'static const RogueChain rogue_chain[ROGUE_CHAIN_COUNT + 1] = {'] + chains + [
               '    { 255, 0, 255, 0, { 0 }, { 0 }, { 0 } },', '};', '']
-    Path(destination).write_text('\n'.join(lines), encoding='utf-8')
+    split_include(lines, destination)
+
+
+def split_include(lines, destination):
+    """Write the tables as a header (types, sizes, `extern` declarations;
+    `destination` with .h) and the definitions (`destination` itself), so
+    one object holds them and every engine file can read them."""
+    header, data, i = [], [], 0
+    stem = Path(destination).name.split('.')[0].upper()
+    header += [lines[0], f'#ifndef BAM_{stem}_H', f'#define BAM_{stem}_H']
+    data += [lines[0], f'#include <engine/{Path(destination).with_suffix(".h").name}>']
+    i = 1
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith('static const '):
+            decl = line[len('static '):]
+            name_part = decl.split(' = ')[0]
+            header.append('extern ' + name_part + ';')
+            body = [decl]
+            while not lines[i].startswith('};') and not lines[i].endswith('};'):
+                i += 1
+                body.append(lines[i])
+            data += body
+        else:
+            header.append(line)
+        i += 1
+    header.append('#endif')
+    Path(destination).with_suffix('.h').write_text('\n'.join(header) + '\n', encoding='utf-8')
+    Path(destination).write_text('\n'.join(data) + '\n', encoding='utf-8')
 
 
 def mesh_dobjs(read):

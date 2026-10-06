@@ -157,7 +157,7 @@ owner = "platform/specials"
 file = "src/melee/ft/ftanim.c"
 anchor = "        part = ftPartsRemap(fp->kind, kind, i);"
 replacement = "        part = ftPartsRemap(fp->kind, kind, i);\n        {\n            extern void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count);\n            Rogue_PropTrack(fp, i, cur_track, *cur_node);\n        }"
-reason = "A borrowed animation's tracks for donor bones that are rebuilt on the recipient (Marth's sword, Kirby's hammer bone) or that the recipient lacks are kept (anim_scale.c); Melee drops or misroutes them otherwise."
+reason = "A borrowed animation's tracks for donor bones that are rebuilt on the recipient (Marth's sword, Kirby's hammer bone) or that the recipient lacks are kept (src/engine/anim/props.c); Melee drops or misroutes them otherwise."
 
 [[fix]]
 id = "borrowed-prop-track-partial"

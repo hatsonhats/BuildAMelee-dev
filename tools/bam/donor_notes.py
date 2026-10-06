@@ -30,7 +30,7 @@ WEAPONS = {
     'Pp': [('hammer', 15, None)],
     'Pe': [('parasol', 109, ('SpecialHi', 'SpecialAirHi'))],
 }
-# Item numbers the C side uses (sword_visual.c weapon_model).
+# Item numbers the C side uses (src/engine/visual/weapons.c weapon_model).
 ITEMS = {'sword': 0, 'hammer': 1, 'parasol': 2}
 # Items drawn exactly on their bone (articles), not laid along hitboxes.
 ON_BONE = {'parasol'}
@@ -71,7 +71,7 @@ AS_PROPS = {
 # floating limb.
 CORE_PARTS = {0, 1, 2, 3, 4, 5, 16, 17}
 
-# Model-part groups drawn from the donor's model for its moves (sword_visual.c
+# Model-part groups drawn from the donor's model for its moves (visual/donor_model.c
 # vis_donors): kind -> [(group, lowest variant drawn)]. Their meshes go into
 # the trimmed models (parts.py).
 VIS_DONORS = {

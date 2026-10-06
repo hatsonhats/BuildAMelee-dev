@@ -100,7 +100,7 @@ def step_names(from_ck, matches, res):
     return list(NORMALS) + AERIALS + ['B:' + n for n in SPECIAL_NAMES.get(from_ck, [])]
 
 
-# Body heights in skeleton units (src/engine/anim_scale.c body_size: top of
+# Body heights in skeleton units (src/engine/anim/scale.c body_size: top of
 # the hurtboxes over model scale), by CharacterKind.
 BODY = dict(zip(CK, [19.19, 17.09, 16.46, 13.06, 10.57, 32.59, 14.86, 12.96, 13.23, 16.67, 18.75, 13.26, 15.84, 13.22, 11.46, 13.20, 21.17, 16.02, 14.89, 12.71, 16.89, 15.64, 13.27, 17.36, 19.50, 20.27]))
 
@@ -154,7 +154,7 @@ def compare(nat, bor, s, world, body):
     shared = sorted(set(n) & set(b))
     for key in shared:
         a, c = n[key], b[key]
-        # Radii are in world units (anim_scale.c Rogue_HitboxScale); a
+        # Radii are in world units (anim/scale.c Rogue_HitboxScale); a
         # throw's hitboxes never shrink below the donor's.
         r_exp = a[3] * (max(world, 1.0) if 219 <= key[0] <= 222 else world)
         if r_exp > 0 and abs(c[3] / r_exp - 1) > 0.15:

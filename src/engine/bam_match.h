@@ -10,7 +10,7 @@ typedef struct BamMatchState {
      * is shared. */
     RogueDonorAttrs donor_attrs[Ft_Kind_Max];
 } BamMatchState;
-/* Per-file blocks (anim_scale.c, sword_visual.c, rest_sleep.c). */
+/* Per-file blocks (anim/pose.c, visual/weapons.c, rest_sleep.c). */
 void Rogue_AnimScaleMatchBegin(void);
 void Rogue_AnimScaleMatchEnd(void);
 void Rogue_SwordVisualMatchBegin(void);

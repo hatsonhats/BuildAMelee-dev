@@ -11,7 +11,7 @@ textures and geometry. The rest are empty DObjs (no material, no
 polygons), which the game never draws.
 
 The archive keeps the costume's joint root name, so the mod loads it with
-the same lookup it uses for the real costume (sword_visual.c).
+the same lookup it uses for the real costume (src/engine/visual/donor_model.c).
 
 Built from the player's own disc while the patched image is assembled;
 nothing here ships pre-made.
@@ -102,7 +102,7 @@ def trim(raw: bytes, joint_root: str, wanted: Set[int]) -> Tuple[bytes, int, int
         raise ValueError(f'no root {joint_root}')
     root = dat.roots[joint_root]
 
-    # Joints and DObjs in the order sword_visual.c numbers them.
+    # Joints and DObjs in the order donor_model.c numbers them.
     joints: List[int] = []
 
     def walk(j) -> None:
@@ -258,7 +258,7 @@ def _vis_dobjs(raw: bytes, groups: List[Tuple[int, int]]) -> Set[int]:
     x8 = dat.ptr(data + 8)
     count, table = dat.u32(x8), dat.ptr(x8 + 4)
     out: Set[int] = set()
-    for which in (1,):  # the full-detail set (sword_visual.c vis_lookup: vis_table[0][1])
+    for which in (1,):  # the full-detail set (donor_model.c vis_lookup: vis_table[0][1])
         lookup = dat.ptr(table + 4 * which)
         if lookup is None:
             continue

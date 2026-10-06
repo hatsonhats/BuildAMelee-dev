@@ -9,7 +9,7 @@
   bam.py info                   print retail DOL layout and project settings
   bam.py fingerprint save|diff F  compare the overlay's code across a refactor (layout-independent)
   bam.py edits [FILTER]         show every edit to retail code as a diff (units matching FILTER)
-  bam.py gen-tables [OUT]       write the bone tables (build/generated/engine/anim_rest.inc) from your ISO
+  bam.py gen-tables [OUT]       write the bone tables (build/generated/engine/bone_tables.h/.inc) from your ISO
 """
 from __future__ import annotations
 import argparse
@@ -174,7 +174,7 @@ def cmd_gen_tables(args):
     iso = p.local.get('paths', {}).get('melee_iso')
     if not iso:
         sys.exit('set paths.melee_iso in config/local.toml or put the ISO in .iso/')
-    out = Path(args.out) if args.out else p.build_dir / 'generated' / 'engine' / 'anim_rest.inc'
+    out = Path(args.out) if args.out else p.build_dir / 'generated' / 'engine' / 'bone_tables.inc'
     out.parent.mkdir(parents=True, exist_ok=True)
     n = generate(disc_reader(Path(iso)), out)
     print(f'wrote {out} ({n} body parts with rest data)')

@@ -51,7 +51,7 @@ static int load_donor_core(int source)
     if (!Rogue_LoadDonorData(source) || !Rogue_LoadDonorEffects(source)) return 0;
     /* The donor's model (costume 0, ~0.1-0.8 MB) only when its moves draw
      * part of it (tails, swords, Mr. Game & Watch's props): the bone
-     * retargeting in anim_scale.c uses precomputed rest poses, not the
+     * retargeting in anim/retarget.c uses precomputed rest poses, not the
      * model. Loading it for every donor ran the online match heap out. */
     Rogue_DonorModelPreload((unsigned) source);
     /* Not ftData_800857E0: its only entry is Kirby's, which loads a copy
