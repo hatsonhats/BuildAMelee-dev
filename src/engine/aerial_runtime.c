@@ -94,7 +94,7 @@ bool Bam_AerialTryEnter(Fighter_GObj* gobj, int motion)
         if (slot == 2) fp->accessory4_cb = ftGw_AttackAirN_ItemTurtleSetup;
         if (slot == 3) fp->accessory4_cb = ftGw_AttackAirN_ItemSparkySetup;
     }
-#if BAM_DEBUG || 0 || 0
+#if BAM_DEBUG
     BAM_LOG("aerial_enter id=%u recipient=%u match=%u\n", def->id, fp->kind, S->match_generation);
 #endif
     return true;

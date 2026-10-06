@@ -1,14 +1,13 @@
 # Architecture
 
-## Why rogueMelee-v2 cannot run under Slippi, and what changes here
+## Why the game is not relinked
 
-rogueMelee-v2 rebuilds the whole game from the decomp with its edits applied
-and lets the linker lay everything out (`strategy = "decomp-linker"`). Every
-modified function grows, everything after it shifts, and every retail address
-moves. Slippi's code list is gecko codes at fixed retail addresses; Slippi
-Online, replays and rollback all read fixed addresses too. That is why the
-rogue build needed its own game ID (`GALERM`) and reimplemented UCF and
-friends in C.
+A mod built by rebuilding the whole game from the decomp with its edits, and
+letting the linker lay everything out, moves every retail address: every
+modified function grows and everything after it shifts. Slippi's code list
+is gecko codes at fixed retail addresses, and Slippi Online, replays and
+rollback all read fixed addresses too, so such a build needs its own game ID
+and its own copies of UCF and friends.
 
 The pinned decomp revision is fully matching: building it unmodified
 reproduces `main.dol` byte for byte (SHA-1 `08e0bf20…`). So instead of
@@ -106,6 +105,29 @@ The overlay is therefore **not** rolled back, by design. Rules that follow:
 | `compare.py` | Retail-vs-overlay function diff with branch normalisation |
 | `hooks.py` | Hook manifest → word patches and trampolines |
 | `dol.py`, `elf.py` | DOL/ELF readers and the DOL writer |
-| `iso.py` | Retail image verification; place the grown DOL without touching the FST |
+| `iso.py` | Retail image verification; place the grown DOL and add the trimmed donor models to the FST |
 | `slippi.py` | Injection addresses from a Slippi code list |
 | `build.py` | Orchestration; writes `build/output/main.dol` and `build-report.json` |
+| `project.py` | `project.toml`, `config/local.toml`, the fixes in `overrides/fixes/` |
+| `hsd.py` | Reads HSD archives (the game's `.dat` files) |
+| `bonetables.py` | Bone tables from the ISO into `build/generated/engine/bone_tables.{h,inc}` |
+| `donor_notes.py` | Per-character choices the tables and trimmed models use (docs/DONOR_NOTES.md) |
+| `parts.py` | Trimmed donor models (`Pl<code>Bm.dat`) added to the patched disc |
+| `fingerprint.py` | Layout-independent per-function hashes, to check refactors |
+| `release.py` | The player zip (xdelta patch, scripts, README) |
+
+## Source layout (`src/`)
+
+| Path | What |
+| --- | --- |
+| `boot/` | Overlay entry, arena carve-out (`BAM_ReserveOverlay`, `ClearArena`) |
+| `bam/bam.h`, `bam/retail.h` | Shared definitions and logging; named retail and Slippi addresses |
+| `engine/` | The borrowed-move engine: catalog (`special_registry.c`, `*_catalog*`), loading donors (`special_preload.c`, `donor_trim.c`, `bam_cache.c`), running a borrowed move (`special_runtime.c`, `normal_runtime.c`, `aerial_runtime.c`, `special_transform.c`, `rest_sleep.c`), fighters and the per-match block (`bam_fighter.c`) |
+| `engine/anim/` | Posing borrowed animations and placing hitboxes and articles (`internal.h` lists the files) |
+| `engine/visual/` | Drawing a borrowed move's parts: the donor's model, held weapons, the parasol |
+| `platform/` | Game-facing features: the build panel (`css_*`), saved builds and share codes, training mode, the online build exchange, replays, hooks and the watchdog |
+| `qa/` | The automated move sweep (QA builds only) |
+
+Per-match engine state is allocated on the match heap at match start
+(`Bam_MatchBegin`); the build refuses writable globals in `src/engine` that
+are not listed with a reason in `project.toml` `[state]`.

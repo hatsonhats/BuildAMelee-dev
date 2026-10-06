@@ -154,14 +154,10 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
         if (!anchors[slot][i].jobj) return part_joint(fp, part);
         anchors[slot][i].prop = (short) prop;
         anchors[slot][i].root = (short) part;
-        /* Diagnostics for articles held edge-on (Mr. Game & Watch's). */
-        BAM_NOTE("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_AbilitySourceKind(fp), part,
-                 (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
+        BAM_LOG("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_AbilitySourceKind(fp), part,
+                (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
     }
     anchor_place(fp, &anchors[slot][i]);
-#if BAM_DEBUG
-    BAM_LOG("item_anchor donor=%u joint=%d prop=%d\n", Bam_AbilitySourceKind(fp), part, prop);
-#endif
     return anchors[slot][i].jobj;
 }
 

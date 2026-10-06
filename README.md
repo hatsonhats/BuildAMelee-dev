@@ -33,6 +33,8 @@ build logs everything. Every build prints how much of the overlay is free.
 
 ## Releasing
 
+Write the player notes in `releases/RELEASE-NOTES-v1.2.md` first, then:
+
 ```powershell
 py -3 tools\bam.py release 1.2
 ```
@@ -64,19 +66,25 @@ the character select screen.
 
 | Path | What |
 | --- | --- |
-| `src/engine/` | Borrowed-move engine: loadouts, donor loading, animation retargeting, hitbox and prop scaling |
-| `src/platform/` | Game hooks: build panel, online exchange, watchdog |
-| `src/boot/` | Overlay installation and memory carve-out |
+| `src/engine/` | Borrowed-move engine: catalog, loading donors, running borrowed moves |
+| `src/engine/anim/` | Posing borrowed animations; hitboxes, rebuilt bones and articles on the borrower |
+| `src/engine/visual/` | Drawing a borrowed move's parts (donor model, weapons, parasol) |
+| `src/platform/` | Game features: build panel, saved builds, training mode, online exchange, replays, watchdog |
+| `src/boot/`, `src/bam/` | Overlay installation and memory; shared definitions and named retail addresses |
 | `src/qa/` | Automated move sweep (QA builds only, `docs/QA.md`) |
-| `overrides/` | Pinned edits to retail functions that are recompiled |
-| `project.toml` | Version, overlay address, sources, recompiled units, hooks |
-| `tools/bam.py`, `tools/bam/` | Build pipeline and release packaging |
+| `overrides/` | Edits to retail functions that are recompiled (`overrides/README.md`) |
+| `project.toml` | Version, overlay address, sources, hooks, allowed engine globals |
+| `tools/bam.py`, `tools/bam/` | Build pipeline, bone tables, trimmed models, release packaging |
 | `tools/qa/` | Sweep runner and analyzer |
 | `packaging/` | Files that go into the player zip |
+| `releases/` | Player release notes |
 | `slippi/` | Slippi Dolphin's code list, used to refuse conflicting patches |
 
-More: [docs/BUILDING.md](docs/BUILDING.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
-[docs/QA.md](docs/QA.md), [docs/STATUS.md](docs/STATUS.md).
+More: [CONTRIBUTING.md](CONTRIBUTING.md) (common jobs and rules),
+[docs/BUILDING.md](docs/BUILDING.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/DONOR_NOTES.md](docs/DONOR_NOTES.md), [docs/QA.md](docs/QA.md),
+[docs/STATUS.md](docs/STATUS.md), [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
-Never commit game files: no ISO, `main.dol` or assets (`.gitignore` keeps
-`build/`, `dist/` and `.iso/` out).
+Never commit game files: no ISO, `main.dol`, assets or anything read from
+them (the bone tables and trimmed models are generated into `build/` from
+your ISO; `.gitignore` keeps `build/`, `dist/` and `.iso/` out).

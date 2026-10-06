@@ -1,3 +1,6 @@
+> Historical design notes from the start of the project, kept for context.
+> Current state: [../STATUS.md](../STATUS.md).
+
 # Plan
 
 Goal: build a fighter (any character's four specials and five aerials on any

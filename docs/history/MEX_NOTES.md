@@ -1,3 +1,6 @@
+> Historical design notes from the start of the project, kept for context.
+> Current state: [../STATUS.md](../STATUS.md).
+
 # What BuildAMelee takes from m-ex
 
 m-ex ([akaneia/m-ex](https://github.com/akaneia/m-ex)) is the framework behind

@@ -44,7 +44,7 @@ void Bam_AbilityCleanup(Fighter* fp)
 
     source = Bam_AbilitySourceKind(fp);
     slot = S->active ? S->active->native_slot : BAM_ABILITY_SLOTS;
-#if BAM_DEBUG || 0
+#if BAM_DEBUG
     if (S->normal_on)
         BAM_LOG("normal_restore slot=%d donor=%u match=%u\n", S->normal_slot, S->normal_donor, S->match_generation);
     else
@@ -266,7 +266,7 @@ MotionState* Bam_AbilityMotionState(Fighter* fp, int motion)
         Bam_AbilityCleanup(fp);
         return NULL;
     }
-#if BAM_DEBUG || 0
+#if BAM_DEBUG
     BAM_LOG("donor_motion id=%u motion=%d anim=%p\n", def->id, motion, def->states[motion-ftCo_MS_Count].anim_cb);
 #endif
     return &def->states[motion - ftCo_MS_Count];
