@@ -8,15 +8,15 @@
  * is. The article is given an anchor instead, carrying the donor's frame:
  * the rebuilt bone's world matrix when the joint is the base of a rebuilt
  * donor bone, otherwise the joint turned by the rest correction (as the
- * donor's own meshes are, Rogue_DonorPose). It follows every frame and is
+ * donor's own meshes are, Bam_DonorPose). It follows every frame and is
  * the plain joint again once the move ends. */
 
 
 static void anchor_place(Fighter* fp, PropAnchor* a)
 {
     Mtx rel, world, grow;
-    unsigned source = Rogue_AbilitySourceKind(fp);
-    float bs = Rogue_BorrowScale(fp);
+    unsigned source = Bam_AbilitySourceKind(fp);
+    float bs = Bam_BorrowScale(fp);
     HSD_JObj* base;
     if (a->root < 0 || (unsigned) a->root >= ftPartsTable[fp->kind]->parts_num || !fp->parts[a->root].joint) return;
     base = fp->parts[a->root].joint;
@@ -102,7 +102,7 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
     unsigned n = ftPartsTable[fp->kind]->parts_num;
     int j;
     if (part >= 0 && (unsigned) part < n && fp->parts[part].joint) return fp->parts[part].joint;
-    j = Rogue_AbilityFallbackJoint(fp, part);
+    j = Bam_AbilityFallbackJoint(fp, part);
     if (j >= 0 && (unsigned) j < n && fp->parts[j].joint) return fp->parts[j].joint;
     return fp->parts[0].joint;
 }
@@ -110,7 +110,7 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
 /* The donor body part last asked for that this fighter lacks, and the joint
  * it fell back to (ftParts_GetBoneIndex): an article attached to that joint
  * next is held in the frame of the part asked for. */
-void Rogue_NoteHeldPart(Fighter* fp, int part, int joint)
+void Bam_NoteHeldPart(Fighter* fp, int part, int joint)
 {
     int slot = bam_anim_scale ? slot_of_fighter(fp) : -1;
     if (slot < 0) return;
@@ -118,24 +118,24 @@ void Rogue_NoteHeldPart(Fighter* fp, int part, int joint)
     held_joint[slot] = (signed char) (joint + 1);
 }
 
-HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
+HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     int slot = slot_of_fighter(fp), prop = -1;
     unsigned i;
     if (slot < 0 || part < 0 || (unsigned) part >= ftPartsTable[fp->kind]->parts_num ||
-        !prop_active(fp, Rogue_AbilitySourceKind(fp)))
+        !prop_active(fp, Bam_AbilitySourceKind(fp)))
         return part_joint(fp, part);
-    if (last_root[slot] == part && last_prop[slot] > 0 && last_prop[slot] <= ROGUE_PROP_COUNT)
+    if (last_root[slot] == part && last_prop[slot] > 0 && last_prop[slot] <= BAM_PROP_COUNT)
         prop = last_prop[slot] - 1;
-    else if (last_root[slot] == part && last_prop[slot] < 0 && -last_prop[slot] <= ROGUE_CHAIN_COUNT)
+    else if (last_root[slot] == part && last_prop[slot] < 0 && -last_prop[slot] <= BAM_CHAIN_COUNT)
         prop = -2 - (-last_prop[slot] - 1);
     else {
         /* An article held by a donor body part posed through the donor's
          * own skeleton (Mr. Game & Watch's hand: his Judge sign, turtle,
          * torch): it rides on that pose, as his props do. On the
          * borrower's own hand it faced along the wrong axis (seen edge-on). */
-        unsigned source = Rogue_AbilitySourceKind(fp);
+        unsigned source = Bam_AbilitySourceKind(fp);
         int ftpart = ftPartsTable[fp->kind]->joint_to_part[part], row;
         if (held_joint[slot] == part + 1) {
             ftpart = held_part[slot];
@@ -155,12 +155,12 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
         anchors[slot][i].prop = (short) prop;
         anchors[slot][i].root = (short) part;
         /* Diagnostics for articles held edge-on (Mr. Game & Watch's). */
-        BAM_NOTE("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Rogue_AbilitySourceKind(fp), part,
+        BAM_NOTE("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_AbilitySourceKind(fp), part,
                  (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
     }
     anchor_place(fp, &anchors[slot][i]);
 #if BAM_DEBUG
-    BAM_LOG("item_anchor donor=%u joint=%d prop=%d\n", Rogue_AbilitySourceKind(fp), part, prop);
+    BAM_LOG("item_anchor donor=%u joint=%d prop=%d\n", Bam_AbilitySourceKind(fp), part, prop);
 #endif
     return anchors[slot][i].jobj;
 }
@@ -171,14 +171,14 @@ HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part)
  * bone: the borrower's joint of that number put the absorb bubble at the
  * legs, and nothing landed in the bucket), and held in the donor's frame
  * (a rebuilt or root-posed bone follows its pose) as articles are. */
-HSD_JObj* Rogue_DonorBoneJObj(Fighter* fp, int bone)
+HSD_JObj* Bam_DonorBoneJObj(Fighter* fp, int bone)
 {
     int joint;
-    if (!Rogue_IsAbilityState(fp) || Rogue_AbilitySourceKind(fp) == fp->kind)
+    if (!Bam_IsAbilityState(fp) || Bam_AbilitySourceKind(fp) == fp->kind)
         return fp->parts[bone].joint;
-    joint = Rogue_AbilityMapBone(fp, bone);
+    joint = Bam_AbilityMapBone(fp, bone);
     if (joint < 0 || (unsigned) joint >= ftPartsTable[fp->kind]->parts_num || !fp->parts[joint].joint) joint = 0;
-    return Rogue_ItemAnchor(fp->gobj, joint);
+    return Bam_ItemAnchor(fp->gobj, joint);
 }
 
 

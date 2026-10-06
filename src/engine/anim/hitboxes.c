@@ -9,7 +9,7 @@ static PropHit* hit_record(const HitCapsule* hit)
     return NULL;
 }
 
-/* Hitboxes on a joint posed through the donor's own skeleton (rogue_chain,
+/* Hitboxes on a joint posed through the donor's own skeleton (bam_chain,
  * Mr. Game & Watch's arm and what it holds) hang from the borrower's root:
  * prop >= PROP_CHAIN marks chain row prop - PROP_CHAIN. */
 #define PROP_CHAIN 128
@@ -20,7 +20,7 @@ static void hit_place(Fighter* fp, PropHit* h)
 {
     Mtx rel;
     Vec3 out;
-    float s = Rogue_BorrowScale(fp);
+    float s = Bam_BorrowScale(fp);
     if (h->prop >= PROP_FINGER) {
         part_fold(fp, h->prop - PROP_FINGER, rel);
         PSMTXMultVec(rel, &h->offset, &out);
@@ -47,7 +47,7 @@ static void hit_place(Fighter* fp, PropHit* h)
 /* QA: for a hitbox on a rebuilt donor bone, the world position of the donor
  * body part that bone hangs from (rebuilt on the borrower), and that part;
  * -1 if it is not one. Hitbox positions are compared from it. */
-int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
+int Bam_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
 {
     PropHit* h = hit_record(hit);
     Mtx rel, grow, w;
@@ -55,12 +55,12 @@ int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
     float bs;
     int from;
     if (!fp || !h || h->fighter != fp || (h->prop >= PROP_CHAIN && h->prop < PROP_FINGER)) return -1;
-    from = h->prop >= PROP_FINGER ? h->prop - PROP_FINGER : rogue_prop[h->prop].part;
+    from = h->prop >= PROP_FINGER ? h->prop - PROP_FINGER : bam_prop[h->prop].part;
     root = fold_base(fp, from);
     root = root >= 0 ? own_joint(fp, root) : -1;
     if (root < 0 || !fp->parts[root].joint) return -1;
     part_fold(fp, from, rel);
-    bs = Rogue_BorrowScale(fp);
+    bs = Bam_BorrowScale(fp);
     PSMTXScale(grow, bs, bs, bs);
     PSMTXConcat(grow, rel, rel);
     PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[root].joint), rel, w);
@@ -71,20 +71,20 @@ int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
 /* A move script just made a hitbox (ftAction_8007121C); `bone` is the
  * script's joint, or -1 for a common body part. Offsets of a borrowed move
  * are carried into the recipient's frame. */
-void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
+void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
 {
     PropHit* h = hit_record(hit);
     unsigned source, i;
     int prop, root;
     if (h) h->hit = NULL;
-    if (!fp || !hit || !Rogue_IsAbilityState(fp)) return;
-    source = Rogue_AbilitySourceKind(fp);
-    /* Offsets and radii fit this fighter's body (Rogue_BorrowScale), as
+    if (!fp || !hit || !Bam_IsAbilityState(fp)) return;
+    source = Bam_AbilitySourceKind(fp);
+    /* Offsets and radii fit this fighter's body (Bam_BorrowScale), as
      * the move's weapons and props are drawn: a hitbox stays on the part it
      * belongs to, and keeps its size relative to it (the hitbox size
      * command scales the same way, overrides/fixes/30-normals.toml). */
     {
-        float s = Rogue_BorrowScale(fp);
+        float s = Bam_BorrowScale(fp);
         hit->b_offset.x *= s; hit->b_offset.y *= s; hit->b_offset.z *= s;
         /* The radius is in world units (the model scale sizes the skeleton,
          * not hitboxes): the shown size, else a move from a fighter with a
@@ -92,7 +92,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
          * A throw's hitboxes are aimed at the fighter being thrown, who
          * keeps their own size: never smaller than the donor's (Bowser's
          * down throw on Mario-sized fighters missed the victim entirely). */
-        s = Rogue_HitboxScale(fp);
+        s = Bam_HitboxScale(fp);
         if (fp->motion_id >= ftCo_MS_ThrowF && fp->motion_id <= ftCo_MS_ThrowLw && s < 1.0f) s = 1.0f;
         hit->scale *= s;
     }
@@ -102,7 +102,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     if (prop < 0 && bone > 0 && (root = chain_find(source, bone)) >= 0 && fp->parts[0].joint &&
         hit->jobj == fp->parts[0].joint) {
         /* A joint of the donor's own skeleton posed from the root: follow
-         * that pose every frame (Rogue_HitboxRefresh). */
+         * that pose every frame (Bam_HitboxRefresh). */
         for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
             if (!prop_hits[i].hit) break;
         if (i == sizeof(prop_hits) / sizeof(prop_hits[0])) return;
@@ -111,7 +111,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         h->hit = hit;
         h->offset = hit->b_offset;
         {
-            float s = Rogue_BorrowScale(fp);
+            float s = Bam_BorrowScale(fp);
             h->offset.x /= s; h->offset.y /= s; h->offset.z /= s;
         }
         h->prop = (unsigned char) (PROP_CHAIN + root);
@@ -128,7 +128,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         Quaternion cq;
         int own_part = part;
         if (part == FTPART_INVALID) return;
-        if (rest_slot(part) >= ROGUE_REST_PARTS) {
+        if (rest_slot(part) >= BAM_REST_PARTS) {
             /* A donor finger (what Ness's bat and Game & Watch's jab hang
              * from): carried by the hand with the donor's finger pose, every
              * frame, as a prop is (hit_place). */
@@ -137,7 +137,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
                 for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
                     if (!prop_hits[i].hit) break;
                 if (i < sizeof(prop_hits) / sizeof(prop_hits[0])) {
-                    float bs = Rogue_BorrowScale(fp);
+                    float bs = Bam_BorrowScale(fp);
                     h = &prop_hits[i];
                     h->fighter = fp;
                     h->hit = hit;
@@ -153,7 +153,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         }
         if (own_joint(fp, part) < 0) {
             /* The recipient lacks the bone (most have no waist): the hitbox
-             * rides the bone Rogue_AbilityMapBone chose instead, so carry
+             * rides the bone Bam_AbilityMapBone chose instead, so carry
              * the offset from the donor's bone frame into that one's (an
              * offset in Jigglypuff's waist frame pointed up a tall
              * fighter's hip, over its head). */
@@ -172,8 +172,8 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
                  * own rotation on the borrower's hand, so the offset needs
                  * the hand's correction (about right: fingers turn little
                  * against the hand). Other bones: their own. */
-                int hand = rest_slot(part) >= ROGUE_REST_PARTS && source < ROGUE_REST_KINDS ?
-                    rogue_part_parent[source][part] : part;
+                int hand = rest_slot(part) >= BAM_REST_PARTS && source < BAM_REST_KINDS ?
+                    bam_part_parent[source][part] : part;
                 ds = rs = hand != 0xFF ? body_slot(hand) : -1;
             }
             if (ds < 0 || rs < 0 || !rest_world(source, (unsigned) ds, &d) || !rest_world(fp->kind, (unsigned) rs, &r))
@@ -201,7 +201,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     h->offset = hit->b_offset;
     {
         /* hit_place applies the borrow scale itself. */
-        float s = Rogue_BorrowScale(fp);
+        float s = Bam_BorrowScale(fp);
         h->offset.x /= s; h->offset.y /= s; h->offset.z /= s;
     }
     h->prop = (unsigned char) prop;
@@ -213,7 +213,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
 #endif
 }
 /* Every frame before a hitbox's position is taken (ftColl_8007AD18). */
-void Rogue_HitboxRefresh(Fighter* fp, HitCapsule* hit)
+void Bam_HitboxRefresh(Fighter* fp, HitCapsule* hit)
 {
     PropHit* h = hit_record(hit);
     if (!h) return;

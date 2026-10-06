@@ -1,6 +1,6 @@
 /* Generated from authored catalogs: id, character, donor (FighterKind), slot. */
 #include <engine/aerial_catalog.h>
-const RogueAerialDef rogue_aerials[ROGUE_AERIALS] = {
+const BamAerialDef bam_aerials[BAM_AERIALS] = {
     { 1, 0, 2, 0 }, /* Captain Falcon Neutral Air */
     { 2, 0, 2, 1 }, /* Captain Falcon Forward Air */
     { 3, 0, 2, 2 }, /* Captain Falcon Back Air */

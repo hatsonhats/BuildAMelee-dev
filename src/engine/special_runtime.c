@@ -4,17 +4,17 @@
 #include <melee/lb/lb_00B0.h>
 #include <melee/ft/kinds/ftKoopa/types.h>
 /* Returned for fighters that own no state. Hot path: native fighter code
- * reaches this through Rogue_AbilityVars many times per frame, so it must
+ * reaches this through Bam_AbilityVars many times per frame, so it must
  * stay two compares. It is never written; every write is behind an
  * ownership check (S->fighter == fp), which this state never passes. */
 /* Only the fields before "owned fighters only" are ever read through it. */
 static union { u32 words[16]; void* align; } no_state_storage;
-#define no_state (*(RogueFighterState*) &no_state_storage)
-typedef char no_state_fits[(sizeof(no_state_storage) >= offsetof(RogueFighterState, normal_fresh) + 1) ? 1 : -1];
-RogueFighterState* Rogue_FighterCtx(const Fighter* fp)
+#define no_state (*(BamFighterState*) &no_state_storage)
+typedef char no_state_fits[(sizeof(no_state_storage) >= offsetof(BamFighterState, normal_fresh) + 1) ? 1 : -1];
+BamFighterState* Bam_FighterCtx(const Fighter* fp)
 {
     if (fp && bam_match) {
-        RogueFighterState* S = *Bam_FighterExtSlot(fp);
+        BamFighterState* S = *Bam_FighterExtSlot(fp);
         if (S && S->fighter == fp) return S;
     }
 #if BAM_DEBUG
@@ -23,9 +23,9 @@ RogueFighterState* Rogue_FighterCtx(const Fighter* fp)
 #endif
     return &no_state;
 }
-bool Rogue_IsAbilityState(const Fighter* fp)
+bool Bam_IsAbilityState(const Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
 #if BAM_DEBUG
     if (fp && S->fighter == fp && S->match_generation != bam_match->generation)
         OSPanic(__FILE__, __LINE__, "stale borrowed-special match generation");
@@ -34,16 +34,16 @@ bool Rogue_IsAbilityState(const Fighter* fp)
            (S->active != NULL || S->aerial != NULL || S->normal_on);
 }
 
-void Rogue_AbilityCleanup(Fighter* fp)
+void Bam_AbilityCleanup(Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     FighterKind source;
-    RogueAbilitySlot slot;
-    if (!Rogue_IsAbilityState(fp)) return;
+    BamAbilitySlot slot;
+    if (!Bam_IsAbilityState(fp)) return;
 
 
-    source = Rogue_AbilitySourceKind(fp);
-    slot = S->active ? S->active->native_slot : ROGUE_ABILITY_SLOTS;
+    source = Bam_AbilitySourceKind(fp);
+    slot = S->active ? S->active->native_slot : BAM_ABILITY_SLOTS;
 #if BAM_DEBUG || 0
     if (S->normal_on)
         BAM_LOG("normal_restore slot=%d donor=%u match=%u\n", S->normal_slot, S->normal_donor, S->match_generation);
@@ -54,18 +54,18 @@ void Rogue_AbilityCleanup(Fighter* fp)
     /*
      * Tear down source-owned attached state while source attrs/vars are still
      * installed. Free projectiles/items may outlive the animation; their owner
-     * callbacks use Rogue_AbilityVars() to reach persistent source state.
+     * callbacks use Bam_AbilityVars() to reach persistent source state.
      */
     switch (source) {
     case Ft_Kind_Donkey:
-        if (slot == ROGUE_ABILITY_UP)
+        if (slot == BAM_ABILITY_UP)
             ftDk_SpecialHi_DestroyAllEffects(fp->gobj);
         break;
     case Ft_Kind_GameWatch:
         ftGw_Init_OnDamage(fp->gobj);
         break;
     case Ft_Kind_Samus:
-        if (slot == ROGUE_ABILITY_NEUTRAL)
+        if (slot == BAM_ABILITY_NEUTRAL)
             ftSamus_UnkAndDestroyAllEF(fp->gobj);
         break;
     case Ft_Kind_Ness:
@@ -76,25 +76,25 @@ void Rogue_AbilityCleanup(Fighter* fp)
         }
         break;
     case Ft_Kind_Mewtwo:
-        if (slot == ROGUE_ABILITY_NEUTRAL) {
+        if (slot == BAM_ABILITY_NEUTRAL) {
             int charge = fp->u.mt.x2234_shadowBallCharge;
             ftMt_SpecialN_OnDeath(fp->gobj);
             fp->u.mt.x2234_shadowBallCharge = charge;
         }
         break;
     case Ft_Kind_Peach:
-        if (slot == ROGUE_ABILITY_NEUTRAL)
+        if (slot == BAM_ABILITY_NEUTRAL)
             ftPe_SpecialN_OnDeath2(fp->gobj);
-        else if (slot == ROGUE_ABILITY_UP)
+        else if (slot == BAM_ABILITY_UP)
             ftPe_8011D598(fp->gobj);
         break;
     case Ft_Kind_Seak:
-        if (slot == ROGUE_ABILITY_SIDE)
+        if (slot == BAM_ABILITY_SIDE)
             ftSk_SpecialS_CheckAndDestroyChain(fp->gobj);
         break;
     case Ft_Kind_Captain:
     case Ft_Kind_Ganon:
-        if (slot == ROGUE_ABILITY_SIDE)
+        if (slot == BAM_ABILITY_SIDE)
             ftCa_SpecialS_RemoveGFX(fp->gobj);
         break;
     default:
@@ -102,11 +102,11 @@ void Rogue_AbilityCleanup(Fighter* fp)
     }
 
     if ((source == Ft_Kind_Mario || source == Ft_Kind_DrMario) &&
-        slot == ROGUE_ABILITY_SIDE)
+        slot == BAM_ABILITY_SIDE)
         ftMr_SpecialS_RemoveCape(fp->gobj);
 
     if ((source == Ft_Kind_Fox || source == Ft_Kind_Falco) &&
-        (slot == ROGUE_ABILITY_NEUTRAL || S->normal_on))
+        (slot == BAM_ABILITY_NEUTRAL || S->normal_on))
         ftFx_SpecialN_RemoveBlaster(fp->gobj);
     /* Donkey Kong's cargo throw reads his attributes through x2CC. */
     if (S->normal_on) fp->x2CC = S->native_cargo;
@@ -125,11 +125,11 @@ void Rogue_AbilityCleanup(Fighter* fp)
     S->normal_on = false;
 }
 
-FighterKind Rogue_AbilitySourceKind(const Fighter* fp)
+FighterKind Bam_AbilitySourceKind(const Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     if (!fp) return Ft_Kind_Max;
-    if (!Rogue_IsAbilityState(fp))
+    if (!Bam_IsAbilityState(fp))
         return fp->kind;
     if (S->active != NULL)
         return S->active->internal_kind;
@@ -137,12 +137,12 @@ FighterKind Rogue_AbilitySourceKind(const Fighter* fp)
     return S->aerial ? S->aerial->donor : fp->kind;
 }
 
-ftData* Rogue_AbilityData(Fighter* fp)
+ftData* Bam_AbilityData(Fighter* fp)
 {
     FighterKind source;
-    if (!Rogue_IsAbilityState(fp))
+    if (!Bam_IsAbilityState(fp))
         return fp->ft_data;
-    source = Rogue_AbilitySourceKind(fp);
+    source = Bam_AbilitySourceKind(fp);
     return source >= 0 && source < Ft_Kind_Max ? gFtDataList[source] : fp->ft_data;
 }
 
@@ -160,22 +160,22 @@ static FighterKind abilityFamily(FighterKind kind)
     }
 }
 
-union Fighter_FighterVars* Rogue_AbilityVars(Fighter* fp, FighterKind family)
+union Fighter_FighterVars* Bam_AbilityVars(Fighter* fp, FighterKind family)
 {
     int source;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     if (S->fighter != fp) return &fp->u;
     family = abilityFamily(family);
-    if (Rogue_IsAbilityState(fp) &&
-        abilityFamily(Rogue_AbilitySourceKind(fp)) == family)
+    if (Bam_IsAbilityState(fp) &&
+        abilityFamily(Bam_AbilitySourceKind(fp)) == family)
         return &fp->u;
     if (abilityFamily(fp->kind) == family)
-        return Rogue_IsAbilityState(fp) ? &S->native_vars : &fp->u;
+        return Bam_IsAbilityState(fp) ? &S->native_vars : &fp->u;
     /* Projectiles can outlive the animation which created them. Their owner
      * callbacks must update the source's persistent state, never the unrelated
      * base fighter's overlapping union fields. Prefer the equipped clone. */
-    for (source = 0; source < ROGUE_ABILITY_SLOTS; ++source) {
-        const RogueAbilityDefinition* def = Rogue_GetAbility(Rogue_EquippedSpecial(fp, source));
+    for (source = 0; source < BAM_ABILITY_SLOTS; ++source) {
+        const BamAbilityDefinition* def = Bam_GetAbility(Bam_EquippedSpecial(fp, source));
         if (def && abilityFamily(def->internal_kind) == family &&
             S->loaded_sources[def->internal_kind])
             return &S->source_vars[def->internal_kind];
@@ -186,14 +186,14 @@ union Fighter_FighterVars* Rogue_AbilityVars(Fighter* fp, FighterKind family)
     return &fp->u;
 }
 
-void Rogue_AbilityFighterDestroyed(Fighter* fp)
+void Bam_AbilityFighterDestroyed(Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     if (S->fighter != fp || !fp) return;
-    Rogue_AnimRetarget(fp, fp->kind, 0); /* Forget its body-bone mapping. */
-    Rogue_SwordRelease(fp);
-    Rogue_AbilityCleanup(fp);
-    Rogue_AerialRelease(S);
+    Bam_AnimRetarget(fp, fp->kind, 0); /* Forget its body-bone mapping. */
+    Bam_SwordRelease(fp);
+    Bam_AbilityCleanup(fp);
+    Bam_AerialRelease(S);
 #if BAM_DEBUG
     BAM_LOG("fighter_context_destroy kind=%u match=%u\n", fp->kind, S->match_generation);
 #endif
@@ -204,13 +204,13 @@ void Rogue_AbilityFighterDestroyed(Fighter* fp)
  * ftKp_SpecialLw_80134D78 from his per-frame callback, which a borrower
  * does not have). The flame shrinks while breathing and regrows between
  * uses. */
-void Rogue_AbilityFighterFrame(Fighter* fp)
+void Bam_AbilityFighterFrame(Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     const ftKoopaAttributes* da = (const ftKoopaAttributes*) bam_match->donor_attrs[Ft_Kind_Koopa].bytes;
     struct ftKoopa_FighterVars* fuel;
     if (S->fighter != fp || fp->kind == Ft_Kind_Koopa || !S->loaded_sources[Ft_Kind_Koopa]) return;
-    if (Rogue_IsAbilityState(fp) && Rogue_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
+    if (Bam_IsAbilityState(fp) && Bam_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
         /* Borrowed Bowser move in progress: its vars are installed. */
         if (fp->motion_id >= 0x155 && fp->motion_id < 0x15B) return;
         fuel = &fp->u.kp;
@@ -221,21 +221,21 @@ void Rogue_AbilityFighterFrame(Fighter* fp)
     if (fuel->x2230 > da->x18) fuel->x2230 = da->x18;
 }
 
-void Rogue_AbilityMatchEnd(void)
+void Bam_AbilityMatchEnd(void)
 {
     unsigned i;
     /* Retail defers fighter destruction until the next heap reset. Release our
      * donor context while its fighter and articles are still valid. */
     for (i = 0; i < BAM_FIGHTERS; ++i)
-        if (bam_match->fighters[i].fighter) Rogue_AbilityFighterDestroyed(bam_match->fighters[i].fighter);
-    Rogue_AnimScaleReset();
+        if (bam_match->fighters[i].fighter) Bam_AbilityFighterDestroyed(bam_match->fighters[i].fighter);
+    Bam_AnimScaleReset();
 }
 
-void Rogue_AbilityTransformed(Fighter* src, Fighter* dst)
+void Bam_AbilityTransformed(Fighter* src, Fighter* dst)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(src);
-    if (!src || S->fighter != src || !Rogue_IsBuildFighter(dst)) return;
-    Rogue_AbilityCleanup(src);
+    BamFighterState* const S = Bam_FighterCtx(src);
+    if (!src || S->fighter != src || !Bam_IsBuildFighter(dst)) return;
+    Bam_AbilityCleanup(src);
     /* Both native forms already exist; all borrowed assets and persistent
      * charge data belong to the borrower and survive the entity swap. */
     S->fighter = dst;
@@ -244,26 +244,26 @@ void Rogue_AbilityTransformed(Fighter* src, Fighter* dst)
 #endif
 }
 
-Fighter_GObj* Rogue_AbilityClimberPartner(Fighter* fp)
+Fighter_GObj* Bam_AbilityClimberPartner(Fighter* fp)
 {
     Fighter_GObj* partner = Player_GetEntityAtIndex(fp->player_id, 1);
     if (partner && GET_FIGHTER(partner)->kind != Ft_Kind_Nana) return NULL;
     return partner;
 }
 
-MotionState* Rogue_AbilityMotionState(Fighter* fp, int motion)
+MotionState* Bam_AbilityMotionState(Fighter* fp, int motion)
 {
-    const RogueAbilityDefinition* def;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
-    if (!Rogue_IsAbilityState(fp)) return NULL;
+    const BamAbilityDefinition* def;
+    BamFighterState* const S = Bam_FighterCtx(fp);
+    if (!Bam_IsAbilityState(fp)) return NULL;
 
 
-    if (S->normal_on) return Rogue_NormalMotionState(fp, motion);
-    if (S->aerial) return Rogue_AerialMotionState(fp,motion);
+    if (S->normal_on) return Bam_NormalMotionState(fp, motion);
+    if (S->aerial) return Bam_AerialMotionState(fp,motion);
     def = S->active;
     if (!def) return NULL;
-    if (!Rogue_IsBuildFighter(fp) || motion < def->first_state || motion > def->last_state) {
-        Rogue_AbilityCleanup(fp);
+    if (!Bam_IsBuildFighter(fp) || motion < def->first_state || motion > def->last_state) {
+        Bam_AbilityCleanup(fp);
         return NULL;
     }
 #if BAM_DEBUG || 0
@@ -304,7 +304,7 @@ static int limb_joint(Fighter* fp, int first, int last, int part)
     return -1;
 }
 #pragma pop
-int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
+int Bam_AbilityFallbackJoint(Fighter* fp, int part)
 {
     static const int tail[] = { FtPart_BustN, FtPart_HipN, FtPart_TransN };
     int joint = -1, left, right, chest;
@@ -352,33 +352,33 @@ int Rogue_AbilityFallbackJoint(Fighter* fp, int part)
     for (i = 0; joint < 0 && i < sizeof(tail) / sizeof(tail[0]); ++i) joint = part_joint(fp, tail[i]);
     return joint >= 0 ? joint : 0;
 }
-int Rogue_AbilityMapBone(Fighter* fp, int bone)
+int Bam_AbilityMapBone(Fighter* fp, int bone)
 {
     int mapped, part = -1;
     unsigned i;
     FighterKind source;
-    RogueFighterState* S;
+    BamFighterState* S;
     const FighterPartsTable* from;
-    if (!Rogue_IsAbilityState(fp)) return bone;
-    source = Rogue_AbilitySourceKind(fp);
+    if (!Bam_IsAbilityState(fp)) return bone;
+    source = Bam_AbilitySourceKind(fp);
     /* A donor bone rebuilt on the recipient (Marth's sword, Kirby's hammer
      * bone): the body part it hangs from; hitboxes on it follow the rebuilt
      * bone (anim/props.c). Checked first: Kirby's hammer bone shares its
      * body-part slot with other fighters' thumbs. */
-    mapped = Rogue_PropJoint(fp, bone);
+    mapped = Bam_PropJoint(fp, bone);
     if (mapped >= 0) return mapped;
     mapped = ftPartsRemap(fp->kind, source, bone);
     if (mapped >= 0 && (unsigned) mapped < ftPartsTable[fp->kind]->parts_num && fp->parts[mapped].joint)
         return mapped;
     /* The recipient lacks this donor bone. Resolve it once per borrowed move
      * to the nearest body part it does have (never the root at the feet). */
-    S = Rogue_FighterCtx(fp);
+    S = Bam_FighterCtx(fp);
     for (i = 0; i < S->fallback_count; ++i)
         if (S->fallback_bone[i] == bone) return S->fallback_joint[i];
     from = ftPartsTable[source];
     if (bone >= 0 && (unsigned) bone < from->parts_num && from->joint_to_part[bone] != FTPART_INVALID)
         part = from->joint_to_part[bone];
-    mapped = Rogue_AbilityFallbackJoint(fp, part);
+    mapped = Bam_AbilityFallbackJoint(fp, part);
 #if BAM_DEBUG
     BAM_LOG("bone_fallback donor=%u bone=%d part=%d recipient=%u joint=%d\n",
         source, bone, part, fp->kind, mapped);
@@ -390,11 +390,11 @@ int Rogue_AbilityMapBone(Fighter* fp, int bone)
     return mapped;
 }
 
-void Rogue_BorrowBegin(Fighter* fp, FighterKind donor)
+void Bam_BorrowBegin(Fighter* fp, FighterKind donor)
 {
     ftData* source;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
-    Rogue_AbilityCleanup(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
+    Bam_AbilityCleanup(fp);
     S->native_attrs = fp->dat_attrs;
     S->native_anims = fp->x24;
     S->native_anim_flags = fp->x28;
@@ -406,8 +406,8 @@ void Rogue_BorrowBegin(Fighter* fp, FighterKind donor)
     source = gFtDataList[donor];
     S->fallback_count = 0; /* A new borrowed move resolves its bones afresh. */
     {
-        extern void Rogue_VisReset(const Fighter* fp);
-        Rogue_VisReset(fp);
+        extern void Bam_VisReset(const Fighter* fp);
+        Bam_VisReset(fp);
     }
     fp->dat_attrs = bam_match->donor_attrs[donor].bytes;
     /* The private table holds the sliced animations when the donor's full
@@ -417,69 +417,69 @@ void Rogue_BorrowBegin(Fighter* fp, FighterKind donor)
     fp->x58C = ftData_Table_Unk0[donor].count;
 }
 
-static bool install_ability(Fighter* fp, RogueAbilitySlot slot)
+static bool install_ability(Fighter* fp, BamAbilitySlot slot)
 {
-    const RogueAbilityDefinition* def;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
-    if (!Rogue_IsBuildFighter(fp) || slot < 0 || slot >= ROGUE_ABILITY_SLOTS) return false;
-    def = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
-    if (!def) { Rogue_AbilityCleanup(fp); return false; }
+    const BamAbilityDefinition* def;
+    BamFighterState* const S = Bam_FighterCtx(fp);
+    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_ABILITY_SLOTS) return false;
+    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
+    if (!def) { Bam_AbilityCleanup(fp); return false; }
     if (!def->ground_enter || !def->air_enter) return false;
     if (def->native_slot != slot || S->fighter != fp ||
         !S->loaded[def->id]) return false;
-    Rogue_BorrowBegin(fp, def->internal_kind);
+    Bam_BorrowBegin(fp, def->internal_kind);
     S->active = def;
     /* Source animation flags already identify the source skeleton. Melee's
      * ftPartsRemap path retargets its FigaTree to the unchanged base fighter. */
     return true;
 }
 
-bool Rogue_CanTrySpecial(Fighter* fp, RogueAbilitySlot slot)
+bool Bam_CanTrySpecial(Fighter* fp, BamAbilitySlot slot)
 {
-    const RogueAbilityDefinition* def;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
-    if (!Rogue_IsBuildFighter(fp) || slot < 0 || slot >= ROGUE_ABILITY_SLOTS) return false;
-    def = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
+    const BamAbilityDefinition* def;
+    BamFighterState* const S = Bam_FighterCtx(fp);
+    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_ABILITY_SLOTS) return false;
+    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
     return def && def->ground_enter && def->air_enter && def->native_slot == slot &&
         S->fighter == fp && S->loaded[def->id];
 }
-bool Rogue_TrySpecial(Fighter_GObj* gobj, RogueAbilitySlot slot, bool airborne)
+bool Bam_TrySpecial(Fighter_GObj* gobj, BamAbilitySlot slot, bool airborne)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     if (!install_ability(fp, slot)) return false;
     {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     (airborne ? S->active->air_enter : S->active->ground_enter)(gobj);
     }
     return true;
 }
 
-bool Rogue_AbilityResumeFamily(Fighter* fp, FighterKind family, RogueAbilitySlot slot)
+bool Bam_AbilityResumeFamily(Fighter* fp, FighterKind family, BamAbilitySlot slot)
 {
-    const RogueAbilityDefinition* def;
-    if (!Rogue_IsBuildFighter(fp)) return false;
-    def = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
+    const BamAbilityDefinition* def;
+    if (!Bam_IsBuildFighter(fp)) return false;
+    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
     if (def && abilityFamily(def->internal_kind) == abilityFamily(family))
         return install_ability(fp, slot);
     if (abilityFamily(fp->kind) == abilityFamily(family)) {
-        Rogue_AbilityCleanup(fp);
+        Bam_AbilityCleanup(fp);
         return true;
     }
     return false;
 }
 
-bool Rogue_AbilityOwnerResume(Fighter* fp, FighterKind family, RogueAbilitySlot slot)
+bool Bam_AbilityOwnerResume(Fighter* fp, FighterKind family, BamAbilitySlot slot)
 {
     if (!fp) return false;
-    if (!Rogue_IsBuildFighter(fp)) return abilityFamily(fp->kind) == abilityFamily(family);
-    return Rogue_AbilityResumeFamily(fp, family, slot);
+    if (!Bam_IsBuildFighter(fp)) return abilityFamily(fp->kind) == abilityFamily(family);
+    return Bam_AbilityResumeFamily(fp, family, slot);
 }
 
-int Rogue_AbilityPartIndex(Fighter* fp, int part)
+int Bam_AbilityPartIndex(Fighter* fp, int part)
 {
     int index = ftParts_GetBoneIndex(fp, part);
-    if (Rogue_IsBuildFighter(fp) && ((unsigned) index >= ftPartsTable[fp->kind]->parts_num || !fp->parts[index].joint))
-        return Rogue_AbilityFallbackJoint(fp, part);
+    if (Bam_IsBuildFighter(fp) && ((unsigned) index >= ftPartsTable[fp->kind]->parts_num || !fp->parts[index].joint))
+        return Bam_AbilityFallbackJoint(fp, part);
     return index;
 }
 
@@ -488,18 +488,18 @@ int Rogue_AbilityPartIndex(Fighter* fp, int part)
  * equivalent while it borrows, never past its joint table (on Pikachu,
  * joint 85 read past the table and the spark spawned there crashed).
  * inject: after the retail load, returns the joint to use. */
-HSD_JObj* Rogue_EfJointFp(Fighter* fp, HSD_JObj* loaded, int joint)
+HSD_JObj* Bam_EfJointFp(Fighter* fp, HSD_JObj* loaded, int joint)
 {
     unsigned n;
     if (!fp) return loaded;
     n = ftPartsTable[fp->kind]->parts_num;
-    if (!Rogue_IsAbilityState(fp) && (unsigned) joint < n) return loaded;
-    if (Rogue_IsAbilityState(fp)) joint = Rogue_AbilityMapBone(fp, joint);
+    if (!Bam_IsAbilityState(fp) && (unsigned) joint < n) return loaded;
+    if (Bam_IsAbilityState(fp)) joint = Bam_AbilityMapBone(fp, joint);
     if (joint < 0 || (unsigned) joint >= n || !fp->parts[joint].joint) joint = 0;
     return fp->parts[joint].joint;
 }
-HSD_JObj* Rogue_EfJoint85(Fighter* fp, HSD_JObj* loaded) { return Rogue_EfJointFp(fp, loaded, 85); }
-HSD_JObj* Rogue_EfJoint44(Fighter* fp, HSD_JObj* loaded) { return Rogue_EfJointFp(fp, loaded, 44); }
+HSD_JObj* Bam_EfJoint85(Fighter* fp, HSD_JObj* loaded) { return Bam_EfJointFp(fp, loaded, 85); }
+HSD_JObj* Bam_EfJoint44(Fighter* fp, HSD_JObj* loaded) { return Bam_EfJointFp(fp, loaded, 44); }
 
 /* A borrowed move's full charge (Samus's Charge Shot, Donkey Kong's Giant
  * Punch, Sheik's needles, Mewtwo's Shadow Ball, Mr. Game & Watch's Oil
@@ -508,15 +508,15 @@ HSD_JObj* Rogue_EfJoint44(Fighter* fp, HSD_JObj* loaded) { return Rogue_EfJointF
  * (ftcolanim.c), which knows nothing of the borrowed charge. Asked here of
  * each donor, with its charge and attributes in place. */
 #include <melee/ft/ftdata.h>
-void Rogue_ChargeFlash(Fighter* fp)
+void Bam_ChargeFlash(Fighter* fp)
 {
     static const unsigned char kinds[] = { Ft_Kind_Donkey, Ft_Kind_Seak, Ft_Kind_Samus, Ft_Kind_Mewtwo,
                                            Ft_Kind_GameWatch };
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     FighterKind active;
     unsigned i;
     if (!fp || S->fighter != fp) return;
-    active = Rogue_IsAbilityState(fp) ? Rogue_AbilitySourceKind(fp) : fp->kind;
+    active = Bam_IsAbilityState(fp) ? Bam_AbilitySourceKind(fp) : fp->kind;
     for (i = 0; i < sizeof(kinds); ++i) {
         FighterKind k = (FighterKind) kinds[i];
         if (k == fp->kind || !S->loaded_sources[k] || !ftData_UnkMotionStates4[k])

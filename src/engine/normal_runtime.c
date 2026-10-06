@@ -5,16 +5,16 @@
  * borrowed the way the aerials are: where the game picks the move for the
  * slot (overrides/fixes/30-normals.toml), the donor's
  * attributes, animation table, move variables and callbacks are installed
- * (Rogue_BorrowBegin) and the game then runs the move as that character
+ * (Bam_BorrowBegin) and the game then runs the move as that character
  * would. A slot's "family" is every motion the move can pass through: the
  * common ones (Attack11..Attack100End for the jab, AttackS4Hi..AttackS4Lw
  * for the forward smash) and the donor's own (Mr. Game & Watch's jab and
  * down tilt, Ness's yo-yo and bat, Peach's club, pan and racket, Link's
  * second forward smash swing, Kirby's dash attack, Donkey Kong's cargo
- * carry). Leaving the family ends the borrowed move (Rogue_AbilityMotionState).
+ * carry). Leaving the family ends the borrowed move (Bam_AbilityMotionState).
  *
  * The game's checks of the fighter's kind at those points read the move's
- * owner instead (Rogue_AbilitySourceKind), so a jab from Pikachu chains into
+ * owner instead (Bam_AbilitySourceKind), so a jab from Pikachu chains into
  * his rapid jab and a forward throw from Mewtwo shoots his Shadow Balls.
  *
  * Throws: the grabbed fighter plays its "thrown" animations from the
@@ -94,22 +94,22 @@ static bool in_family(int slot, unsigned donor, int motion)
 
 static const MotionState* family_state(Fighter* fp, unsigned donor, int motion)
 {
-    const RogueAbilityDefinition* def;
+    const BamAbilityDefinition* def;
     if (motion < 0) return NULL;
     if (motion < ftCo_MS_Count) return &fp->x1C_actionStateList[motion];
-    def = Rogue_GetAbility(1 + donor * 4);
+    def = Bam_GetAbility(1 + donor * 4);
     if (!def || motion > def->last_state) return NULL;
     return &def->states[motion - ftCo_MS_Count];
 }
 
-FighterKind Rogue_NormalBegin(Fighter_GObj* gobj, int slot)
+FighterKind Bam_NormalBegin(Fighter_GObj* gobj, int slot)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     unsigned donor;
-    if (S->fighter != fp || slot < 0 || slot >= BAM_NORMAL_SLOTS || !S->normals[slot] || !Rogue_IsBuildFighter(fp)) {
+    if (S->fighter != fp || slot < 0 || slot >= BAM_NORMAL_SLOTS || !S->normals[slot] || !Bam_IsBuildFighter(fp)) {
         /* The fighter's own move: whatever was borrowed ends here. */
-        Rogue_AbilityCleanup(fp);
+        Bam_AbilityCleanup(fp);
         return fp->kind;
     }
     donor = S->normals[slot] - 1U;
@@ -118,7 +118,7 @@ FighterKind Rogue_NormalBegin(Fighter_GObj* gobj, int slot)
         S->normal_fresh = true;
         return (FighterKind) donor;
     }
-    Rogue_BorrowBegin(fp, (FighterKind) donor);
+    Bam_BorrowBegin(fp, (FighterKind) donor);
     S->native_cargo = fp->x2CC;
     if (donor == Ft_Kind_Donkey) fp->x2CC = (ftDonkeyAttributes*) bam_match->donor_attrs[Ft_Kind_Donkey].bytes;
     S->normal_on = true;
@@ -136,27 +136,27 @@ FighterKind Rogue_NormalBegin(Fighter_GObj* gobj, int slot)
  * motion (341+) is accepted only as the move's first motion or from another
  * motion of the move: the fighter's own motions share those numbers
  * (Yoshi's shield is 341, as is Ness's forward smash). */
-MotionState* Rogue_NormalMotionState(Fighter* fp, int motion)
+MotionState* Bam_NormalMotionState(Fighter* fp, int motion)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     const MotionState* state = NULL;
     unsigned donor = S->normal_donor;
     int slot = S->normal_slot;
     bool fresh = S->normal_fresh;
     S->normal_fresh = false;
-    if (Rogue_IsBuildFighter(fp) && in_family(slot, donor, motion) &&
+    if (Bam_IsBuildFighter(fp) && in_family(slot, donor, motion) &&
         (motion < ftCo_MS_Count || fresh || in_family(slot, donor, fp->motion_id)))
         state = family_state(fp, donor, motion);
     if (!state) {
-        Rogue_AbilityCleanup(fp);
+        Bam_AbilityCleanup(fp);
         return NULL;
     }
     return (MotionState*) state;
 }
 
-struct ftCo_DatAttrs* Rogue_NormalCoAttrs(Fighter* fp)
+struct ftCo_DatAttrs* Bam_NormalCoAttrs(Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     if (S->fighter == fp && S->normal_on && gFtDataList[S->normal_donor] && gFtDataList[S->normal_donor]->x0)
         return gFtDataList[S->normal_donor]->x0;
     return &fp->co_attrs;
@@ -179,9 +179,9 @@ static unsigned family_anims(Fighter* fp, int slot, unsigned donor, short* out)
     return n;
 }
 
-void Rogue_NormalPrepare(Fighter* fp)
+void Bam_NormalPrepare(Fighter* fp)
 {
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    BamFighterState* const S = Bam_FighterCtx(fp);
     const BamLoadout* l;
     int slot;
     if (S->fighter != fp || fp->player_id >= BAM_PLAYER_SLOTS) return;
@@ -192,14 +192,14 @@ void Rogue_NormalPrepare(Fighter* fp)
         short anims[MAX_ANIMS];
         S->normals[slot] = 0;
         if (!ck || ck > CKind_Playable_Count) continue;
-        donor = Rogue_InternalKindForCharacter((CharacterKind) (ck - 1));
+        donor = Bam_InternalKindForCharacter((CharacterKind) (ck - 1));
         if (donor >= Ft_Kind_Max || donor == fp->kind) continue;
-        if (!Rogue_DonorEnsure(S, donor)) {
+        if (!Bam_DonorEnsure(S, donor)) {
             BAM_NOTE("normal_skipped slot=%d kind=%u (out of memory)\n", slot, donor);
             continue;
         }
         n = family_anims(fp, slot, donor, anims);
-        if (!Rogue_DonorReadAnims(S, donor, anims, n, "normal_slices")) {
+        if (!Bam_DonorReadAnims(S, donor, anims, n, "normal_slices")) {
             BAM_NOTE("normal_skipped slot=%d kind=%u (no memory for animations)\n", slot, donor);
             continue;
         }
@@ -229,7 +229,7 @@ static bool normal_needs_articles(FighterKind kind, int slot)
     }
 }
 
-int Rogue_DonorNeedsArticles(int kind)
+int Bam_DonorNeedsArticles(int kind)
 {
     int p;
     unsigned s;
@@ -239,7 +239,7 @@ int Rogue_DonorNeedsArticles(int kind)
         /* Specials: always (most spawn articles). Zelda's and Sheik's are
          * loaded together for the transformation. */
         for (s = 0; s < BAM_SPECIAL_SLOTS; ++s) {
-            const RogueAbilityDefinition* d = Rogue_GetAbility(l->specials[s]);
+            const BamAbilityDefinition* d = Bam_GetAbility(l->specials[s]);
             if (!d) continue;
             if (d->internal_kind == kind ||
                 ((kind == Ft_Kind_Zelda || kind == Ft_Kind_Seak) &&
@@ -248,12 +248,12 @@ int Rogue_DonorNeedsArticles(int kind)
         }
         /* Aerials: Mr. Game & Watch's parachute, turtle and sausages. */
         for (s = 0; s < BAM_AERIAL_SLOTS; ++s) {
-            const RogueAerialDef* d = RogueAerial_Find(l->aerials[s]);
+            const BamAerialDef* d = BamAerial_Find(l->aerials[s]);
             if (d && d->donor == (unsigned) kind && kind == Ft_Kind_GameWatch) return 1;
         }
         for (s = 0; s < BAM_NORMAL_SLOTS; ++s) {
             unsigned v = l->normals[s];
-            if (v && v <= CKind_Playable_Count && Rogue_InternalKindForCharacter((CharacterKind) (v - 1)) == kind &&
+            if (v && v <= CKind_Playable_Count && Bam_InternalKindForCharacter((CharacterKind) (v - 1)) == kind &&
                 normal_needs_articles((FighterKind) kind, (int) s))
                 return 1;
         }

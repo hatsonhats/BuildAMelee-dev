@@ -8,7 +8,7 @@
  * rollback range, so everything that changes during a match lives in heap
  * blocks allocated at match start, reached through pointers that stay
  * constant for the whole match (bam_match, and the Fighter-struct extension
- * slot that points at a fighter's RogueFighterState).
+ * slot that points at a fighter's BamFighterState).
  */
 #ifndef BAM_FIGHTER_H
 #define BAM_FIGHTER_H
@@ -19,7 +19,9 @@
 #include <engine/special_catalog.h>
 
 #define BAM_SPECIAL_SLOTS 4
-#define BAM_AERIAL_SLOTS 5
+#ifndef BAM_AERIAL_SLOTS
+#define BAM_AERIAL_SLOTS 5 /* also in aerial_catalog.h */
+#endif
 /* Ground attacks and throws, each borrowed whole from one character. */
 #define BAM_NORMAL_SLOTS 12
 enum BamNormalSlot {
@@ -37,8 +39,8 @@ enum BamNormalSlot {
 
 typedef struct BamLoadout {
     unsigned char enabled;                      /* 0: this slot plays retail */
-    unsigned char specials[BAM_SPECIAL_SLOTS];  /* RogueAbilityID, 0 = native */
-    unsigned char aerials[BAM_AERIAL_SLOTS];    /* rogue_aerials id, 0 = native */
+    unsigned char specials[BAM_SPECIAL_SLOTS];  /* BamAbilityID, 0 = native */
+    unsigned char aerials[BAM_AERIAL_SLOTS];    /* bam_aerials id, 0 = native */
     unsigned char normals[BAM_NORMAL_SLOTS];    /* donor CharacterKind + 1, 0 = native */
 } BamLoadout;
 
@@ -48,22 +50,22 @@ extern BamLoadout bam_loadouts[BAM_PLAYER_SLOTS];
 void Bam_LoadoutClear(BamLoadout* l);
 
 /* Identity. */
-bool Rogue_IsBuildFighter(const Fighter* fp);   /* slot has an enabled loadout */
+bool Bam_IsBuildFighter(const Fighter* fp);   /* slot has an enabled loadout */
 int Bam_FighterIndex(const Fighter* fp);        /* 0..BAM_FIGHTERS-1 or -1 */
 
 /* The fighter's own kit (match-heap copy of the loadout; Zelda/Sheik's
  * transform rewrites it, so it is per fighter and rolled back). */
-unsigned Rogue_EquippedSpecial(const Fighter* fp, unsigned slot);
-unsigned Rogue_EquippedAerial(const Fighter* fp, unsigned slot);
-void Rogue_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id);
+unsigned Bam_EquippedSpecial(const Fighter* fp, unsigned slot);
+unsigned Bam_EquippedAerial(const Fighter* fp, unsigned slot);
+void Bam_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id);
 /* The donor (FighterKind + 1) of a ground attack or throw slot whose data
  * loaded for this match, 0 when the fighter uses its own move. */
 
 /* Fighter-struct extension: one pointer appended past whatever size the
  * allocator was given (retail 0x23EC, Slippi 0x2600). */
 #define BAM_FIGHTER_EXT_SIZE 0x20
-struct RogueFighterState;
-struct RogueFighterState** Bam_FighterExtSlot(const Fighter* fp);
+struct BamFighterState;
+struct BamFighterState** Bam_FighterExtSlot(const Fighter* fp);
 unsigned Bam_FighterAllocSize(unsigned retail_size);   /* inject: Fighter_800679B0 */
 
 /* Match lifetime. */
@@ -73,12 +75,12 @@ void Bam_MatchBegin(void);     /* first build fighter of a scene */
 void Bam_MatchEnd(void);       /* scene exit */
 
 /* Hooks (project.toml). */
-void RogueFighter_Created(Fighter* fp);
+void BamFighter_Created(Fighter* fp);
 void Bam_OnSceneEnter(void* info);
 void Bam_OnSceneExit(void);
 
 /* Whether a donor can be loaded at all (bam_fighter.c). */
-int Rogue_DonorFits(int kind);
+int Bam_DonorFits(int kind);
 unsigned Bam_HeapRoom(void);
 void Bam_LogHeapRoom(const char* where);
 void Bam_LbHeapRoom(int heap, unsigned* total, unsigned* largest);

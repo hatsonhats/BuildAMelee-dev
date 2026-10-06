@@ -10,7 +10,7 @@
  * parents are doing; the recipient's extra bones keep their pose. The
  * donor's world comes from its local values (as Melee wrote them, or from
  * its captured tracks for parts the recipient lacks) up its own hierarchy
- * (rogue_part_parent). TopN and TransN (facing, travel) are left alone. */
+ * (bam_part_parent). TopN and TransN (facing, travel) are left alone. */
 static Quat jobj_local(HSD_JObj* jobj)
 {
     float e[3];
@@ -23,16 +23,16 @@ static Quat jobj_local(HSD_JObj* jobj)
     return q_euler(e);
 }
 typedef struct DonorPose {
-    Quat world[ROGUE_PART_COUNT];
-    unsigned char done[ROGUE_PART_COUNT];
+    Quat world[BAM_PART_COUNT];
+    unsigned char done[BAM_PART_COUNT];
 } DonorPose;
 static Quat donor_world(Fighter* fp, int slot, unsigned source, int part, DonorPose* d, int depth)
 {
     Quat identity = { 0.0f, 0.0f, 0.0f, 1.0f }, local, up_world;
     int up, joint;
-    if (part <= 1 || part >= ROGUE_PART_COUNT || depth > 16) return identity;
+    if (part <= 1 || part >= BAM_PART_COUNT || depth > 16) return identity;
     if (d->done[part]) return d->world[part];
-    up = rogue_part_parent[source][part];
+    up = bam_part_parent[source][part];
     up_world = up == 0xFF ? identity : donor_world(fp, slot, source, up, d, depth + 1);
     joint = own_joint(fp, part);
     if (joint >= 0) {
@@ -47,7 +47,7 @@ static Quat donor_world(Fighter* fp, int slot, unsigned source, int part, DonorP
 }
 static void pose_pass(Fighter* fp);
 /* After the fighter's animation step (ftAnim_8006EBA4). */
-void Rogue_AnimPostStep(Fighter* fp)
+void Bam_AnimPostStep(Fighter* fp)
 {
     if (!bam_anim_scale) return;
     pose_pass(fp);
@@ -64,8 +64,8 @@ static void pose_pass(Fighter* fp)
     unsigned n, j, source;
     if (slot < 0 || !pose_on[slot] || fp->x8A4_animBlendFrames != 0.0f) return;
     source = fp->x597_bits;
-    if (!prop_active(fp, source) || source >= ROGUE_REST_KINDS || fp->kind >= ROGUE_REST_KINDS) return;
-    if (rogue_part_parent[source][4] == 0xFF) return; /* No hierarchy data. */
+    if (!prop_active(fp, source) || source >= BAM_REST_KINDS || fp->kind >= BAM_REST_KINDS) return;
+    if (bam_part_parent[source][4] == 0xFF) return; /* No hierarchy data. */
     own = ftPartsTable[fp->kind];
     n = own->parts_num < POSE_JOINTS ? own->parts_num : POSE_JOINTS;
     memset(d.done, 0, sizeof(d.done));
@@ -105,14 +105,14 @@ static void pose_pass(Fighter* fp)
  * where the rebuilt bone is, a body bone the recipient also has on the
  * recipient's bone (turned back by C so the donor's skin fits it), anything
  * else at its rest pose from its parent. */
-unsigned Rogue_DonorMeshShow(Fighter* fp, unsigned char item_of_group[8])
+unsigned Bam_DonorMeshShow(Fighter* fp, unsigned char item_of_group[8])
 {
     unsigned source, mask = 0, i;
-    if (!fp || !Rogue_IsAbilityState(fp)) return 0;
-    source = Rogue_AbilitySourceKind(fp);
+    if (!fp || !Bam_IsAbilityState(fp)) return 0;
+    source = Bam_AbilitySourceKind(fp);
     if (!prop_active(fp, source)) return 0;
-    for (i = 0; i < ROGUE_MESH_SHOW_COUNT; ++i) {
-        const RogueMeshShow* r = &rogue_mesh_show[i];
+    for (i = 0; i < BAM_MESH_SHOW_COUNT; ++i) {
+        const BamMeshShow* r = &bam_mesh_show[i];
         if (r->kind != source || r->group >= 8 || (unsigned) fp->anim_id < r->first ||
             (unsigned) fp->anim_id > r->last) continue;
         mask |= 1U << r->group;
@@ -121,15 +121,15 @@ unsigned Rogue_DonorMeshShow(Fighter* fp, unsigned char item_of_group[8])
     return mask;
 }
 /* The donor's mesh rows: up to `max` (group, DObj index) pairs. */
-unsigned Rogue_DonorMeshes(unsigned kind, unsigned char* groups, unsigned short* dobjs, unsigned short* pobjs,
+unsigned Bam_DonorMeshes(unsigned kind, unsigned char* groups, unsigned short* dobjs, unsigned short* pobjs,
                            unsigned max)
 {
     unsigned i, n = 0;
-    for (i = 0; i < ROGUE_MESH_COUNT && n < max; ++i)
-        if (rogue_mesh[i].kind == kind) {
-            groups[n] = rogue_mesh[i].group;
-            if (pobjs) pobjs[n] = rogue_mesh[i].pobjs;
-            dobjs[n++] = rogue_mesh[i].dobj;
+    for (i = 0; i < BAM_MESH_COUNT && n < max; ++i)
+        if (bam_mesh[i].kind == kind) {
+            groups[n] = bam_mesh[i].group;
+            if (pobjs) pobjs[n] = bam_mesh[i].pobjs;
+            dobjs[n++] = bam_mesh[i].dobj;
         }
     return n;
 }
@@ -138,21 +138,21 @@ unsigned Rogue_DonorMeshes(unsigned kind, unsigned char* groups, unsigned short*
 static bool mesh_hidden(unsigned kind, unsigned joint, unsigned shown)
 {
     unsigned i;
-    for (i = 0; i < ROGUE_MESH_HIDE_COUNT; ++i)
-        if (rogue_mesh_hide[i].kind == kind && rogue_mesh_hide[i].joint == joint && rogue_mesh_hide[i].group < 32 &&
-            (shown & (1U << rogue_mesh_hide[i].group)))
+    for (i = 0; i < BAM_MESH_HIDE_COUNT; ++i)
+        if (bam_mesh_hide[i].kind == kind && bam_mesh_hide[i].joint == joint && bam_mesh_hide[i].group < 32 &&
+            (shown & (1U << bam_mesh_hide[i].group)))
             return true;
     return false;
 }
-void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* parents, unsigned n, int free_joint,
+void Bam_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* parents, unsigned n, int free_joint,
                      unsigned shown)
 {
     unsigned source = fp->x597_bits, d;
     const FighterPartsTable* from;
-    float bs = Rogue_BorrowScale(fp);
+    float bs = Bam_BorrowScale(fp);
     Mtx grow, worn;
     const Wear* wear = wear_of(source, shown);
-    if (source >= ROGUE_REST_KINDS) return;
+    if (source >= BAM_REST_KINDS) return;
     from = ftPartsTable[source];
     PSMTXScale(grow, bs, bs, bs);
     if (wear && !wear_base(fp, source, worn)) wear = NULL;
@@ -165,7 +165,7 @@ void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* p
         Mtx rel, w;
         int row = chain_find(source, (int) d);
         if (!j) continue;
-        if (wear && (d == wear->hip || (prop >= 0 && rogue_prop[prop].joint == wear->root))) {
+        if (wear && (d == wear->hip || (prop >= 0 && bam_prop[prop].joint == wear->root))) {
             /* Worn: the donor's hip and the root of the clothing's bones
              * on the wearer's frame (the hip's correction is in it). */
             if (d == wear->hip || !prop_relative(fp, prop, rel)) PSMTXCopy(worn, w);
@@ -179,15 +179,15 @@ void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* p
                 PSMTXConcat(undo, rel, rel);
                 PSMTXConcat(worn, rel, w);
             }
-        } else if (row >= 0 && (rogue_chain[row].parent == 255 || up)) {
+        } else if (row >= 0 && (bam_chain[row].parent == 255 || up)) {
             /* Through the donor's own skeleton from the root. */
-            if (rogue_chain[row].parent == 255) chain_base(fp, w);
+            if (bam_chain[row].parent == 255) chain_base(fp, w);
             else {
                 chain_local(fp, slot_of_fighter(fp), row, rel);
                 PSMTXConcat(up->mtx, rel, w);
             }
-        } else if (prop >= 0 && rogue_prop[prop].parent != 255 && parents[d] < d &&
-            rogue_prop[rogue_prop[prop].parent].joint == parents[d] && up) {
+        } else if (prop >= 0 && bam_prop[prop].parent != 255 && parents[d] < d &&
+            bam_prop[bam_prop[prop].parent].joint == parents[d] && up) {
             /* Further down a rebuilt chain: from its parent, already placed. */
             prop_local(fp, slot_of_fighter(fp), prop, rel);
             PSMTXConcat(up->mtx, rel, w);
@@ -224,12 +224,12 @@ void Rogue_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* p
 
 AnimScaleState* bam_anim_scale;
 /* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
-void Rogue_AnimScaleMatchBegin(void)
+void Bam_AnimScaleMatchBegin(void)
 {
     bam_anim_scale = HSD_MemAlloc(sizeof(*bam_anim_scale));
     memset(bam_anim_scale, 0, sizeof(*bam_anim_scale));
 }
-void Rogue_AnimScaleMatchEnd(void)
+void Bam_AnimScaleMatchEnd(void)
 {
     bam_anim_scale = NULL;
 }

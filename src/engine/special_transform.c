@@ -1,23 +1,23 @@
 #include <engine/special_internal.h>
 #include <dolphin/os.h>
-bool Rogue_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)
+bool Bam_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    const RogueAbilityDefinition* next;
-    RogueFighterState* const S = Rogue_FighterCtx(fp);
+    const BamAbilityDefinition* next;
+    BamFighterState* const S = Bam_FighterCtx(fp);
     FighterKind old_kind, next_kind;
     int slot;
-    if (!Rogue_IsAbilityState(fp) || !S->active) return false;
+    if (!Bam_IsAbilityState(fp) || !S->active) return false;
     old_kind = S->active->internal_kind;
     if (old_kind != Ft_Kind_Zelda && old_kind != Ft_Kind_Seak) return false;
     next_kind = old_kind == Ft_Kind_Zelda ? Ft_Kind_Seak : Ft_Kind_Zelda;
-    next = Rogue_GetAbility(1 + next_kind * 4 + ROGUE_ABILITY_DOWN);
+    next = Bam_GetAbility(1 + next_kind * 4 + BAM_ABILITY_DOWN);
     if (!next || !S->loaded_sources[next_kind]) return false;
     /* Transform the borrowed kit while retaining the player's base fighter. */
     for (slot = 0; slot < 4; ++slot) {
-        const RogueAbilityDefinition* equipped = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
+        const BamAbilityDefinition* equipped = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
         if (equipped && equipped->internal_kind == old_kind)
-            Rogue_SetEquippedSpecial(fp, slot, 1 + next_kind * 4 + slot);
+            Bam_SetEquippedSpecial(fp, slot, 1 + next_kind * 4 + slot);
     }
     S->source_vars[old_kind] = fp->u;
     fp->u = S->source_vars[next_kind];

@@ -12,7 +12,7 @@ extern char* ftData_803C23E4[Ft_Kind_Max];
  * lbHeap is rebuilt every scene, so ARAM slices need no freeing. Main RAM
  * only when ARAM is short. */
 #define ARAM_KEEP 0x100000
-void* Rogue_SliceAlloc(unsigned bytes)
+void* Bam_SliceAlloc(unsigned bytes)
 {
     unsigned total, largest;
     void* p = BamCache_Alloc(0, bytes);
@@ -29,14 +29,14 @@ void* Rogue_SliceAlloc(unsigned bytes)
     return HSD_MemAlloc(bytes);
 }
 
-void Rogue_SliceRead(int file, unsigned offset, void* dst, unsigned bytes)
+void Bam_SliceRead(int file, unsigned offset, void* dst, unsigned bytes)
 {
     lbFile_800161C4(file, offset, (uintptr_t) dst, bytes, (u32) dst < 0x80000000U ? 0x23 : 0x21, 1);
 }
 
 /* Only match-heap slices are freed; ARAM ones go with their heap or
  * block at scene exit. */
-void Rogue_SliceFree(void* p)
+void Bam_SliceFree(void* p)
 {
     if ((u32) p >= 0x80000000U && !BamCache_Owns(p)) HSD_Free(p);
 }
@@ -48,12 +48,12 @@ void Rogue_SliceFree(void* p)
 /* 0 when memory ran out (the slot keeps the fighter's own move). */
 static int load_donor_core(int source)
 {
-    if (!Rogue_LoadDonorData(source) || !Rogue_LoadDonorEffects(source)) return 0;
+    if (!Bam_LoadDonorData(source) || !Bam_LoadDonorEffects(source)) return 0;
     /* The donor's model (costume 0, ~0.1-0.8 MB) only when its moves draw
      * part of it (tails, swords, Mr. Game & Watch's props): the bone
      * retargeting in anim/retarget.c uses precomputed rest poses, not the
      * model. Loading it for every donor ran the online match heap out. */
-    Rogue_DonorModelPreload((unsigned) source);
+    Bam_DonorModelPreload((unsigned) source);
     /* Not ftData_800857E0: its only entry is Kirby's, which loads a copy
      * hat for every character in the match (his inhale, which is not
      * offered as a borrowed move), unchecked, into the match heap. */
@@ -62,7 +62,7 @@ static int load_donor_core(int source)
 
 /* Read the animations of one equipped special's donor states into main RAM
  * and point a private copy of the donor's animation table at them (the same
- * scheme the aerials use; Rogue_BorrowBegin installs the private table).
+ * scheme the aerials use; Bam_BorrowBegin installs the private table).
  * Nothing to do when the donor's full archive is resident (the donor is also
  * a fighter in this match). */
 /* Which special slot an animation belongs to, from its figatree name in the
@@ -77,23 +77,23 @@ static int anim_slot(const char* name)
         if (strncmp(p, "Special", 7) != 0) continue;
         q = p + 7;
         if (strncmp(q, "Air", 3) == 0) q += 3;
-        if (q[0] == 'H' && q[1] == 'i') return ROGUE_ABILITY_UP;
-        if (q[0] == 'L' && q[1] == 'w') return ROGUE_ABILITY_DOWN;
-        if (q[0] == 'N') return ROGUE_ABILITY_NEUTRAL;
-        if (q[0] == 'S') return ROGUE_ABILITY_SIDE;
+        if (q[0] == 'H' && q[1] == 'i') return BAM_ABILITY_UP;
+        if (q[0] == 'L' && q[1] == 'w') return BAM_ABILITY_DOWN;
+        if (q[0] == 'N') return BAM_ABILITY_NEUTRAL;
+        if (q[0] == 'S') return BAM_ABILITY_SIDE;
     }
     return -1;
 }
 
 /* 0 when there was no memory for the animations. */
-static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinition* def)
+static int load_special_slices(BamFighterState* S, const BamAbilityDefinition* def)
 {
     int source = def->internal_kind, m, pass, file, count = ftData_Table_Unk0[source].count;
     unsigned loaded = 0, total = 0;
     u8* buf = NULL;
     Fighter_WaitAnimData* table;
     if (ftData_Table_Unk0[source].data) return 1;
-    table = Rogue_DonorAnimTable(S, source);
+    table = Bam_DonorAnimTable(S, source);
     if (!table) return 0;
     file = DVDConvertPathToEntrynum(lbFileGetFullName(ftData_803C23E4[source]));
     if (file < 0) OSPanic(__FILE__, __LINE__, "missing donor animation file");
@@ -104,7 +104,7 @@ static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinitio
         if (pass == 1) {
             if (!total) break;
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
-            buf = Rogue_SliceAlloc(total);
+            buf = Bam_SliceAlloc(total);
             if (!buf) {
                 BAM_NOTE("special_slices id=%u: out of memory\n", def->id);
                 return 0;
@@ -136,7 +136,7 @@ static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinitio
             /* ARAM reads need 32-byte alignment (every PlXxAJ.dat
              * animation starts on one; checked on the disc). */
             if (skip && (u32) buf < 0x80000000U) OSPanic(__FILE__, __LINE__, "unaligned ARAM animation");
-            Rogue_SliceRead(file, offset, buf + at, bytes);
+            Bam_SliceRead(file, offset, buf + at, bytes);
             anim->x14 = (u32) (buf + at) + skip;
             at += bytes;
             ++loaded;
@@ -151,15 +151,15 @@ static int load_special_slices(RogueFighterState* S, const RogueAbilityDefinitio
  * registered with the item system, and its persistent move variables. The
  * articles of every move are registered, whichever slot needs the donor:
  * registering only records where the article data is. */
-int Rogue_DonorEnsure(RogueFighterState* S, int source)
+int Bam_DonorEnsure(BamFighterState* S, int source)
 {
-    const RogueAbilityDefinition* donor;
-    if (source < 0 || source >= ROGUE_DONOR_KINDS) return 0;
+    const BamAbilityDefinition* donor;
+    if (source < 0 || source >= BAM_DONOR_KINDS) return 0;
     if (S->loaded_sources[source]) return 1;
-    donor = Rogue_GetAbility(1 + source * 4);
+    donor = Bam_GetAbility(1 + source * 4);
     if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
     /* Out of memory for this source: the slot keeps its native move. */
-    if (!Rogue_DonorFits(source)) {
+    if (!Bam_DonorFits(source)) {
         BAM_NOTE("donor kind=%u: out of memory\n", source);
         return 0;
     }
@@ -310,10 +310,10 @@ int Rogue_DonorEnsure(RogueFighterState* S, int source)
 
 /* A private copy of a donor's animation table, for a donor whose animation
  * archive is not resident (it is not playing): borrowed animations are read
- * one by one and the copy points at them (Rogue_BorrowBegin installs it).
+ * one by one and the copy points at them (Bam_BorrowBegin installs it).
  * Every ARAM address is cleared first: a preloaded PlXx.dat keeps the ones
  * of the match it was last played in, which are gone. */
-Fighter_WaitAnimData* Rogue_DonorAnimTable(RogueFighterState* S, int source)
+Fighter_WaitAnimData* Bam_DonorAnimTable(BamFighterState* S, int source)
 {
     unsigned bytes, i;
     Fighter_WaitAnimData* t;
@@ -334,14 +334,14 @@ Fighter_WaitAnimData* Rogue_DonorAnimTable(RogueFighterState* S, int source)
 
 /* Reads the listed animations of a donor that are not read yet into one
  * block (ARAM when it has room) and points the private table at them. */
-int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, unsigned n, const char* what)
+int Bam_DonorReadAnims(BamFighterState* S, int source, const short* anims, unsigned n, const char* what)
 {
     Fighter_WaitAnimData* table;
     int file, count, pass;
     unsigned total = 0, loaded = 0, i, k;
     u8* buf = NULL;
     if (ftData_Table_Unk0[source].data) return 1; /* resident: its own table */
-    table = Rogue_DonorAnimTable(S, source);
+    table = Bam_DonorAnimTable(S, source);
     if (!table) return 0;
     count = ftData_Table_Unk0[source].count;
     file = DVDConvertPathToEntrynum(lbFileGetFullName(ftData_803C23E4[source]));
@@ -351,7 +351,7 @@ int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, u
         if (pass == 1) {
             if (!total) break;
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
-            buf = Rogue_SliceAlloc(total);
+            buf = Bam_SliceAlloc(total);
             if (!buf) {
                 BAM_NOTE("%s kind=%d: no memory for %u KB of animations\n", what, source, total / 1024);
                 return 0;
@@ -373,7 +373,7 @@ int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, u
             bytes = ((unsigned) anim->x8 + skip + 31U) & ~31U;
             if (pass == 0) { total += bytes; continue; }
             if (skip && (u32) buf < 0x80000000U) return 0; /* ARAM reads are 32-byte aligned */
-            Rogue_SliceRead(file, offset, buf + at, bytes);
+            Bam_SliceRead(file, offset, buf + at, bytes);
             anim->x14 = (u32) (buf + at) + skip;
             at += bytes;
             ++loaded;
@@ -384,21 +384,21 @@ int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, u
     return 1;
 }
 
-void Rogue_AbilityFighterCreated(Fighter* fp)
+void Bam_AbilityFighterCreated(Fighter* fp)
 {
     int i;
     unsigned index;
-    RogueFighterState* S;
+    BamFighterState* S;
 #if BAM_DEBUG
     if (fp->kind == Ft_Kind_Nana || fp->kind == Ft_Kind_Popo)
         BAM_LOG("climber_create kind=%u sub=%u player=%u build=%d\n",
-            (unsigned) fp->kind, (unsigned) fp->is_sub_fighter, (unsigned) fp->player_id, (int) Rogue_IsBuildFighter(fp));
+            (unsigned) fp->kind, (unsigned) fp->is_sub_fighter, (unsigned) fp->player_id, (int) Bam_IsBuildFighter(fp));
 #endif
-    if (!Rogue_IsBuildFighter(fp)) return;
+    if (!Bam_IsBuildFighter(fp)) return;
     index = (unsigned) Bam_FighterIndex(fp);
     S = &bam_match->fighters[index];
     *Bam_FighterExtSlot(fp) = S;
-    if (S->fighter) Rogue_AbilityFighterDestroyed(S->fighter);
+    if (S->fighter) Bam_AbilityFighterDestroyed(S->fighter);
     memset(S, 0, sizeof(*S));
     S->fighter = fp;
     S->match_generation = bam_match->generation;
@@ -411,7 +411,7 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
      * aerial slice. Share them instead of loading or allocating again, which
      * Training Mode has no memory for. */
     if ((index & 1) && bam_match->fighters[index - 1].fighter) {
-        const RogueFighterState* P = &bam_match->fighters[index - 1];
+        const BamFighterState* P = &bam_match->fighters[index - 1];
         memcpy(S->loaded, P->loaded, sizeof(S->loaded));
         memcpy(S->loaded_sources, P->loaded_sources, sizeof(S->loaded_sources));
         memcpy(S->source_vars, P->source_vars, sizeof(S->source_vars));
@@ -423,14 +423,14 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     }
 
     Bam_LogHeapRoom("before donors");
-    for (i = 1; i < ROGUE_ABILITY_COUNT; ++i) {
-        const RogueAbilityDefinition* def = Rogue_GetAbility(i);
+    for (i = 1; i < BAM_ABILITY_COUNT; ++i) {
+        const BamAbilityDefinition* def = Bam_GetAbility(i);
         int slot, source;
         bool needed = false;
         if (!def) continue;
         source = def->internal_kind;
-        for (slot = 0; slot < ROGUE_ABILITY_SLOTS; ++slot) {
-            const RogueAbilityDefinition* equipped = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
+        for (slot = 0; slot < BAM_ABILITY_SLOTS; ++slot) {
+            const BamAbilityDefinition* equipped = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
             if (!equipped) continue;
             if (equipped->internal_kind == source ||
                 ((source == Ft_Kind_Zelda || source == Ft_Kind_Seak) &&
@@ -439,7 +439,7 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
         }
         if (!needed) continue;
         if (S->loaded_sources[source]) { S->loaded[i] = true; continue; }
-        if (!Rogue_DonorEnsure(S, source)) {
+        if (!Bam_DonorEnsure(S, source)) {
             BAM_NOTE("donor_skipped kind=%u ability=%u\n", source, i);
             continue;
         }
@@ -447,13 +447,13 @@ void Rogue_AbilityFighterCreated(Fighter* fp)
     }
     {
         int slot;
-        for (slot = 0; slot < ROGUE_ABILITY_SLOTS; ++slot) {
-            const RogueAbilityDefinition* d = Rogue_GetAbility(Rogue_EquippedSpecial(fp, slot));
+        for (slot = 0; slot < BAM_ABILITY_SLOTS; ++slot) {
+            const BamAbilityDefinition* d = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
             if (d && S->loaded[d->id] && !load_special_slices(S, d)) S->loaded[d->id] = false;
         }
     }
-    Rogue_AerialPrepare(fp);
-    Rogue_NormalPrepare(fp);
+    Bam_AerialPrepare(fp);
+    Bam_NormalPrepare(fp);
     Bam_LogHeapRoom("after donors");
 }
 

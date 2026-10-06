@@ -357,13 +357,13 @@ static void scene_enter(void)
 static unsigned loaded_mask(int p)
 {
     unsigned mask = 0, s;
-    RogueFighterState* S;
+    BamFighterState* S;
     if (!bam_match) return 0;
     S = &bam_match->fighters[p * 2];
     if (!S->fighter) return 0;
     for (s = 0; s < BAM_SPECIAL_SLOTS; ++s) {
         unsigned id = S->specials[s];
-        if (id && id < ROGUE_ABILITY_COUNT && S->loaded[id]) mask |= 1U << s;
+        if (id && id < BAM_ABILITY_COUNT && S->loaded[id]) mask |= 1U << s;
     }
     for (s = 0; s < BAM_AERIAL_SLOTS; ++s)
         if (S->aerial_equipped[s]) mask |= 1U << (BAM_SPECIAL_SLOTS + s);
@@ -385,7 +385,7 @@ static void apply_mask(int p, unsigned mask)
         if (!(mask & (1U << (BAM_SPECIAL_SLOTS + BAM_AERIAL_SLOTS + s)))) l->normals[s] = 0;
     if (!bam_match) return;
     for (f = p * 2; f < p * 2 + 2; ++f) {
-        RogueFighterState* S = &bam_match->fighters[f];
+        BamFighterState* S = &bam_match->fighters[f];
         if (!S->fighter) continue;
         for (s = 0; s < BAM_SPECIAL_SLOTS; ++s)
             if (!(mask & (1U << s))) S->specials[s] = 0;

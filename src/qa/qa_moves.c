@@ -96,22 +96,22 @@ static int match_pair(unsigned m, int* R, int* D)
     return 0;
 }
 
-static const RogueSpecialDef* special_of(int ck, unsigned slot)
+static const BamSpecialDef* special_of(int ck, unsigned slot)
 {
     unsigned i;
-    for (i = 0; i < ROGUE_SPECIALS; ++i) {
-        const RogueSpecialDef* s = &rogue_specials[i];
-        if (s->character == ck && s->slot == slot && RogueSpecial_Offerable(s) && Rogue_GetAbility(s->id))
+    for (i = 0; i < BAM_SPECIALS; ++i) {
+        const BamSpecialDef* s = &bam_specials[i];
+        if (s->character == ck && s->slot == slot && BamSpecial_Offerable(s) && Bam_GetAbility(s->id))
             return s;
     }
     return NULL;
 }
 
-static const RogueAerialDef* aerial_of(int ck, unsigned slot)
+static const BamAerialDef* aerial_of(int ck, unsigned slot)
 {
     unsigned i;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (rogue_aerials[i].character == ck && rogue_aerials[i].slot == slot) return &rogue_aerials[i];
+    for (i = 0; i < BAM_AERIALS; ++i)
+        if (bam_aerials[i].character == ck && bam_aerials[i].slot == slot) return &bam_aerials[i];
     return NULL;
 }
 
@@ -121,12 +121,12 @@ static unsigned build_steps(int from, Step* out)
     unsigned n = 0, s;
     for (s = 0; s < BAM_NORMAL_SLOTS; ++s) { out[n].kind = K_NORMAL; out[n].slot = (u8) s; out[n].id = 0; ++n; }
     for (s = 0; s < BAM_AERIAL_SLOTS; ++s) {
-        const RogueAerialDef* d = aerial_of(from, s);
+        const BamAerialDef* d = aerial_of(from, s);
         if (!d) continue;
         out[n].kind = K_AERIAL; out[n].slot = (u8) s; out[n].id = d->id; ++n;
     }
     for (s = 0; s < BAM_SPECIAL_SLOTS; ++s) {
-        const RogueSpecialDef* d = special_of(from, s);
+        const BamSpecialDef* d = special_of(from, s);
         if (!d) continue;
         out[n].kind = K_SPECIAL; out[n].slot = (u8) s; out[n].id = d->id; ++n;
     }
@@ -159,11 +159,11 @@ static void set_loadout(int D)
     if (D < 0) return;
     for (i = 0; i < BAM_NORMAL_SLOTS; ++i) l->normals[i] = (u8) (D + 1);
     for (i = 0; i < BAM_SPECIAL_SLOTS; ++i) {
-        const RogueSpecialDef* d = special_of(D, i);
+        const BamSpecialDef* d = special_of(D, i);
         l->specials[i] = d ? d->id : 0;
     }
     for (i = 0; i < BAM_AERIAL_SLOTS; ++i) {
-        const RogueAerialDef* d = aerial_of(D, i);
+        const BamAerialDef* d = aerial_of(D, i);
         l->aerials[i] = d ? d->id : 0;
     }
     l->enabled = 1;
@@ -302,7 +302,7 @@ static float gap_native(const Step* s)
     return 14;
 }
 
-/* The dummy's distance. A borrowed move is drawn at Rogue_ShownScale of the
+/* The dummy's distance. A borrowed move is drawn at Bam_ShownScale of the
  * donor's own size, so its reach is too: the gap to the dummy's near side
  * (its half width, about DUMMY_HALF) scales with it, and a move that reaches
  * the dummy for the donor reaches it here. Only closer, never further: a
@@ -316,7 +316,7 @@ static float gap_for(const Step* s)
     float g = gap_native(s), k;
     if (cur_D < 0 || !gap_fp || (s->kind == K_NORMAL && (s->slot >= BAM_NORMAL_FTHROW || s->slot == BAM_NORMAL_DASH)))
         return g;
-    k = Rogue_ShownScale(gap_fp->kind, Rogue_InternalKindForCharacter((CharacterKind) cur_D));
+    k = Bam_ShownScale(gap_fp->kind, Bam_InternalKindForCharacter((CharacterKind) cur_D));
     if (k <= 0.0f || k >= 1.0f) return g;
     return DUMMY_HALF + (g - DUMMY_HALF) * k;
 }
@@ -330,8 +330,8 @@ static void input_clear(void)
 /* Port 1 is in the move being tested (or any move of its own). */
 static int busy(Fighter* fp)
 {
-    RogueFighterState* S = Rogue_FighterCtx(fp);
-    return Rogue_IsAbilityState(fp) || (S->fighter == fp && (S->active || S->aerial || S->normal_on)) ||
+    BamFighterState* S = Bam_FighterCtx(fp);
+    return Bam_IsAbilityState(fp) || (S->fighter == fp && (S->active || S->aerial || S->normal_on)) ||
            fp->motion_id >= 341;
 }
 
@@ -452,8 +452,8 @@ static void log_hitboxes(Fighter* fp)
                 if (fp->parts[j].joint == h->jobj) { part = t->joint_to_part[j]; break; }
             {
                 /* A rebuilt donor bone: from the donor part it hangs from. */
-                extern int Rogue_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos);
-                anc = Rogue_QAHitAnchor(fp, h, &ap);
+                extern int Bam_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos);
+                anc = Bam_QAHitAnchor(fp, h, &ap);
             }
             for (walk = h->jobj; walk && anc < 0; walk = walk->parent)
                 for (j = 0; j < (int) t->parts_num; ++j)
@@ -712,9 +712,9 @@ static void qa_frame(void)
             OSReport("[qa] D %u %u %u %d %d %d %d %d %d\n", cur_match, cur_step, rf, (int) p1->motion_id,
                      p1->unk_gobj == p2->gobj ? 2 : p1->unk_gobj ? 1 : 0, p1->dmg.x1914, p1->dmg.x1924,
                      p1->hurtbox_detect_cb != NULL, (int) p1->cmd_vars[0]);
-        if (Rogue_IsAbilityState(p1)) {
+        if (Bam_IsAbilityState(p1)) {
             saw_borrow = 1;
-            if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Rogue_BorrowScale(p1)); }
+            if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Bam_BorrowScale(p1)); }
         }
         if (ms_count < 4 && (ms_count == 0 || ms_seen[ms_count - 1] != (s16) p1->motion_id) &&
             p1->motion_id != ftCo_MS_Wait)
@@ -810,7 +810,7 @@ void QA_GfxLog(HSD_GObj* gobj, int gfx, HSD_JObj* jobj, int type)
     int j, n;
     if (!gobj || gobj->classifier != HSD_GOBJ_CLASS_FIGHTER) return;
     fp = GET_FIGHTER(gobj);
-    if (!fp || fp->player_id != 0 || (!Rogue_IsAbilityState(fp) && cur_D >= 0)) return;
+    if (!fp || fp->player_id != 0 || (!Bam_IsAbilityState(fp) && cur_D >= 0)) return;
     n = (int) ftPartsTable[fp->kind]->parts_num;
     for (j = 0; j < n && fp->parts[j].joint != jobj; ++j) {}
     OSReport("[qa] G %u %u %d gfx=%d type=%d jobj=%p joint=%d/%d\n", cur_match, cur_step, (int) fp->motion_id, gfx,

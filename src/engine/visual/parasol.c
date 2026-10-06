@@ -69,13 +69,13 @@ static void parasol_hit_off_clear(Fighter* fp, int slot, int disable)
 
 /* Every frame (BAM_OnFrame), part of the simulation: whether the next
  * special fall is a parasol float, and where its hitbox goes. */
-void Rogue_ParasolTrack(Fighter* fp)
+void Bam_ParasolTrack(Fighter* fp)
 {
     int slot = slot_of(fp), hand;
     Mtx w;
     if (slot < 0) return;
-    if (Rogue_IsAbilityState(fp)) {
-        if (Rogue_PropWeaponMtx(fp, w) != 2 || (hand = parasol_base(fp)) < 0) return;
+    if (Bam_IsAbilityState(fp)) {
+        if (Bam_PropWeaponMtx(fp, w) != 2 || (hand = parasol_base(fp)) < 0) return;
         parasol_float[slot] = 1;
         parasol_hit_off_set(fp, slot, hand, w);
         return;
@@ -91,13 +91,13 @@ void Rogue_ParasolTrack(Fighter* fp)
  * common held-parasol states it went to need the parasol item, which goes
  * away with the borrowed move: the parasol vanished and could not be
  * closed). True when it did. */
-bool Rogue_ParasolOpen(HSD_GObj* gobj)
+bool Bam_ParasolOpen(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     int slot = slot_of(fp);
     ftPe_DatAttrs* da;
-    if (slot < 0 || fp->kind == Ft_Kind_Peach || !Rogue_IsAbilityState(fp) ||
-        Rogue_AbilitySourceKind(fp) != Ft_Kind_Peach)
+    if (slot < 0 || fp->kind == Ft_Kind_Peach || !Bam_IsAbilityState(fp) ||
+        Bam_AbilitySourceKind(fp) != Ft_Kind_Peach)
         return false;
     da = fp->dat_attrs;
     parasol_float[slot] = 1;
@@ -106,7 +106,7 @@ bool Rogue_ParasolOpen(HSD_GObj* gobj)
 }
 
 /* ftCo_FallSpecial_Phys: true while the borrower floats on Peach's parasol. */
-bool Rogue_ParasolFloat(HSD_GObj* gobj)
+bool Bam_ParasolFloat(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     int slot = slot_of(fp), hand;

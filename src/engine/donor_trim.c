@@ -336,7 +336,7 @@ static int kind_is_playing(int kind)
 
 /* 1 when the donor's data is loaded. 0 when memory ran out: the caller
  * then leaves the slot on the fighter's own move. */
-int Rogue_LoadDonorData(int kind)
+int Bam_LoadDonorData(int kind)
 {
     const char* name;
     if (kind < 0 || kind >= Ft_Kind_Max) return 0;
@@ -350,7 +350,7 @@ int Rogue_LoadDonorData(int kind)
     /* A character that is also playing needs the complete file: its own
      * fighter uses this data. */
     if (!kind_is_playing(kind)) {
-        ftData* d = load_trimmed(kind, Rogue_DonorNeedsArticles(kind));
+        ftData* d = load_trimmed(kind, Bam_DonorNeedsArticles(kind));
         if (d) { gFtDataList[kind] = d; return 1; }
     }
     {
@@ -381,7 +381,7 @@ static EfDatEntry* donor_effects(int kind)
     return &EF_ENTRIES[idx];
 }
 
-int Rogue_LoadDonorEffects(int kind)
+int Bam_LoadDonorEffects(int kind)
 {
     EfDatEntry* e = donor_effects(kind);
     int idx;

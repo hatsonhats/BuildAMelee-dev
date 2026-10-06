@@ -24,8 +24,8 @@ void BAM_OnFighterCreated(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     BAM_LOG("fighter_create kind=%d player=%d sub=%d build=%d\n", (int) fp->kind,
-            (int) fp->player_id, (int) fp->is_sub_fighter, (int) Rogue_IsBuildFighter(fp));
-    RogueFighter_Created(fp);
+            (int) fp->player_id, (int) fp->is_sub_fighter, (int) Bam_IsBuildFighter(fp));
+    BamFighter_Created(fp);
 }
 
 /* inject gm_801A4014 after gm_801A4B88(info): a new scene's heaps exist. */
@@ -50,7 +50,7 @@ void BAM_OnSceneReady(void)
 {
     Bam_OnlineSceneReady();
     if (bam_match) {
-        Rogue_DonorModelsLoad();
+        Bam_DonorModelsLoad();
         Bam_LogHeapRoom("match ready");
         Bam_LogHeapTable();
     }
@@ -67,8 +67,8 @@ void BAM_OnFrame(void)
     if (!bam_match || Bam_TrainingFrozen()) return;
     for (i = 0; i < BAM_FIGHTERS; ++i)
         if (bam_match->fighters[i].fighter) {
-            Rogue_AbilityFighterFrame(bam_match->fighters[i].fighter);
-            Rogue_ParasolTrack(bam_match->fighters[i].fighter);
+            Bam_AbilityFighterFrame(bam_match->fighters[i].fighter);
+            Bam_ParasolTrack(bam_match->fighters[i].fighter);
         }
 }
 
@@ -83,7 +83,7 @@ void BAM_OnLandingAirLag(u32* regs)
     Fighter* fp = (Fighter*) regs[3]; /* r5 */
     f64* fpr = (f64*) ((u8*) regs + 0x90);
     if (msid != -1 && fp != NULL)
-        fpr[1] = Rogue_AerialLandingLag(fp, fp->motion_id, (float) fpr[1]);
+        fpr[1] = Bam_AerialLandingLag(fp, fp->motion_id, (float) fpr[1]);
     Bam_TrainingLanding(fp, msid);
 }
 
@@ -98,7 +98,7 @@ void BAM_OnLandingAirLag(u32* regs)
  * End the borrowed move first so the jump is fully native. */
 void BAM_BeforeNativeJump(Fighter_GObj* gobj)
 {
-    Rogue_AbilityCleanup(GET_FIGHTER(gobj));
+    Bam_AbilityCleanup(GET_FIGHTER(gobj));
 }
 
 /* override: ftAnim_ApplyPartAnim (same body, plus the guard below).
@@ -117,7 +117,7 @@ void BAM_ApplyPartAnim(Fighter_GObj* gobj, s32 arg1, s32 arg2, f32 arg3)
     Fighter* fp = GET_FIGHTER(gobj);
     struct Fighter_x8B0_t* st;
     struct ftData_x1C* data;
-    if (Rogue_IsAbilityState(fp)) return;
+    if (Bam_IsAbilityState(fp)) return;
     st = &fp->x8B0[arg1];
     data = fp->ft_data->x1C[arg1];
     st->x11 = arg2;

@@ -40,13 +40,13 @@ static int vis_get(int slot, unsigned kind, int group)
 }
 /* ftParts_80074B0C / ftParts_80074A4C: a borrowed move switching one of the
  * donor's model-part groups. True when it was kept here. */
-bool Rogue_VisSet(HSD_GObj* gobj, int group, int val)
+bool Bam_VisSet(HSD_GObj* gobj, int group, int val)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     unsigned source;
     int slot;
-    if (!fp || !Rogue_IsAbilityState(fp)) return false;
-    source = Rogue_AbilitySourceKind(fp);
+    if (!fp || !Bam_IsAbilityState(fp)) return false;
+    source = Bam_AbilitySourceKind(fp);
     if (source == fp->kind) return false;
     /* A donor's model-part switch that is not drawn on the borrower (Samus
      * curling into her Morph Ball) names one of the DONOR's groups; applied
@@ -164,14 +164,14 @@ static void gw_color(HSD_JObj* j)
  * Mr. Game & Watch's takes from its owner. A borrower holding his moves
  * gives his (first costume's) color and outline, not Kirby's copy colors
  * the game falls back to for anyone else (they came out white). */
-int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
+int Bam_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    RogueFighterState* S;
+    BamFighterState* S;
     if (!fp || fp->kind == Ft_Kind_GameWatch || !bam_match) return 0;
-    S = Rogue_FighterCtx(fp);
+    S = Bam_FighterCtx(fp);
     if (S->fighter != fp || !S->loaded_sources[Ft_Kind_GameWatch]) return 0;
-    if (fp->kind == Ft_Kind_Kirby && !Rogue_IsAbilityState(fp)) return 0; /* his own copy ability */
+    if (fp->kind == Ft_Kind_Kirby && !Bam_IsAbilityState(fp)) return 0; /* his own copy ability */
     *(GXColor*) dst = *(const GXColor*) (bam_match->donor_attrs[Ft_Kind_GameWatch].bytes + (outline ? 0x14 : 4));
     return 1;
 }
@@ -184,7 +184,7 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
     unsigned count, i, d, k;
     HSD_Joint* desc;
     if (m && m->kind == kind) return m->root ? m : NULL;
-    count = Rogue_DonorMeshes(kind, groups, wanted, pobjs, DONOR_MESHES);
+    count = Bam_DonorMeshes(kind, groups, wanted, pobjs, DONOR_MESHES);
     if (!m) {
         if ((!count && !vis_donor(kind, -1)) || kind >= Ft_Kind_Max) return NULL;
         m = OSAllocFromHeap(HSD_GetHeap(), sizeof(DonorModel));
@@ -228,17 +228,17 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
 /* A donor whose moves draw part of its model (a tail, a sword, Mr. Game &
  * Watch's props) needs its default costume. It is only drawn, so it never
  * decides what a move does: it is loaded once the scene created every
- * fighter and their borrowed moves (Rogue_DonorModelsLoad), from what the
+ * fighter and their borrowed moves (Bam_DonorModelsLoad), from what the
  * match heap can spare, and right away when the CSS preloaded it. */
 static u8 model_wanted[Ft_Kind_Max];
-void Rogue_DonorModelPreload(unsigned kind)
+void Bam_DonorModelPreload(unsigned kind)
 {
     unsigned char groups[DONOR_MESHES];
     unsigned short dobjs[DONOR_MESHES];
     extern Fighter_CostumeStrings* ftData_803C2360[Ft_Kind_Max];
     extern HSD_Archive* lbDvd_8001819C(const char* basename);
     if (kind >= Ft_Kind_Max || CostumeListsForeachCharacter[kind].costume_list[0].joint) return;
-    if (!Rogue_DonorMeshes(kind, groups, dobjs, NULL, DONOR_MESHES) && !vis_donor(kind, -1)) return;
+    if (!Bam_DonorMeshes(kind, groups, dobjs, NULL, DONOR_MESHES) && !vis_donor(kind, -1)) return;
     if (ftData_803C2360[kind] && ftData_803C2360[kind][0].dat_filename &&
         lbDvd_8001819C(ftData_803C2360[kind][0].dat_filename)) {
         ftData_80085820(kind, 0);
@@ -333,7 +333,7 @@ static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
     return 1;
 }
 
-void Rogue_DonorModelsLoad(void)
+void Bam_DonorModelsLoad(void)
 {
     extern Fighter_CostumeStrings* ftData_803C2360[Ft_Kind_Max];
     unsigned kind;
@@ -402,10 +402,10 @@ static bool vis_show(DonorModel* m, int slot, unsigned kind)
 unsigned donor_display(Fighter* fp, unsigned slot, int pass, MtxPtr vmtx)
 {
     unsigned char item_of[8];
-    unsigned mask, i, replaced = 0, source = Rogue_AbilitySourceKind(fp);
+    unsigned mask, i, replaced = 0, source = Bam_AbilitySourceKind(fp);
     DonorModel* m;
     memset(item_of, 0xFF, sizeof(item_of));
-    mask = Rogue_DonorMeshShow(fp, item_of);
+    mask = Bam_DonorMeshShow(fp, item_of);
     for (i = 0; i < 8; ++i) {
         if (!(mask & (1U << i))) continue;
         /* A fighter whose own model shows that weapon keeps its own. */
@@ -425,20 +425,20 @@ unsigned donor_display(Fighter* fp, unsigned slot, int pass, MtxPtr vmtx)
         }
     }
     if (!vis_show(m, (int) slot, source) && !mask) return 0;
-    Rogue_DonorPose(fp, m->jobj, m->parent, m->joints, -1, mask);
+    Bam_DonorPose(fp, m->jobj, m->parent, m->joints, -1, mask);
     HSD_JObjDispAll(m->root, vmtx, HSD_GObj_80390EB8(pass), 0);
     return replaced;
 }
 
 /* The fighter's own body is not drawn: a borrowed move turned it into the
  * donor's (Kirby's stone), drawn in its place. */
-bool Rogue_BodyHidden(HSD_GObj* gobj)
+bool Bam_BodyHidden(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     unsigned i, source;
     int slot;
-    if (!fp || !Rogue_IsAbilityState(fp)) return false;
-    source = Rogue_AbilitySourceKind(fp);
+    if (!fp || !Bam_IsAbilityState(fp)) return false;
+    source = Bam_AbilitySourceKind(fp);
     slot = slot_of(fp);
     if (slot < 0 || source == fp->kind || !donor_models[slot] || donor_models[slot]->kind != source ||
         !donor_models[slot]->root)
@@ -454,7 +454,7 @@ bool Rogue_BodyHidden(HSD_GObj* gobj)
 /* A new borrowed move starts with none of the donor's groups switched:
  * each move's script switches the ones it shows (Peach's club stayed in
  * her hand after an interrupted forward smash). */
-void Rogue_VisReset(const Fighter* fp)
+void Bam_VisReset(const Fighter* fp)
 {
     int slot;
     if (!bam_sword_visual || !bam_match) return;

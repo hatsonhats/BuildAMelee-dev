@@ -1,13 +1,13 @@
-#ifndef ROGUE_SPECIAL_CATALOG_H
-#define ROGUE_SPECIAL_CATALOG_H
+#ifndef BAM_SPECIAL_CATALOG_H
+#define BAM_SPECIAL_CATALOG_H
 #include <engine/catalog_counts.h>
 /* Portable IDs and metadata. Engine pointers remain in the platform registry. */
-typedef struct RogueSpecialDef {
+typedef struct BamSpecialDef {
     unsigned char id, character, donor, slot;
     const char* name;
-} RogueSpecialDef;
-extern const RogueSpecialDef rogue_specials[ROGUE_SPECIALS];
-const RogueSpecialDef* RogueSpecial_Find(unsigned id);
+} BamSpecialDef;
+extern const BamSpecialDef bam_specials[BAM_SPECIALS];
+const BamSpecialDef* BamSpecial_Find(unsigned id);
 /* False for specials that are kept for old saves but never offered. */
-int RogueSpecial_Offerable(const RogueSpecialDef* def);
+int BamSpecial_Offerable(const BamSpecialDef* def);
 #endif

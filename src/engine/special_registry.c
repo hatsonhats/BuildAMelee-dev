@@ -30,16 +30,16 @@
 
 #define ABILITY(kind, character, slot, key, label, table, count, attrs) \
     { 1 + kind * 4 + slot, label, character, kind, slot, NULL, NULL, \
-      ROGUE_COMPAT_ADAPTED, ROGUE_ABILITY_NEEDS_ATTRS | ROGUE_ABILITY_NEEDS_ANIMATION | \
-      ROGUE_ABILITY_NEEDS_BONE_MAP | ROGUE_ABILITY_NEEDS_STATE_TABLE, \
+      BAM_COMPAT_ADAPTED, BAM_ABILITY_NEEDS_ATTRS | BAM_ABILITY_NEEDS_ANIMATION | \
+      BAM_ABILITY_NEEDS_BONE_MAP | BAM_ABILITY_NEEDS_STATE_TABLE, \
       ftCo_MS_Count, ftCo_MS_Count + count - 1, table, (((1U << 27) - 1) & ~(1U << Ft_Kind_Nana)), sizeof(attrs) }
 #define FOUR(kind, character, prefix, table, count, attrs, n, s, u, d) \
-    ABILITY(kind, character, ROGUE_ABILITY_NEUTRAL, prefix "_neutral", n, table, count, attrs), \
-    ABILITY(kind, character, ROGUE_ABILITY_SIDE, prefix "_side", s, table, count, attrs), \
-    ABILITY(kind, character, ROGUE_ABILITY_UP, prefix "_up", u, table, count, attrs), \
-    ABILITY(kind, character, ROGUE_ABILITY_DOWN, prefix "_down", d, table, count, attrs)
+    ABILITY(kind, character, BAM_ABILITY_NEUTRAL, prefix "_neutral", n, table, count, attrs), \
+    ABILITY(kind, character, BAM_ABILITY_SIDE, prefix "_side", s, table, count, attrs), \
+    ABILITY(kind, character, BAM_ABILITY_UP, prefix "_up", u, table, count, attrs), \
+    ABILITY(kind, character, BAM_ABILITY_DOWN, prefix "_down", d, table, count, attrs)
 
-static RogueAbilityDefinition abilities[] = {
+static BamAbilityDefinition abilities[] = {
     FOUR(Ft_Kind_Koopa, CKind_Koopa, "koopa", ftKp_Init_MotionStateTable,
          ftKp_MS_SelfCount, ftKoopaAttributes,
          "Fire Breath", "Koopa Klaw", "Whirling Fortress", "Bowser Bomb"),
@@ -120,31 +120,31 @@ static RogueAbilityDefinition abilities[] = {
          "Rollout", "Pound", "Sing", "Rest"),
 };
 
-const RogueAbilityDefinition* Rogue_GetAbility(RogueAbilityID id)
+const BamAbilityDefinition* Bam_GetAbility(BamAbilityID id)
 {
     unsigned i;
     for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i) {
-        RogueAbilityDefinition* def = &abilities[i];
+        BamAbilityDefinition* def = &abilities[i];
         if (def->id != id) continue;
         switch (def->native_slot) {
-        case ROGUE_ABILITY_NEUTRAL:
+        case BAM_ABILITY_NEUTRAL:
             def->ground_enter = ftData_SpecialN[def->internal_kind];
             def->air_enter = ftData_SpecialAirN[def->internal_kind]; break;
-        case ROGUE_ABILITY_SIDE:
+        case BAM_ABILITY_SIDE:
             def->ground_enter = ftData_SpecialS[def->internal_kind];
             def->air_enter = ftData_SpecialAirS[def->internal_kind]; break;
-        case ROGUE_ABILITY_UP:
+        case BAM_ABILITY_UP:
             def->ground_enter = ftData_SpecialHi[def->internal_kind];
             def->air_enter = ftData_SpecialAirHi[def->internal_kind]; break;
-        case ROGUE_ABILITY_DOWN:
+        case BAM_ABILITY_DOWN:
             def->ground_enter = ftData_SpecialLw[def->internal_kind];
             def->air_enter = ftData_SpecialAirLw[def->internal_kind]; break;
         default: return NULL;
         }
         /* Native Hand Slap is ground-only. Consume the borrowed air input and
          * transition to native fall instead of rejecting both ground and air. */
-        if (def->internal_kind == Ft_Kind_Donkey && def->native_slot == ROGUE_ABILITY_DOWN) {
-            def->flags |= ROGUE_ABILITY_GROUND_ONLY;
+        if (def->internal_kind == Ft_Kind_Donkey && def->native_slot == BAM_ABILITY_DOWN) {
+            def->flags |= BAM_ABILITY_GROUND_ONLY;
             def->air_enter = ftCo_Fall_Enter;
         }
         return def;
@@ -152,7 +152,7 @@ const RogueAbilityDefinition* Rogue_GetAbility(RogueAbilityID id)
     return NULL;
 }
 
-FighterKind Rogue_InternalKindForCharacter(CharacterKind character)
+FighterKind Bam_InternalKindForCharacter(CharacterKind character)
 {
     unsigned i;
     for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i) {

@@ -27,7 +27,7 @@ typedef struct Scaled {
     const Fighter* fighter;
     HSD_JObj* jobj;
     float own[3], donor[3], ratio;
-    float own_hip, donor_hip, size; /* rest hip heights; Rogue_BorrowScale */
+    float own_hip, donor_hip, size; /* rest hip heights; Bam_BorrowScale */
     int lift;                       /* a body bone: lifts are capped */
 } Scaled;
 typedef struct Quat { float x, y, z, w; } Quat;
@@ -41,7 +41,7 @@ typedef struct RotFix {
     unsigned char slot, kind, nfold, fold[4];
 } RotFix;
 #define ROTFIX_FOLDS 4
-#define ROTFIX_PER_FIGHTER (ROGUE_REST_PARTS * 2)
+#define ROTFIX_PER_FIGHTER (BAM_REST_PARTS * 2)
 #define ROTFIX_HASH 1024U
 #define POSE_JOINTS 192
 #include <sysdolphin/baselib/mtx.h>
@@ -73,7 +73,7 @@ typedef struct AnimScaleState {
     PropAnchor anchors[BAM_FIGHTERS][ANCHORS];
     unsigned char anchor_next[BAM_FIGHTERS];
     /* The donor body part last asked for that the borrower lacks, and the
-     * joint it fell back to + 1 (0: none): Rogue_NoteHeldPart. */
+     * joint it fell back to + 1 (0: none): Bam_NoteHeldPart. */
     signed char held_part[BAM_FIGHTERS], held_joint[BAM_FIGHTERS];
 } AnimScaleState;
 extern AnimScaleState* bam_anim_scale; /* pose.c */
@@ -99,7 +99,7 @@ typedef struct BodyRest {
     float hip;
     float pos[3][3]; /* XRotN, YRotN, HipN: x, y, z */
 } BodyRest;
-#define BODY_KINDS ROGUE_REST_KINDS
+#define BODY_KINDS BAM_REST_KINDS
 extern const BodyRest body_rest[BODY_KINDS];
 /* Clothing worn instead of carried (wear.c). */
 typedef struct Wear { unsigned char kind, group, root, hip; } Wear;

@@ -28,8 +28,8 @@
  * game's model-part groups): Mr. Game & Watch's pan, box, key and bucket,
  * Peach's crown in her hand, Kirby's stone, Yoshi's Egg Roll egg. Those switches are aimed at the
  * donor's groups, so a borrower's own meshes were toggled instead; they are
- * kept per borrower here (Rogue_VisSet) and the donor's meshes drawn. While
- * Kirby's stone shows, the borrower's own body is hidden (Rogue_BodyHidden). */
+ * kept per borrower here (Bam_VisSet) and the donor's meshes drawn. While
+ * Kirby's stone shows, the borrower's own body is hidden (Bam_BodyHidden). */
 
 /* 0 Beam Sword, 1 Hammer (common items), 2 Peach's parasol (her article). */
 
@@ -102,7 +102,7 @@ HSD_JObj* weapon_model(unsigned slot, int item)
 }
 
 
-void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
+void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     int slot, hand, item;
@@ -111,7 +111,7 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     Mtx place;
     slot = slot_of(fp);
     if (slot < 0) return;
-    if (!Rogue_IsAbilityState(fp)) {
+    if (!Bam_IsAbilityState(fp)) {
         donor_vis_kind[slot] = Ft_Kind_Max;
         if (parasol_float[slot]) parasol_display(fp, slot, pass, vmtx);
         return;
@@ -120,9 +120,9 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
         release_slot((unsigned) slot);
         weapon_owner[slot] = fp;
     }
-    source = Rogue_AbilitySourceKind(fp);
+    source = Bam_AbilitySourceKind(fp);
     replaced = donor_display(fp, (unsigned) slot, pass, vmtx);
-    item = Rogue_PropWeaponMtx(fp, place);
+    item = Bam_PropWeaponMtx(fp, place);
     if (item == 2 && (hand = parasol_base(fp)) >= 0 && weapon_model((unsigned) slot, 2)) {
         /* Where the parasol sits on the hand, for the float that follows,
          * even while the donor's own model draws it: unset, the float drew
@@ -153,7 +153,7 @@ void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
 }
 
 /* The fighter is going away (match end, destroyed): free its weapons. */
-void Rogue_SwordRelease(const Fighter* fp)
+void Bam_SwordRelease(const Fighter* fp)
 {
     unsigned i;
     for (i = 0; i < BAM_FIGHTERS; ++i)
@@ -163,12 +163,12 @@ void Rogue_SwordRelease(const Fighter* fp)
 #include <sysdolphin/baselib/memory.h>
 SwordVisualState* bam_sword_visual;
 /* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
-void Rogue_SwordVisualMatchBegin(void)
+void Bam_SwordVisualMatchBegin(void)
 {
     bam_sword_visual = HSD_MemAlloc(sizeof(*bam_sword_visual));
     memset(bam_sword_visual, 0, sizeof(*bam_sword_visual));
 }
-void Rogue_SwordVisualMatchEnd(void)
+void Bam_SwordVisualMatchEnd(void)
 {
     bam_sword_visual = NULL;
 }

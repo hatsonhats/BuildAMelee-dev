@@ -1,5 +1,5 @@
 #include <engine/special_catalog.h>
-const RogueSpecialDef rogue_specials[ROGUE_SPECIALS] = {
+const BamSpecialDef bam_specials[BAM_SPECIALS] = {
     { 1, 8, 0, 0, "Fireball" },
     { 2, 8, 0, 1, "Cape" },
     { 3, 8, 0, 2, "Super Jump Punch" },

@@ -21,7 +21,7 @@ static int climber_or_main(const Fighter* fp)
     return !fp->is_sub_fighter || fp->kind == Ft_Kind_Nana;
 }
 
-bool Rogue_IsBuildFighter(const Fighter* fp)
+bool Bam_IsBuildFighter(const Fighter* fp)
 {
     return fp && fp->player_id < BAM_PLAYER_SLOTS && climber_or_main(fp) &&
            bam_loadouts[fp->player_id].enabled;
@@ -33,23 +33,23 @@ int Bam_FighterIndex(const Fighter* fp)
     return (int) fp->player_id * 2 + (fp->is_sub_fighter ? 1 : 0);
 }
 
-unsigned Rogue_EquippedSpecial(const Fighter* fp, unsigned slot)
+unsigned Bam_EquippedSpecial(const Fighter* fp, unsigned slot)
 {
-    RogueFighterState* S = Rogue_FighterCtx(fp);
+    BamFighterState* S = Bam_FighterCtx(fp);
     if (S->fighter != fp || slot >= BAM_SPECIAL_SLOTS) return 0;
     return S->specials[slot];
 }
 
-unsigned Rogue_EquippedAerial(const Fighter* fp, unsigned slot)
+unsigned Bam_EquippedAerial(const Fighter* fp, unsigned slot)
 {
-    RogueFighterState* S = Rogue_FighterCtx(fp);
+    BamFighterState* S = Bam_FighterCtx(fp);
     if (S->fighter != fp || slot >= BAM_AERIAL_SLOTS) return 0;
     return S->aerials[slot];
 }
 
-void Rogue_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id)
+void Bam_SetEquippedSpecial(Fighter* fp, unsigned slot, unsigned id)
 {
-    RogueFighterState* S = Rogue_FighterCtx(fp);
+    BamFighterState* S = Bam_FighterCtx(fp);
     if (S->fighter == fp && slot < BAM_SPECIAL_SLOTS) S->specials[slot] = (unsigned char) id;
 }
 
@@ -65,9 +65,9 @@ unsigned Bam_FighterAllocSize(unsigned retail_size)
     return fighter_ext_offset + BAM_FIGHTER_EXT_SIZE;
 }
 
-struct RogueFighterState** Bam_FighterExtSlot(const Fighter* fp)
+struct BamFighterState** Bam_FighterExtSlot(const Fighter* fp)
 {
-    return (struct RogueFighterState**) ((u8*) fp + fighter_ext_offset);
+    return (struct BamFighterState**) ((u8*) fp + fighter_ext_offset);
 }
 
 /* ---- match lifetime ----------------------------------------------------------- */
@@ -78,19 +78,19 @@ void Bam_MatchBegin(void)
     bam_match = HSD_MemAlloc(sizeof(*bam_match));
     memset(bam_match, 0, sizeof(*bam_match));
     bam_match->generation = ++scene_generation;
-    Rogue_AnimScaleMatchBegin();
-    Rogue_SwordVisualMatchBegin();
-    Rogue_RestSleepMatchBegin();
+    Bam_AnimScaleMatchBegin();
+    Bam_SwordVisualMatchBegin();
+    Bam_RestSleepMatchBegin();
     BAM_LOG("match_begin generation=%u state=%u bytes\n", bam_match->generation, (unsigned) sizeof(*bam_match));
 }
 
 void Bam_MatchEnd(void)
 {
     if (!bam_match) return;
-    Rogue_AbilityMatchEnd();
-    Rogue_AnimScaleMatchEnd();
-    Rogue_SwordVisualMatchEnd();
-    Rogue_RestSleepMatchEnd();
+    Bam_AbilityMatchEnd();
+    Bam_AnimScaleMatchEnd();
+    Bam_SwordVisualMatchEnd();
+    Bam_RestSleepMatchEnd();
     BAM_LOG("match_end generation=%u\n", bam_match->generation);
     bam_match = NULL;   /* the scene heap that held it is being torn down */
 }
@@ -98,13 +98,13 @@ void Bam_MatchEnd(void)
 /* ---- hooks ---------------------------------------------------------------------- */
 
 /* inject at Fighter_Create+0x4F0 (after ftLib_800867E8(gobj)). */
-void RogueFighter_Created(Fighter* fp)
+void BamFighter_Created(Fighter* fp)
 {
     if (fighter_ext_offset == 0) return;   /* allocator hook did not run: never touch fp */
     *Bam_FighterExtSlot(fp) = NULL;
-    if (!Rogue_IsBuildFighter(fp)) return;
+    if (!Bam_IsBuildFighter(fp)) return;
     Bam_MatchBegin();
-    Rogue_AbilityFighterCreated(fp);
+    Bam_AbilityFighterCreated(fp);
 }
 
 void Bam_OnSceneEnter(void* info)
@@ -164,11 +164,11 @@ void Bam_LogHeapRoom(const char* where)
  * to the match heap, which must keep BAM_HEAP_FLOOR free; every load checks
  * its own room and fails cleanly (the slot then keeps its own move).
  * Animations go to ARAM; models (drawn only) load after the fighters
- * (Rogue_DonorModelsLoad). */
+ * (Bam_DonorModelsLoad). */
 struct StringPair { char* a; char* b; };
 extern struct StringPair ftData_803C1F40[Ft_Kind_Max];
 
-int Rogue_DonorFits(int kind)
+int Bam_DonorFits(int kind)
 {
     unsigned room;
     if (kind < 0 || kind >= Ft_Kind_Max || !ftData_803C1F40[kind].a) return 0;

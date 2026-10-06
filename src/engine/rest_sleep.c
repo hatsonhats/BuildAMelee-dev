@@ -26,12 +26,12 @@ static RestSleepState* bam_rest_sleep;
 
 
 
-bool Rogue_RestSleep(Fighter_GObj* gobj)
+bool Bam_RestSleep(Fighter_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     float remaining;
     unsigned i;
-    if (fp->kind == Ft_Kind_Purin || !Rogue_IsBuildFighter(fp) || fp->ground_or_air != GA_Ground ||
+    if (fp->kind == Ft_Kind_Purin || !Bam_IsBuildFighter(fp) || fp->ground_or_air != GA_Ground ||
         fp->cur_anim_frame < REST_ASLEEP_FRAME) return false;
     remaining = ftAnim_8006F484(gobj) - fp->cur_anim_frame - REST_WAKE_FRAMES;
     if (remaining < 1.0f) return false;
@@ -45,7 +45,7 @@ bool Rogue_RestSleep(Fighter_GObj* gobj)
 }
 
 /* True while a Rest sleep runs (no mashing out). */
-bool Rogue_RestSleeping(Fighter* fp)
+bool Bam_RestSleeping(Fighter* fp)
 {
     unsigned i;
     for (i = 0; i < BAM_FIGHTERS; ++i) if (fp && sleepers[i] == fp) return true;
@@ -53,7 +53,7 @@ bool Rogue_RestSleeping(Fighter* fp)
 }
 
 /* A sleep that Sing (or anything else) starts is a normal one. */
-void Rogue_RestSleepClear(Fighter* fp)
+void Bam_RestSleepClear(Fighter* fp)
 {
     unsigned i;
     for (i = 0; i < BAM_FIGHTERS; ++i) if (sleepers[i] == fp) sleepers[i] = NULL;
@@ -61,12 +61,12 @@ void Rogue_RestSleepClear(Fighter* fp)
 
 #include <sysdolphin/baselib/memory.h>
 /* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
-void Rogue_RestSleepMatchBegin(void)
+void Bam_RestSleepMatchBegin(void)
 {
     bam_rest_sleep = HSD_MemAlloc(sizeof(*bam_rest_sleep));
     memset(bam_rest_sleep, 0, sizeof(*bam_rest_sleep));
 }
-void Rogue_RestSleepMatchEnd(void)
+void Bam_RestSleepMatchEnd(void)
 {
     bam_rest_sleep = NULL;
 }

@@ -210,18 +210,18 @@ void draw_hint(void)
 }
 
 /* The fighter's own special for a slot ("Rest"), from the catalog. */
-static const RogueSpecialDef* own_special(unsigned slot)
+static const BamSpecialDef* own_special(unsigned slot)
 {
     unsigned i;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (rogue_specials[i].slot == slot && (int) rogue_specials[i].character == css.ckind)
-            return &rogue_specials[i];
+    for (i = 0; i < BAM_SPECIALS; ++i)
+        if (bam_specials[i].slot == slot && (int) bam_specials[i].character == css.ckind)
+            return &bam_specials[i];
     return NULL;
 }
 
 /* A special's name without its character ("Fox Illusion" -> "Illusion"),
  * which the row shows next to it. */
-static const char* move_name(const RogueSpecialDef* d)
+static const char* move_name(const BamSpecialDef* d)
 {
     static const char* const prefixes[] = { "Fox ", "Falco ", "Luigi ", "Young Link ", "Dr. Mario ", "Pichu ",
                                             "Marth ", "Roy " };
@@ -241,13 +241,13 @@ static int row_owner(unsigned i, const char** move)
     unsigned id = row_value(l, i);
     *move = NULL;
     if (i < FIRST_AERIAL) {
-        const RogueSpecialDef* d = RogueSpecial_Find(id);
+        const BamSpecialDef* d = BamSpecial_Find(id);
         if (!id || !d) d = own_special(i);
         *move = move_name(d);
         return id && d ? (int) d->character : css.ckind;
     }
     if (i < FIRST_NORMAL) {
-        const RogueAerialDef* d = RogueAerial_Find(id);
+        const BamAerialDef* d = BamAerial_Find(id);
         return id && d ? (int) d->character : css.ckind;
     }
     return id >= 1 && id <= 26 ? (int) id - 1 : css.ckind;
@@ -366,8 +366,8 @@ static int row_donor(const BamLoadout* l, unsigned r)
 {
     unsigned id = row_value(l, r);
     if (!id) return -1;
-    if (r < FIRST_AERIAL) { const RogueSpecialDef* d = RogueSpecial_Find(id); return d ? (int) d->character : -1; }
-    if (r < FIRST_NORMAL) { const RogueAerialDef* d = RogueAerial_Find(id); return d ? (int) d->character : -1; }
+    if (r < FIRST_AERIAL) { const BamSpecialDef* d = BamSpecial_Find(id); return d ? (int) d->character : -1; }
+    if (r < FIRST_NORMAL) { const BamAerialDef* d = BamAerial_Find(id); return d ? (int) d->character : -1; }
     return (int) id - 1;
 }
 

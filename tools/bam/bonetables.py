@@ -12,18 +12,18 @@ Read from the disc:
     Pl<Xx>.dat     each fighter's move scripts (which bones hitboxes use)
 
 Tables written (C: bone_tables.h declares them, src/engine/bone_tables.c holds them):
-    rogue_rest_world / rogue_rest_extra*   rest rotation of every body part
+    bam_rest_world / bam_rest_extra*   rest rotation of every body part
         (and the finger parts), so a borrowed animation can be retargeted
         from the donor's bone orientations to the borrower's
-    rogue_part_parent / rogue_part_mid     each part's parent part, and the
+    bam_part_parent / bam_part_mid     each part's parent part, and the
         rest rotation of body-less joints in between
-    rogue_prop                             body-less bones (swords, tails,
+    bam_prop                             body-less bones (swords, tails,
         props) that hitboxes ride on, rebuilt on the borrower
-    rogue_weapon                           held items drawn for a donor's
+    bam_weapon                           held items drawn for a donor's
         weapon (Beam Sword, hammer, parasol)
-    rogue_mesh / _show / _hide             the donor's own meshes drawn on
+    bam_mesh / _show / _hide             the donor's own meshes drawn on
         the borrower for rebuilt bones, and when
-    rogue_chain                            donor joints posed through the
+    bam_chain                            donor joints posed through the
         donor's own skeleton from the root (Mr. Game & Watch)
 
 Character-specific choices (which weapons, extra meshes, root chains) are in
@@ -635,11 +635,11 @@ def _cells(values):
 def write_include(destination, quats, fingers, parents, prop_data, note):
     names = KIND_NAMES
     lines = [f'/* {note} */',
-             f'#define ROGUE_REST_KINDS {KIND_COUNT}',
-             f'#define ROGUE_REST_PARTS {len(PARTS)}',
-             'static const unsigned char rogue_rest_part[ROGUE_REST_PARTS] = ' + _cells(PARTS) + ';',
+             f'#define BAM_REST_KINDS {KIND_COUNT}',
+             f'#define BAM_REST_PARTS {len(PARTS)}',
+             'static const unsigned char bam_rest_part[BAM_REST_PARTS] = ' + _cells(PARTS) + ';',
              '/* World rest rotation quaternion (x, y, z, w) x 32767; all zero = no such bone. */',
-             'static const short rogue_rest_world[ROGUE_REST_KINDS][ROGUE_REST_PARTS][4] = {']
+             'static const short bam_rest_world[BAM_REST_KINDS][BAM_REST_PARTS][4] = {']
     for kind in range(KIND_COUNT):
         row = quats.get(kind) or [None] * len(PARTS)
         lines.append('    { ' + ', '.join(_cells((0, 0, 0, 0) if q is None else (int(round(v * 32767)) for v in q))
@@ -647,29 +647,29 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
     lines += ['};']
     world, local = fingers
     lines += ['/* The same for the finger parts props and hitboxes hang from (not retargeted). */',
-              f'#define ROGUE_REST_EXTRA {len(EXTRA_PARTS_REST)}',
-              'static const unsigned char rogue_rest_extra_part[ROGUE_REST_EXTRA] = ' + _cells(EXTRA_PARTS_REST) + ';',
-              'static const short rogue_rest_extra[ROGUE_REST_KINDS][ROGUE_REST_EXTRA][4] = {']
+              f'#define BAM_REST_EXTRA {len(EXTRA_PARTS_REST)}',
+              'static const unsigned char bam_rest_extra_part[BAM_REST_EXTRA] = ' + _cells(EXTRA_PARTS_REST) + ';',
+              'static const short bam_rest_extra[BAM_REST_KINDS][BAM_REST_EXTRA][4] = {']
     for kind in range(KIND_COUNT):
         row = world.get(kind) or [None] * len(EXTRA_PARTS_REST)
         lines.append('    { ' + ', '.join(_cells((0, 0, 0, 0) if q is None else (int(round(v * 32767)) for v in q))
                                          for q in row) + f' }}, /* {names[kind]} */')
     lines += ['};', '/* Their own (local) rest rotation, as the files store it (rad x 4096). */',
-              'static const short rogue_rest_extra_rot[ROGUE_REST_KINDS][ROGUE_REST_EXTRA][3] = {']
+              'static const short bam_rest_extra_rot[BAM_REST_KINDS][BAM_REST_EXTRA][3] = {']
     for kind in range(KIND_COUNT):
         row = local.get(kind) or [None] * len(EXTRA_PARTS_REST)
         lines.append('    { ' + ', '.join(_cells((0, 0, 0) if r is None else (_s16(v, 4096) for v in r[0]))
                                          for r in row) + f' }}, /* {names[kind]} */')
     lines += ['};', '/* Their rest position in their parent bone (x 256). */',
-              'static const short rogue_rest_extra_pos[ROGUE_REST_KINDS][ROGUE_REST_EXTRA][3] = {']
+              'static const short bam_rest_extra_pos[BAM_REST_KINDS][BAM_REST_EXTRA][3] = {']
     for kind in range(KIND_COUNT):
         row = local.get(kind) or [None] * len(EXTRA_PARTS_REST)
         lines.append('    { ' + ', '.join(_cells((0, 0, 0) if r is None else (_s16(v, 256) for v in r[1]))
                                          for r in row) + f' }}, /* {names[kind]} */')
     lines += ['};']
     lines += ['/* Body part of each part\'s nearest ancestor with one (0xFF: none); all 0xFF = unknown. */',
-              f'#define ROGUE_PART_COUNT {PART_COUNT}',
-              'static const unsigned char rogue_part_parent[ROGUE_REST_KINDS][ROGUE_PART_COUNT] = {']
+              f'#define BAM_PART_COUNT {PART_COUNT}',
+              'static const unsigned char bam_part_parent[BAM_REST_KINDS][BAM_PART_COUNT] = {']
     mids = []
     for kind in range(KIND_COUNT):
         row, mid = (parents or {}).get(kind) or ([INVALID] * PART_COUNT, {})
@@ -678,13 +678,13 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
             mids.append('    { %d, %d, { %s } },' % (kind, part, ', '.join(str(_s16(v, 32767)) for v in q)))
     lines += ['};',
               '/* Rest rotation of body-less joints between a part and its parent part (none if absent). */',
-              'typedef struct RoguePartMid { unsigned char kind, part; short q[4]; } RoguePartMid;',
-              f'#define ROGUE_PART_MID_COUNT {len(mids)}',
-              'static const RoguePartMid rogue_part_mid[ROGUE_PART_MID_COUNT + 1] = {'] + mids + ['    { 255, 255, { 0 } },', '};']
+              'typedef struct BamPartMid { unsigned char kind, part; short q[4]; } BamPartMid;',
+              f'#define BAM_PART_MID_COUNT {len(mids)}',
+              'static const BamPartMid bam_part_mid[BAM_PART_MID_COUNT + 1] = {'] + mids + ['    { 255, 255, { 0 } },', '};']
     # Body-less bones borrowed hitboxes ride on, rebuilt on the recipient.
     lines += ['/* Body-less bones (sword, tail...) that move hitboxes ride on: kind, joint, parent entry (0xFF: hangs',
               ' * from the body part), body part, rest rotation (rad x 4096), position (x 256), scale (x 4096). */',
-              'typedef struct RogueProp { unsigned char kind, joint, parent, part; short rot[3], pos[3], scale[3]; } RogueProp;']
+              'typedef struct BamProp { unsigned char kind, joint, parent, part; short rot[3], pos[3], scale[3]; } BamProp;']
     rows, arms = [], []
     meshes, shows, hides, chains = [], [], [], []
     for kind in sorted(prop_data or {}):
@@ -722,36 +722,36 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
             arms.append('    { %d, %d, %d, 0, %d, %d, { %s }, { %s }, %d },' % (
                 kind, index[joint], item, lo, hi, ', '.join(str(_s16(v, 256)) for v in grip),
                 ', '.join(str(_s16(v / n, 32767)) for v in (x, y, z, w)), _s16(reach, 256)))
-    lines += [f'#define ROGUE_PROP_COUNT {len(rows)}',
-              'static const RogueProp rogue_prop[ROGUE_PROP_COUNT + 1] = {'] + rows + ['    { 255, 0, 255, 255, { 0 }, { 0 }, { 0 } },', '};']
+    lines += [f'#define BAM_PROP_COUNT {len(rows)}',
+              'static const BamProp bam_prop[BAM_PROP_COUNT + 1] = {'] + rows + ['    { 255, 0, 255, 255, { 0 }, { 0 }, { 0 } },', '};']
     lines += ['/* Borrowed weapons: donor kind, prop entry the weapon lies along, item (0 Beam Sword, 1 Hammer, 2 parasol),',
               ' * donor motions it shows in (first..last), grip point on the prop (x 256), turn (x 32767) from the',
               ' * item model\'s long axis (+Y) onto the weapon, and grip-to-farthest-hitbox reach (x 256). */',
-              'typedef struct RogueWeapon { unsigned char kind, prop, item, pad; unsigned short first, last;',
-              '    short grip[3], align[4], reach; } RogueWeapon;',
-              f'#define ROGUE_WEAPON_COUNT {len(arms)}',
-              'static const RogueWeapon rogue_weapon[ROGUE_WEAPON_COUNT + 1] = {'] + arms + [
+              'typedef struct BamWeapon { unsigned char kind, prop, item, pad; unsigned short first, last;',
+              '    short grip[3], align[4], reach; } BamWeapon;',
+              f'#define BAM_WEAPON_COUNT {len(arms)}',
+              'static const BamWeapon bam_weapon[BAM_WEAPON_COUNT + 1] = {'] + arms + [
               '    { 255, 255, 0, 0, 0, 0, { 0 }, { 0 }, 0 },', '};']
     lines += ['/* The donor\'s own meshes for rebuilt bones (Marth\'s sword, Mewtwo\'s tail): kind, group (one chain',
               ' * of rebuilt bones), DObj index in the donor\'s model, PObjs of it drawn (bit each, 0 all); and when each group shows: kind, group,',
               ' * weapon item it replaces (255: none), first..last donor motion. */',
-              'typedef struct RogueMesh { unsigned char kind, group; unsigned short dobj, pobjs; } RogueMesh;',
-              'typedef struct RogueMeshShow { unsigned char kind, group, item, pad; unsigned short first, last; } RogueMeshShow;',
-              f'#define ROGUE_MESH_COUNT {len(meshes)}',
-              'static const RogueMesh rogue_mesh[ROGUE_MESH_COUNT + 1] = {'] + meshes + ['    { 255, 255, 0, 0 },', '};',
-              f'#define ROGUE_MESH_SHOW_COUNT {len(shows)}',
-              'static const RogueMeshShow rogue_mesh_show[ROGUE_MESH_SHOW_COUNT + 1] = {'] + shows + [
+              'typedef struct BamMesh { unsigned char kind, group; unsigned short dobj, pobjs; } BamMesh;',
+              'typedef struct BamMeshShow { unsigned char kind, group, item, pad; unsigned short first, last; } BamMeshShow;',
+              f'#define BAM_MESH_COUNT {len(meshes)}',
+              'static const BamMesh bam_mesh[BAM_MESH_COUNT + 1] = {'] + meshes + ['    { 255, 255, 0, 0 },', '};',
+              f'#define BAM_MESH_SHOW_COUNT {len(shows)}',
+              'static const BamMeshShow bam_mesh_show[BAM_MESH_SHOW_COUNT + 1] = {'] + shows + [
               '    { 255, 255, 255, 0, 0, 0 },', '};',
               '/* Donor joints collapsed (drawn at no size) while a mesh group shows: kind, group, joint. */',
-              'typedef struct RogueMeshHide { unsigned char kind, group, joint; } RogueMeshHide;',
-              f'#define ROGUE_MESH_HIDE_COUNT {len(hides)}',
-              'static const RogueMeshHide rogue_mesh_hide[ROGUE_MESH_HIDE_COUNT + 1] = {'] + hides + [
+              'typedef struct BamMeshHide { unsigned char kind, group, joint; } BamMeshHide;',
+              f'#define BAM_MESH_HIDE_COUNT {len(hides)}',
+              'static const BamMeshHide bam_mesh_hide[BAM_MESH_HIDE_COUNT + 1] = {'] + hides + [
               '    { 255, 255, 255 },', '};',
               '/* Donor joints posed through the donor\'s own skeleton from its root (ROOT_CHAINS): kind, joint,',
               ' * parent entry (255: the root), rest rotation (rad x 4096), position (x 256), scale (x 4096). */',
-              'typedef struct RogueChain { unsigned char kind, joint, parent, pad; short rot[3], pos[3], scale[3]; } RogueChain;',
-              f'#define ROGUE_CHAIN_COUNT {len(chains)}',
-              'static const RogueChain rogue_chain[ROGUE_CHAIN_COUNT + 1] = {'] + chains + [
+              'typedef struct BamChain { unsigned char kind, joint, parent, pad; short rot[3], pos[3], scale[3]; } BamChain;',
+              f'#define BAM_CHAIN_COUNT {len(chains)}',
+              'static const BamChain bam_chain[BAM_CHAIN_COUNT + 1] = {'] + chains + [
               '    { 255, 0, 255, 0, { 0 }, { 0 }, { 0 } },', '};', '']
     split_include(lines, destination)
 
@@ -786,7 +786,7 @@ def split_include(lines, destination):
 
 def mesh_dobjs(read):
     """{kind: DObj indices of the donor's model drawn for rebuilt bones}
-    (rogue_mesh): the meshes the trimmed models keep (parts.py)."""
+    (bam_mesh): the meshes the trimmed models keep (parts.py)."""
     out = {}
     for kind, (_entries, _kit, (meshes, _shows, _hides), _chain) in prop_tables(Disc(read)).items():
         if meshes:

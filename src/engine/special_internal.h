@@ -1,5 +1,5 @@
-#ifndef ROGUE_SPECIAL_INTERNAL_H
-#define ROGUE_SPECIAL_INTERNAL_H
+#ifndef BAM_SPECIAL_INTERNAL_H
+#define BAM_SPECIAL_INTERNAL_H
 #include <engine/special_engine.h>
 #include <engine/bam_fighter.h>
 #include <melee/ef/efasync.h>
@@ -34,36 +34,36 @@
 /* Host-owned lifetime, never appended to a disc-layout Fighter or shared data. */
 /* Kinds that can lend moves: every playable character (Nana's moves come
  * from Popo). */
-#define ROGUE_DONOR_KINDS (Ft_Kind_Emblem + 1)
-typedef struct RogueFighterState {
-    /* Read for every fighter (Rogue_FighterCtx returns a shared empty state
+#define BAM_DONOR_KINDS (Ft_Kind_Emblem + 1)
+typedef struct BamFighterState {
+    /* Read for every fighter (Bam_FighterCtx returns a shared empty state
      * for fighters without one, which holds only these first fields: every
      * other field is read only after S->fighter == fp). */
     Fighter* fighter;
     unsigned match_generation;
-    const RogueAbilityDefinition* active;
-    const RogueAerialDef* aerial;
+    const BamAbilityDefinition* active;
+    const BamAerialDef* aerial;
     /* The borrowed ground attack in progress (normal_runtime.c). */
     bool normal_on;
     signed char normal_slot;
     unsigned char normal_donor;
-    bool normal_fresh;       /* Rogue_NormalBegin ran; its first motion is next */
+    bool normal_fresh;       /* Bam_NormalBegin ran; its first motion is next */
     /* ---- owned fighters only below ---- */
-    unsigned aerial_equipped[ROGUE_AERIAL_SLOTS];
+    unsigned aerial_equipped[BAM_AERIAL_SLOTS];
     Fighter_WaitAnimData* aerial_anims[Ft_Kind_Max];
-    void* aerial_blobs[ROGUE_AERIAL_SLOTS][2];
+    void* aerial_blobs[BAM_AERIAL_SLOTS][2];
     /* Animation slices of the equipped specials' and ground attacks' donor
      * states (one block per move). */
     void* special_blobs[BAM_SPECIAL_BLOBS];
     unsigned special_blob_count;
-    bool loaded[ROGUE_ABILITY_COUNT];
+    bool loaded[BAM_ABILITY_COUNT];
     bool loaded_sources[Ft_Kind_Max];
     void* native_attrs;
     struct Fighter_WaitAnimData* native_anims;
     u8 (*native_anim_flags)[2];
     u32 native_anim_count;
     union Fighter_FighterVars native_vars;
-    union Fighter_FighterVars source_vars[ROGUE_DONOR_KINDS];
+    union Fighter_FighterVars source_vars[BAM_DONOR_KINDS];
     /* Fighter callbacks fp+0x2190..0x21F8 are contiguous (0x6C bytes). */
     u8 native_callbacks[0x6C];
     /* Donor bones with no recipient equivalent, resolved once per borrowed
@@ -82,26 +82,26 @@ typedef struct RogueFighterState {
     /* Fighter.x2CC (Donkey Kong's cargo attributes) outside a borrowed
      * Donkey Kong forward throw. */
     void* native_cargo;
-} RogueFighterState;
+} BamFighterState;
 /* Donor attribute copies are identical for every borrower, so one table is
  * shared (the per-borrower state above stays small). */
-typedef union { double align; unsigned char bytes[0x424]; } RogueDonorAttrs;
+typedef union { double align; unsigned char bytes[0x424]; } BamDonorAttrs;
 #include <engine/bam_match.h>
 /* The state owned by fp, or an empty, never-owned state (fighter == NULL). */
-RogueFighterState* Rogue_FighterCtx(const Fighter* fp);
+BamFighterState* Bam_FighterCtx(const Fighter* fp);
 /* Both borrowers capture exactly once after restoring the previous owner. */
-void Rogue_BorrowBegin(Fighter* fp, FighterKind source);
-void Rogue_AerialRelease(RogueFighterState* S);
+void Bam_BorrowBegin(Fighter* fp, FighterKind source);
+void Bam_AerialRelease(BamFighterState* S);
 /* A donor's data, effects and articles for this fighter (special_preload.c);
  * 0 when memory ran out. */
-int Rogue_DonorEnsure(RogueFighterState* S, int source);
+int Bam_DonorEnsure(BamFighterState* S, int source);
 /* The private animation table of a donor whose archive is not resident,
  * created on first use; NULL when it is resident or out of memory. */
-Fighter_WaitAnimData* Rogue_DonorAnimTable(RogueFighterState* S, int source);
+Fighter_WaitAnimData* Bam_DonorAnimTable(BamFighterState* S, int source);
 /* Reads the listed animations of a donor into one block and points its
  * private table at them. 0 when out of memory. */
-int Rogue_DonorReadAnims(RogueFighterState* S, int source, const short* anims, unsigned count, const char* what);
-MotionState* Rogue_NormalMotionState(Fighter* fp, int motion);
-void Rogue_NormalPrepare(Fighter* fp);
+int Bam_DonorReadAnims(BamFighterState* S, int source, const short* anims, unsigned count, const char* what);
+MotionState* Bam_NormalMotionState(Fighter* fp, int motion);
+void Bam_NormalPrepare(Fighter* fp);
 
 #endif

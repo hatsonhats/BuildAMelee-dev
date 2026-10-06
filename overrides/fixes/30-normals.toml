@@ -10,7 +10,7 @@ id = "normal-jab-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "static void decideAttack11(Fighter_GObj* gobj)\n{\n    switch (GET_FIGHTER(gobj)->kind) {"
-replacement = "static void decideAttack11(Fighter_GObj* gobj)\n{\n    switch (Rogue_NormalBegin(gobj, BAM_NORMAL_JAB)) {"
+replacement = "static void decideAttack11(Fighter_GObj* gobj)\n{\n    switch (Bam_NormalBegin(gobj, BAM_NORMAL_JAB)) {"
 occurrences = 1
 reason = "The jab slot: install the equipped donor's jab (or end a borrowed move for the fighter's own) before choosing whose jab code runs."
 
@@ -19,7 +19,7 @@ id = "normal-jab-flags"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "static MotionFlags getMotionFlags(Fighter* fp)\n{\n    switch (fp->kind) {"
-replacement = "static MotionFlags getMotionFlags(Fighter* fp)\n{\n    switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "static MotionFlags getMotionFlags(Fighter* fp)\n{\n    switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Pikachu's and Pichu's jab sets up its rapid follow-up by the move's owner."
 
@@ -28,7 +28,7 @@ id = "normal-jab-rapid"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "static void doAttack12Rapid(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (fp->kind) {"
-replacement = "static void doAttack12Rapid(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "static void doAttack12Rapid(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Jab chains follow the move's owner."
 
@@ -37,7 +37,7 @@ id = "normal-jab-2"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "static void doAttack12(Fighter_GObj* gobj)\n{\n    switch (GET_FIGHTER(gobj)->kind) {"
-replacement = "static void doAttack12(Fighter_GObj* gobj)\n{\n    switch (Rogue_AbilitySourceKind(GET_FIGHTER(gobj))) {"
+replacement = "static void doAttack12(Fighter_GObj* gobj)\n{\n    switch (Bam_AbilitySourceKind(GET_FIGHTER(gobj))) {"
 occurrences = 1
 reason = "Jab chains follow the move's owner."
 
@@ -46,7 +46,7 @@ id = "normal-jab-3"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "static void doAttack13(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (fp->kind) {"
-replacement = "static void doAttack13(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "static void doAttack13(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Jab chains follow the move's owner (Marth's third jab loops)."
 
@@ -55,7 +55,7 @@ id = "normal-jab-window-2"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "fp->hitlag_mul = fp->co_attrs.jab_2_input_window;"
-replacement = "fp->hitlag_mul = Rogue_NormalCoAttrs(fp)->jab_2_input_window;"
+replacement = "fp->hitlag_mul = Bam_NormalCoAttrs(fp)->jab_2_input_window;"
 occurrences = 1
 reason = "The donor's jab timing."
 
@@ -64,7 +64,7 @@ id = "normal-jab-window-3"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "fp->hitlag_mul = fp->co_attrs.jab_3_input_window;"
-replacement = "fp->hitlag_mul = Rogue_NormalCoAttrs(fp)->jab_3_input_window;"
+replacement = "fp->hitlag_mul = Bam_NormalCoAttrs(fp)->jab_3_input_window;"
 occurrences = 1
 reason = "The donor's jab timing."
 
@@ -73,7 +73,7 @@ id = "normal-jab-rapid-window"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack100.c"
 anchor = "    co = &fp->co_attrs;\n    if ((fp->input.pressed_buttons & HSD_PAD_A) ||"
-replacement = "    co = Rogue_NormalCoAttrs(fp);\n    if ((fp->input.pressed_buttons & HSD_PAD_A) ||"
+replacement = "    co = Bam_NormalCoAttrs(fp);\n    if ((fp->input.pressed_buttons & HSD_PAD_A) ||"
 occurrences = 1
 reason = "The donor's rapid jab timing."
 
@@ -82,7 +82,7 @@ id = "normal-jab-rapid-start"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack100.c"
 anchor = "void fn_800D6AC4(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (fp->kind) {"
-replacement = "void fn_800D6AC4(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "void fn_800D6AC4(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Mr. Game & Watch's rapid jab is his own motion."
 
@@ -91,7 +91,7 @@ id = "normal-dash-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackDash.c"
 anchor = "static void decideFighter(Fighter_GObj* gobj)\n{\n    switch (GET_FIGHTER(gobj)->kind) {"
-replacement = "static void decideFighter(Fighter_GObj* gobj)\n{\n    switch (Rogue_NormalBegin(gobj, BAM_NORMAL_DASH)) {"
+replacement = "static void decideFighter(Fighter_GObj* gobj)\n{\n    switch (Bam_NormalBegin(gobj, BAM_NORMAL_DASH)) {"
 occurrences = 1
 reason = "The dash attack slot (Kirby's is his own motion)."
 
@@ -100,7 +100,7 @@ id = "normal-dash-friction"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackDash.c"
 anchor = "p_ftCommonData->x50 * fp->co_attrs.ground_friction,"
-replacement = "p_ftCommonData->x50 * Rogue_NormalCoAttrs(fp)->ground_friction,"
+replacement = "p_ftCommonData->x50 * Bam_NormalCoAttrs(fp)->ground_friction,"
 occurrences = 1
 reason = "A borrowed dash attack slides as far as the donor's does."
 
@@ -109,7 +109,7 @@ id = "normal-ftilt-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackS3.c"
 anchor = "static void decideAngle(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);"
-replacement = "static void decideAngle(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Rogue_NormalBegin(gobj, BAM_NORMAL_FTILT);"
+replacement = "static void decideAngle(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Bam_NormalBegin(gobj, BAM_NORMAL_FTILT);"
 occurrences = 1
 reason = "The forward tilt slot; installed before the angled variants are looked up in the donor's animation table."
 
@@ -118,7 +118,7 @@ id = "normal-utilt-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackHi3.c"
 anchor = "void doEnter(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    fp->allow_interrupt = false;\n    Fighter_ChangeMotionState(gobj, ftCo_MS_AttackHi3,"
-replacement = "void doEnter(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Rogue_NormalBegin(gobj, BAM_NORMAL_UTILT);\n    fp->allow_interrupt = false;\n    Fighter_ChangeMotionState(gobj, ftCo_MS_AttackHi3,"
+replacement = "void doEnter(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Bam_NormalBegin(gobj, BAM_NORMAL_UTILT);\n    fp->allow_interrupt = false;\n    Fighter_ChangeMotionState(gobj, ftCo_MS_AttackHi3,"
 occurrences = 1
 reason = "The up tilt slot."
 
@@ -127,7 +127,7 @@ id = "normal-dtilt-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackLw3.c"
 anchor = "void decideFighter(HSD_GObj* gobj)\n{\n    switch (GET_FIGHTER(gobj)->kind) {"
-replacement = "void decideFighter(HSD_GObj* gobj)\n{\n    switch (Rogue_NormalBegin(gobj, BAM_NORMAL_DTILT)) {"
+replacement = "void decideFighter(HSD_GObj* gobj)\n{\n    switch (Bam_NormalBegin(gobj, BAM_NORMAL_DTILT)) {"
 occurrences = 1
 reason = "The down tilt slot (Mr. Game & Watch's is his own motion)."
 
@@ -136,7 +136,7 @@ id = "normal-fsmash-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackS4.c"
 anchor = "    fp->facing_dir = stick_x_sign;\n    switch (fp->kind) {"
-replacement = "    fp->facing_dir = stick_x_sign;\n    switch (Rogue_NormalBegin(gobj, BAM_NORMAL_FSMASH)) {"
+replacement = "    fp->facing_dir = stick_x_sign;\n    switch (Bam_NormalBegin(gobj, BAM_NORMAL_FSMASH)) {"
 occurrences = 1
 reason = "The forward smash slot (Ness's, Peach's and Mr. Game & Watch's are their own motions)."
 
@@ -145,7 +145,7 @@ id = "normal-fsmash-second"
 owner = "platform/specials/normals"
 file = "src/melee/ft/ftattacks4combo.c"
 anchor = "    FighterKind kind = fp->kind;"
-replacement = "    FighterKind kind = Rogue_AbilitySourceKind(fp);"
+replacement = "    FighterKind kind = Bam_AbilitySourceKind(fp);"
 occurrences = 1
 reason = "Link's second forward smash swing belongs to the move's owner (the check asserted on anyone else)."
 
@@ -154,7 +154,7 @@ id = "normal-usmash-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackHi4.c"
 anchor = "        switch (fp->kind) {\n        case Ft_Kind_Ness:\n            ftNs_AttackHi4_Enter(gobj);"
-replacement = "        switch (Rogue_NormalBegin(gobj, BAM_NORMAL_USMASH)) {\n        case Ft_Kind_Ness:\n            ftNs_AttackHi4_Enter(gobj);"
+replacement = "        switch (Bam_NormalBegin(gobj, BAM_NORMAL_USMASH)) {\n        case Ft_Kind_Ness:\n            ftNs_AttackHi4_Enter(gobj);"
 occurrences = 2
 reason = "The up smash slot (Ness's yo-yo is his own motion)."
 
@@ -163,7 +163,7 @@ id = "normal-dsmash-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackLw4.c"
 anchor = "        switch (fp->kind) {\n        case Ft_Kind_Ness:\n            ftNs_AttackLw4_Enter(gobj);"
-replacement = "        switch (Rogue_NormalBegin(gobj, BAM_NORMAL_DSMASH)) {\n        case Ft_Kind_Ness:\n            ftNs_AttackLw4_Enter(gobj);"
+replacement = "        switch (Bam_NormalBegin(gobj, BAM_NORMAL_DSMASH)) {\n        case Ft_Kind_Ness:\n            ftNs_AttackLw4_Enter(gobj);"
 occurrences = 1
 reason = "The down smash slot."
 
@@ -172,7 +172,7 @@ id = "normal-throw-begin"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "void ftCo_800DD4B0(Fighter_GObj* gobj, FtMotionId msid)\n{\n    Fighter* fp = GET_FIGHTER(gobj);"
-replacement = "void ftCo_800DD4B0(Fighter_GObj* gobj, FtMotionId msid)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Rogue_NormalBegin(gobj, BAM_NORMAL_FTHROW + (msid - ftCo_MS_ThrowF));"
+replacement = "void ftCo_800DD4B0(Fighter_GObj* gobj, FtMotionId msid)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    Bam_NormalBegin(gobj, BAM_NORMAL_FTHROW + (msid - ftCo_MS_ThrowF));"
 occurrences = 1
 reason = "The four throw slots, installed before the throw speed and the victim's motion are chosen."
 
@@ -181,7 +181,7 @@ id = "normal-throw-weight"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "if (fp->ft_data->x0->weight_independent_throws_mask & (1 << throw_index)) {"
-replacement = "if (Rogue_NormalCoAttrs(fp)->weight_independent_throws_mask & (1 << throw_index)) {"
+replacement = "if (Bam_NormalCoAttrs(fp)->weight_independent_throws_mask & (1 << throw_index)) {"
 occurrences = 1
 reason = "Whether the throw's speed depends on the victim's weight is the donor's."
 
@@ -190,7 +190,7 @@ id = "normal-throw-koopa"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "    case 222:\n        switch (fp->kind) {"
-replacement = "    case 222:\n        switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "    case 222:\n        switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Bowser's down throw on Peach and Zelda."
 
@@ -199,7 +199,7 @@ id = "normal-throw-kind"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "    ftCo_800DE3FC(fp->victim_gobj, victim_msid, anim_speed);\n    switch (fp->kind) {"
-replacement = "    ftCo_800DE3FC(fp->victim_gobj, victim_msid, anim_speed);\n    switch (Rogue_AbilitySourceKind(fp)) {"
+replacement = "    ftCo_800DE3FC(fp->victim_gobj, victim_msid, anim_speed);\n    switch (Bam_AbilitySourceKind(fp)) {"
 occurrences = 1
 reason = "Kirby's up throw and Samus's grapple beam belong to the throw's owner."
 
@@ -208,7 +208,7 @@ id = "normal-throw-kirby-hi"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "        if (fp->kind == Ft_Kind_Kirby && fp->motion_id == 221) {"
-replacement = "        if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Kirby && fp->motion_id == 221) {"
+replacement = "        if (Bam_AbilitySourceKind(fp) == Ft_Kind_Kirby && fp->motion_id == 221) {"
 occurrences = 1
 reason = "Kirby's up throw."
 
@@ -217,7 +217,7 @@ id = "normal-throw-kirby-cam"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "    if (fp->kind == Ft_Kind_Kirby && fp->motion_id == 221) {\n        ftCamera_800762F4(gobj);"
-replacement = "    if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Kirby && fp->motion_id == 221) {\n        ftCamera_800762F4(gobj);"
+replacement = "    if (Bam_AbilitySourceKind(fp) == Ft_Kind_Kirby && fp->motion_id == 221) {\n        ftCamera_800762F4(gobj);"
 occurrences = 1
 reason = "Kirby's up throw camera."
 
@@ -226,7 +226,7 @@ id = "normal-thrown-yoshi"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Thrown.c"
 anchor = "    if (thrower_fp->kind == Ft_Kind_Yoshi) {"
-replacement = "    if (Rogue_AbilitySourceKind(thrower_fp) == Ft_Kind_Yoshi) {"
+replacement = "    if (Bam_AbilitySourceKind(thrower_fp) == Ft_Kind_Yoshi) {"
 occurrences = 1
 reason = "The thrown fighter follows the throw's owner."
 
@@ -235,7 +235,7 @@ id = "normal-thrown-kirby"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Thrown.c"
 anchor = "    if (thrower_fp->kind != Ft_Kind_Kirby || msid - ftCo_MS_ThrownF > 1U) {"
-replacement = "    if (Rogue_AbilitySourceKind(thrower_fp) != Ft_Kind_Kirby || msid - ftCo_MS_ThrownF > 1U) {"
+replacement = "    if (Bam_AbilitySourceKind(thrower_fp) != Ft_Kind_Kirby || msid - ftCo_MS_ThrownF > 1U) {"
 occurrences = 1
 reason = "The thrown fighter follows the throw's owner."
 
@@ -244,7 +244,7 @@ id = "normal-thrown-kirby-cam"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Thrown.c"
 anchor = "    if (victim->kind == Ft_Kind_Kirby && victim->motion_id == ftCo_MS_ThrowHi)"
-replacement = "    if (Rogue_AbilitySourceKind(victim) == Ft_Kind_Kirby && victim->motion_id == ftCo_MS_ThrowHi)"
+replacement = "    if (Bam_AbilitySourceKind(victim) == Ft_Kind_Kirby && victim->motion_id == ftCo_MS_ThrowHi)"
 occurrences = 1
 reason = "The thrown fighter follows the throw's owner."
 
@@ -253,7 +253,7 @@ id = "normal-cargo-grabbing"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_0A01.c"
 anchor = "    if (fp->kind == Ft_Kind_Donkey) {\n        if (fp->motion_id >= ftDk_MS_ThrowFWait0 &&"
-replacement = "    if (Rogue_AbilitySourceKind(fp) == Ft_Kind_Donkey) {\n        if (fp->motion_id >= ftDk_MS_ThrowFWait0 &&"
+replacement = "    if (Bam_AbilitySourceKind(fp) == Ft_Kind_Donkey) {\n        if (fp->motion_id >= ftDk_MS_ThrowFWait0 &&"
 occurrences = 1
 reason = "A borrowed cargo carry still holds its victim."
 
@@ -262,7 +262,7 @@ id = "normal-samus-throw-beam-data"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftSamus/ftsamus.c"
 anchor = "    void** item_list = fp->ft_data->x48_items;\n    struct UNK_SAMUS_S1* beam = item_list[4];"
-replacement = "    void** item_list = Rogue_AbilityData(fp)->x48_items;\n    struct UNK_SAMUS_S1* beam = item_list[4];"
+replacement = "    void** item_list = Bam_AbilityData(fp)->x48_items;\n    struct UNK_SAMUS_S1* beam = item_list[4];"
 occurrences = 1
 reason = "The grapple beam Samus's throws show is her article, on anyone."
 
@@ -271,7 +271,7 @@ id = "normal-samus-throw-beam-scale"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftSamus/ftsamus.c"
 anchor = "    scale.x = scale.y = scale.z = fp->x34_scale.y;"
-replacement = "    scale.x = scale.y = scale.z = fp->x34_scale.y * Rogue_BorrowScale(fp);"
+replacement = "    scale.x = scale.y = scale.z = fp->x34_scale.y * Bam_BorrowScale(fp);"
 occurrences = 1
 reason = "Sized to the fighter it is on."
 
@@ -280,7 +280,7 @@ id = "normal-samus-throw-beam-bone"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftSamus/ftsamus.c"
 anchor = "                fighter_copy->parts[FtPart_ThrowN].joint);"
-replacement = "                fighter_copy->parts[Rogue_AbilityMapBone(fighter_copy, FtPart_ThrowN)].joint);"
+replacement = "                fighter_copy->parts[Bam_AbilityMapBone(fighter_copy, FtPart_ThrowN)].joint);"
 occurrences = 1
 reason = "On this fighter's throw bone."
 
@@ -289,7 +289,7 @@ id = "normal-gw-attack11-hand"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattack11.c"
 anchor = "lb_8000B1CC(fp->parts[FtPart_LHandNb].joint, NULL, &sp10);"
-replacement = "lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
+replacement = "lb_8000B1CC(fp->parts[Bam_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
 occurrences = 1
 reason = "His articles appear in this fighter's hand."
 
@@ -298,7 +298,7 @@ id = "normal-gw-attack11-attach"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattack11.c"
 anchor = "&sp10, FtPart_LHandNb, fp->facing_dir"
-replacement = "&sp10, Rogue_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
+replacement = "&sp10, Bam_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
 occurrences = 1
 reason = "His articles are held in this fighter's hand."
 
@@ -307,7 +307,7 @@ id = "normal-gw-attacklw3-hand"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacklw3.c"
 anchor = "lb_8000B1CC(fp->parts[FtPart_LHandNb].joint, NULL, &sp10);"
-replacement = "lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
+replacement = "lb_8000B1CC(fp->parts[Bam_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
 occurrences = 1
 reason = "His articles appear in this fighter's hand."
 
@@ -316,7 +316,7 @@ id = "normal-gw-attacklw3-attach"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacklw3.c"
 anchor = "&sp10, FtPart_LHandNb, fp->facing_dir"
-replacement = "&sp10, Rogue_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
+replacement = "&sp10, Bam_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
 occurrences = 1
 reason = "His articles are held in this fighter's hand."
 
@@ -325,7 +325,7 @@ id = "normal-gw-attacks4-hand"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacks4.c"
 anchor = "lb_8000B1CC(fp->parts[FtPart_LHandNb].joint, NULL, &sp10);"
-replacement = "lb_8000B1CC(fp->parts[Rogue_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
+replacement = "lb_8000B1CC(fp->parts[Bam_AbilityMapBone(fp, FtPart_LHandNb)].joint, NULL, &sp10);"
 occurrences = 1
 reason = "His articles appear in this fighter's hand."
 
@@ -334,7 +334,7 @@ id = "normal-gw-attacks4-attach"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacks4.c"
 anchor = "&sp10, FtPart_LHandNb, fp->facing_dir"
-replacement = "&sp10, Rogue_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
+replacement = "&sp10, Bam_AbilityMapBone(fp, FtPart_LHandNb), fp->facing_dir"
 occurrences = 1
 reason = "His articles are held in this fighter's hand."
 
@@ -343,7 +343,7 @@ id = "normal-ness-bat-bone"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftNess/ftnessattacks4.c"
 anchor = "0x2A /* Item Hold Bone */"
-replacement = "Rogue_AbilityMapBone(fp, 0x2A) /* Item Hold Bone */"
+replacement = "Bam_AbilityMapBone(fp, 0x2A) /* Item Hold Bone */"
 occurrences = 1
 reason = "The bat is held in this fighter's hand."
 
@@ -352,7 +352,7 @@ id = "normal-ness-yoyo-bone"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftNess/ftnessattackhi4.c"
 anchor = "fp->parts[61].joint"
-replacement = "fp->parts[Rogue_AbilityMapBone(fp, 61)].joint"
+replacement = "fp->parts[Bam_AbilityMapBone(fp, 61)].joint"
 occurrences = 6
 reason = "The yo-yo string starts at this fighter's hand."
 
@@ -361,7 +361,7 @@ id = "normal-ness-yoyo-body"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftNess/ftnessattackhi4.c"
 anchor = "fp->parts[FtPart_XRotN].joint"
-replacement = "fp->parts[Rogue_AbilityMapBone(fp, FtPart_XRotN)].joint"
+replacement = "fp->parts[Bam_AbilityMapBone(fp, FtPart_XRotN)].joint"
 occurrences = 3
 reason = "This fighter's body."
 
@@ -370,7 +370,7 @@ id = "normal-ness-yoyo-hand"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftNess/ftnessattackhi4.c"
 anchor = "fp->parts[FtPart_R2ndNa].joint"
-replacement = "fp->parts[Rogue_AbilityMapBone(fp, FtPart_R2ndNa)].joint"
+replacement = "fp->parts[Bam_AbilityMapBone(fp, FtPart_R2ndNa)].joint"
 occurrences = 1
 reason = "This fighter's hand."
 
@@ -379,7 +379,7 @@ id = "normal-ness-yoyo-item-hand"
 owner = "platform/specials/normals"
 file = "src/melee/it/kinds/itnessyoyo.c"
 anchor = "fp->parts[FtPart_R2ndNa].joint"
-replacement = "fp->parts[Rogue_AbilityMapBone(fp, FtPart_R2ndNa)].joint"
+replacement = "fp->parts[Bam_AbilityMapBone(fp, FtPart_R2ndNa)].joint"
 occurrences = 1
 reason = "The yo-yo hangs from the thrower's hand."
 
@@ -388,7 +388,7 @@ id = "normal-ness-yoyo-item-scale"
 owner = "platform/specials/normals"
 file = "src/melee/it/kinds/itnessyoyo.c"
 anchor = "ftLib_80086A0C(ip->owner)"
-replacement = "Rogue_OwnerScale(ip->owner)"
+replacement = "Bam_OwnerScale(ip->owner)"
 occurrences = 8
 reason = "The yo-yo and its string are sized to the fighter swinging it."
 
@@ -397,16 +397,16 @@ id = "normal-hitbox-scale-command"
 owner = "platform/specials/normals"
 file = "src/melee/ft/ftaction.c"
 anchor = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value;"
-replacement = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value * Rogue_HitboxScale(fp);"
+replacement = "    hit->scale = 0.003906f * cmd->u->set_hitbox_scale.value * Bam_HitboxScale(fp);"
 occurrences = 1
-reason = "A borrowed move resizing its hitbox keeps it fitted to this fighter (Rogue_HitboxCreated)."
+reason = "A borrowed move resizing its hitbox keeps it fitted to this fighter (Bam_HitboxCreated)."
 
 [[fix]]
 id = "normal-throwf-cargo"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Throw.c"
 anchor = "        if (GET_FIGHTER(gobj)->x2222_b0) {\n            ftCo_8009B56C(gobj);"
-replacement = "        if (Rogue_IsAbilityState(GET_FIGHTER(gobj))\n                ? (Rogue_AbilitySourceKind(GET_FIGHTER(gobj)) == Ft_Kind_Donkey && GET_FIGHTER(gobj)->victim_gobj != NULL)\n                : GET_FIGHTER(gobj)->x2222_b0) {\n            ftCo_8009B56C(gobj);"
+replacement = "        if (Bam_IsAbilityState(GET_FIGHTER(gobj))\n                ? (Bam_AbilitySourceKind(GET_FIGHTER(gobj)) == Ft_Kind_Donkey && GET_FIGHTER(gobj)->victim_gobj != NULL)\n                : GET_FIGHTER(gobj)->x2222_b0) {\n            ftCo_8009B56C(gobj);"
 occurrences = 1
 reason = "Donkey Kong's forward throw lifts the victim into his cargo carry: x2222_b0 is set on his fighter. During a borrowed throw it is the throw's owner that decides (DK borrowing another throw released the victim and then entered the carry with none: crash), and only with a victim held."
 
@@ -415,6 +415,6 @@ id = "normal-jab-chain-from-wait"
 owner = "platform/specials/normals"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack1.c"
 anchor = "        if (fp->hitlag_mul > 0 && fp->x2218_b1) {\n            switch (fp->unk_msid) {"
-replacement = "        if (fp->hitlag_mul > 0 && fp->x2218_b1) {\n            Rogue_NormalBegin(gobj, BAM_NORMAL_JAB);\n            switch (fp->unk_msid) {"
+replacement = "        if (fp->hitlag_mul > 0 && fp->x2218_b1) {\n            Bam_NormalBegin(gobj, BAM_NORMAL_JAB);\n            switch (fp->unk_msid) {"
 occurrences = 1
 reason = "A jab's second and third hits started after the first one ended (from Wait) are the same character's jab."

@@ -67,13 +67,13 @@ static int same_family(int a, int b)
     return (a == CKind_Zelda || a == CKind_Seak) && (b == CKind_Zelda || b == CKind_Seak);
 }
 
-static int special_ok(const RogueSpecialDef* d, unsigned slot)
+static int special_ok(const BamSpecialDef* d, unsigned slot)
 {
-    return d && d->slot == slot && RogueSpecial_Offerable(d) && Rogue_GetAbility(d->id) &&
+    return d && d->slot == slot && BamSpecial_Offerable(d) && Bam_GetAbility(d->id) &&
            !same_family((int) d->character, css.ckind);
 }
 
-static int aerial_ok(const RogueAerialDef* d, unsigned slot)
+static int aerial_ok(const BamAerialDef* d, unsigned slot)
 {
     return d && d->slot == slot && !same_family((int) d->character, css.ckind);
 }
@@ -81,24 +81,24 @@ static int aerial_ok(const RogueAerialDef* d, unsigned slot)
 /* Step through native (0) and every move that fits the slot. */
 static unsigned cycle_special(unsigned slot, unsigned cur, int dir)
 {
-    unsigned ids[ROGUE_SPECIALS + 1], n = 0, at = 0, i;
+    unsigned ids[BAM_SPECIALS + 1], n = 0, at = 0, i;
     ids[n++] = 0;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (special_ok(&rogue_specials[i], slot)) {
-            if (rogue_specials[i].id == cur) at = n;
-            ids[n++] = rogue_specials[i].id;
+    for (i = 0; i < BAM_SPECIALS; ++i)
+        if (special_ok(&bam_specials[i], slot)) {
+            if (bam_specials[i].id == cur) at = n;
+            ids[n++] = bam_specials[i].id;
         }
     return ids[(at + n + dir) % n];
 }
 
 static unsigned cycle_aerial(unsigned slot, unsigned cur, int dir)
 {
-    unsigned ids[ROGUE_AERIALS + 1], n = 0, at = 0, i;
+    unsigned ids[BAM_AERIALS + 1], n = 0, at = 0, i;
     ids[n++] = 0;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (aerial_ok(&rogue_aerials[i], slot)) {
-            if (rogue_aerials[i].id == cur) at = n;
-            ids[n++] = rogue_aerials[i].id;
+    for (i = 0; i < BAM_AERIALS; ++i)
+        if (aerial_ok(&bam_aerials[i], slot)) {
+            if (bam_aerials[i].id == cur) at = n;
+            ids[n++] = bam_aerials[i].id;
         }
     return ids[(at + n + dir) % n];
 }
@@ -127,12 +127,12 @@ static void loadout_fix(BamLoadout* l)
         any |= l->normals[i];
     }
     for (i = 0; i < BAM_SPECIAL_SLOTS; ++i) {
-        const RogueSpecialDef* d = RogueSpecial_Find(l->specials[i]);
+        const BamSpecialDef* d = BamSpecial_Find(l->specials[i]);
         if (l->specials[i] && !special_ok(d, i)) l->specials[i] = 0;
         any |= l->specials[i];
     }
     for (i = 0; i < BAM_AERIAL_SLOTS; ++i) {
-        const RogueAerialDef* d = RogueAerial_Find(l->aerials[i]);
+        const BamAerialDef* d = BamAerial_Find(l->aerials[i]);
         if (l->aerials[i] && !aerial_ok(d, i)) l->aerials[i] = 0;
         any |= l->aerials[i];
     }
@@ -236,16 +236,16 @@ static unsigned rand_below(unsigned n)
 static void randomize(BamLoadout* l)
 {
     unsigned slot, i, n;
-    unsigned ids[ROGUE_SPECIALS > ROGUE_AERIALS ? ROGUE_SPECIALS : ROGUE_AERIALS];
+    unsigned ids[BAM_SPECIALS > BAM_AERIALS ? BAM_SPECIALS : BAM_AERIALS];
     rng ^= (unsigned) OSGetTime();
     for (slot = 0; slot < BAM_SPECIAL_SLOTS; ++slot) {
-        for (n = i = 0; i < ROGUE_SPECIALS; ++i)
-            if (special_ok(&rogue_specials[i], slot)) ids[n++] = rogue_specials[i].id;
+        for (n = i = 0; i < BAM_SPECIALS; ++i)
+            if (special_ok(&bam_specials[i], slot)) ids[n++] = bam_specials[i].id;
         l->specials[slot] = (unsigned char) (n ? ids[rand_below(n)] : 0);
     }
     for (slot = 0; slot < BAM_AERIAL_SLOTS; ++slot) {
-        for (n = i = 0; i < ROGUE_AERIALS; ++i)
-            if (aerial_ok(&rogue_aerials[i], slot)) ids[n++] = rogue_aerials[i].id;
+        for (n = i = 0; i < BAM_AERIALS; ++i)
+            if (aerial_ok(&bam_aerials[i], slot)) ids[n++] = bam_aerials[i].id;
         l->aerials[slot] = (unsigned char) (n ? ids[rand_below(n)] : 0);
     }
     for (slot = 0; slot < BAM_NORMAL_SLOTS; ++slot) {
@@ -421,11 +421,11 @@ static void preload_donors(void)
         budget -= preload_weight((u8) pl->ckind);
         if (pl->slot_type == 1 || !l->enabled) continue;
         for (i = 0; i < BAM_SPECIAL_SLOTS; ++i) {
-            const RogueSpecialDef* d = RogueSpecial_Find(l->specials[i]);
+            const BamSpecialDef* d = BamSpecial_Find(l->specials[i]);
             if (l->specials[i] && d && d->character < 26) ++uses[d->character];
         }
         for (i = 0; i < BAM_AERIAL_SLOTS; ++i) {
-            const RogueAerialDef* d = RogueAerial_Find(l->aerials[i]);
+            const BamAerialDef* d = BamAerial_Find(l->aerials[i]);
             if (l->aerials[i] && d && d->character < 26) ++uses[d->character];
         }
         for (i = 0; i < BAM_NORMAL_SLOTS; ++i)

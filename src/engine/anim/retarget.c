@@ -85,8 +85,8 @@ static void forget(const Fighter* fp)
 int rest_world(unsigned kind, unsigned i, Quat* q)
 {
     const short* v;
-    if (kind >= ROGUE_REST_KINDS || i >= ROGUE_REST_PARTS + ROGUE_REST_EXTRA) return 0;
-    v = i < ROGUE_REST_PARTS ? rogue_rest_world[kind][i] : rogue_rest_extra[kind][i - ROGUE_REST_PARTS];
+    if (kind >= BAM_REST_KINDS || i >= BAM_REST_PARTS + BAM_REST_EXTRA) return 0;
+    v = i < BAM_REST_PARTS ? bam_rest_world[kind][i] : bam_rest_extra[kind][i - BAM_REST_PARTS];
     if (!v[0] && !v[1] && !v[2] && !v[3]) return 0;
     q->x = v[0] * (1.0f / 32767.0f); q->y = v[1] * (1.0f / 32767.0f);
     q->z = v[2] * (1.0f / 32767.0f); q->w = v[3] * (1.0f / 32767.0f);
@@ -99,10 +99,10 @@ Quat mid_quat(unsigned kind, int part)
 {
     Quat q = { 0.0f, 0.0f, 0.0f, 1.0f };
     unsigned i;
-    for (i = 0; i < ROGUE_PART_MID_COUNT; ++i)
-        if (rogue_part_mid[i].kind == kind && rogue_part_mid[i].part == part) {
-            q.x = rogue_part_mid[i].q[0] * (1.0f / 32767.0f); q.y = rogue_part_mid[i].q[1] * (1.0f / 32767.0f);
-            q.z = rogue_part_mid[i].q[2] * (1.0f / 32767.0f); q.w = rogue_part_mid[i].q[3] * (1.0f / 32767.0f);
+    for (i = 0; i < BAM_PART_MID_COUNT; ++i)
+        if (bam_part_mid[i].kind == kind && bam_part_mid[i].part == part) {
+            q.x = bam_part_mid[i].q[0] * (1.0f / 32767.0f); q.y = bam_part_mid[i].q[1] * (1.0f / 32767.0f);
+            q.z = bam_part_mid[i].q[2] * (1.0f / 32767.0f); q.w = bam_part_mid[i].q[3] * (1.0f / 32767.0f);
             break;
         }
     return q;
@@ -133,18 +133,18 @@ int part_joint_raw(Fighter* fp, int part)
 {
     const FighterPartsTable* table = ftPartsTable[fp->kind];
     int joint;
-    if (part < 0 || part >= ROGUE_PART_COUNT) return -1;
+    if (part < 0 || part >= BAM_PART_COUNT) return -1;
     joint = table->part_to_joint[part];
     if (joint == FTPART_INVALID || (unsigned) joint >= table->parts_num || !fp->parts[joint].joint) return -1;
     return joint;
 }
-/* The retargeted-part index (into rogue_rest_part) of a recipient joint. */
+/* The retargeted-part index (into bam_rest_part) of a recipient joint. */
 static int rest_index_of(Fighter* fp, HSD_JObj* jobj)
 {
     unsigned i;
     if (!jobj) return -1;
-    for (i = 0; i < ROGUE_REST_PARTS; ++i) {
-        int joint = part_joint_raw(fp, rogue_rest_part[i]);
+    for (i = 0; i < BAM_REST_PARTS; ++i) {
+        int joint = part_joint_raw(fp, bam_rest_part[i]);
         if (joint >= 0 && fp->parts[joint].joint == jobj) return (int) i;
     }
     return -1;
@@ -185,8 +185,8 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
             build_parents(fp, slot);
             pose_on[slot] = 1;
         }
-        for (i = 0; i < ROGUE_REST_PARTS; ++i) {
-            int part = rogue_rest_part[i], joint, parent;
+        for (i = 0; i < BAM_REST_PARTS; ++i) {
+            int part = bam_rest_part[i], joint, parent;
             unsigned char fold[ROTFIX_FOLDS], nfold;
             Quat cb, cp;
             Quat dp, db, rest;
@@ -199,18 +199,18 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
             cp = correction(source_kind, fp->kind, parent);
             /* Donor ancestors (by body part) the recipient does not have. */
             {
-                int up = rogue_part_parent[source_kind][part], chain[ROTFIX_FOLDS], n = 0, ok = 1;
+                int up = bam_part_parent[source_kind][part], chain[ROTFIX_FOLDS], n = 0, ok = 1;
                 while (up != 0xFF && n < ROTFIX_FOLDS) {
                     if (part_joint_raw(fp, up) >= 0) break;
                     chain[n++] = up;
-                    up = rogue_part_parent[source_kind][up];
+                    up = bam_part_parent[source_kind][up];
                 }
                 if (up != 0xFF && n == ROTFIX_FOLDS) ok = 0;
                 nfold = 0;
                 while (ok && n > 0) fold[nfold++] = (unsigned char) chain[--n];
             }
             /* Every body bone is registered: the per-frame pass needs the
-             * donor's own values for it (Rogue_AnimPostStep). */
+             * donor's own values for it (Bam_AnimPostStep). */
             /* Until a track writes it, the bone holds the donor's rest pose. */
             if (!rest_world(source_kind, i, &db)) continue;
             rest = parent >= 0 && rest_world(source_kind, (unsigned) parent, &dp) ? q_mul(q_conj(dp), db) : db;
@@ -244,7 +244,7 @@ static void rotfix_apply(RotFix* e)
     HSD_JObjSetRotationZ(e->jobj, out[2]);
 }
 /* Animated rotation (jobj.c ROTX/ROTY/ROTZ). */
-void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value)
+void Bam_AnimRotate(HSD_JObj* jobj, int axis, float value)
 {
     /* Every animated joint goes through here, menus included, and the
      * per-match state only exists during a match. */
@@ -259,33 +259,33 @@ void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value)
     rotfix_apply(e);
 }
 
-void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
+void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
 {
     static const int parts[3] = { FtPart_XRotN, FtPart_YRotN, FtPart_HipN };
-    RogueFighterState* S;
+    BamFighterState* S;
     const BodyRest *own, *donor;
     float ratio;
     unsigned i, k;
     if (!fp || !bam_anim_scale) return;
     if (first_part == 0) prop_reset(fp);
-    S = Rogue_FighterCtx(fp);
+    S = Bam_FighterCtx(fp);
     if (S && S->fighter == fp) {
         unsigned slot = (unsigned) (S - bam_match->fighters);
         int borrowed = source_kind != fp->kind && (S->active || S->aerial || S->normal_on) &&
-            source_kind < ROGUE_REST_KINDS && fp->kind < ROGUE_REST_KINDS;
+            source_kind < BAM_REST_KINDS && fp->kind < BAM_REST_KINDS;
         if (slot < BAM_FIGHTERS) rotate_retarget(fp, slot, source_kind, first_part, borrowed);
     }
     /* A partial animation that starts below the body bones leaves them alone. */
     if (first_part > FtPart_HipN) return;
     forget(fp);
-    S = Rogue_FighterCtx(fp);
+    S = Bam_FighterCtx(fp);
     if (source_kind == fp->kind || S->fighter != fp || (!S->active && !S->aerial && !S->normal_on) ||
         source_kind >= BODY_KINDS || fp->kind >= BODY_KINDS) return;
     own = &body_rest[fp->kind];
     donor = &body_rest[source_kind];
     if (own->hip <= 0.0f || donor->hip <= 0.0f) return;
     ratio = own->hip / donor->hip;
-    /* Within the borrow scale's range (Rogue_BorrowScale): Jigglypuff's and
+    /* Within the borrow scale's range (Bam_BorrowScale): Jigglypuff's and
      * Kirby's hips sit 2.4 high, so their hop in a dash attack threw Captain
      * Falcon five times as high (his whole body above the dummy's head). */
     if (ratio < 0.4f) ratio = 0.4f;
@@ -307,7 +307,7 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
             s->ratio = ratio;
             s->own_hip = own->hip;
             s->donor_hip = donor->hip;
-            s->size = Rogue_BorrowScale(fp);
+            s->size = Bam_BorrowScale(fp);
             s->lift = 1;
         }
     }
@@ -322,12 +322,12 @@ void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
             memset(s, 0, sizeof(*s));
             s->fighter = fp;
             s->jobj = fp->parts[joint].joint;
-            s->ratio = Rogue_BorrowScale(fp);
+            s->ratio = Bam_BorrowScale(fp);
         }
     }
 }
 
-float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
+float Bam_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 {
     unsigned i;
     if (!bam_anim_scale) return value; /* outside a match (menus) */
@@ -352,7 +352,7 @@ float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value)
     return value;
 }
 
-void Rogue_AnimScaleReset(void)
+void Bam_AnimScaleReset(void)
 {
     if (!bam_anim_scale) return;
     scaled_count = 0;

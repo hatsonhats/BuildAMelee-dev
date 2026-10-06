@@ -21,10 +21,10 @@ unsigned Bam_SpecialIndex(unsigned slot, unsigned id)
 {
     unsigned i, n = 0;
     if (!id) return 0;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (rogue_specials[i].slot == slot) {
+    for (i = 0; i < BAM_SPECIALS; ++i)
+        if (bam_specials[i].slot == slot) {
             ++n;
-            if (rogue_specials[i].id == id) return n < 32 ? n : 0;
+            if (bam_specials[i].id == id) return n < 32 ? n : 0;
         }
     return 0;
 }
@@ -33,8 +33,8 @@ unsigned Bam_SpecialFromIndex(unsigned slot, unsigned idx)
 {
     unsigned i, n = 0;
     if (!idx) return 0;
-    for (i = 0; i < ROGUE_SPECIALS; ++i)
-        if (rogue_specials[i].slot == slot && ++n == idx) return rogue_specials[i].id;
+    for (i = 0; i < BAM_SPECIALS; ++i)
+        if (bam_specials[i].slot == slot && ++n == idx) return bam_specials[i].id;
     return 0;
 }
 
@@ -42,10 +42,10 @@ unsigned Bam_AerialIndex(unsigned slot, unsigned id)
 {
     unsigned i, n = 0;
     if (!id) return 0;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (rogue_aerials[i].slot == slot) {
+    for (i = 0; i < BAM_AERIALS; ++i)
+        if (bam_aerials[i].slot == slot) {
             ++n;
-            if (rogue_aerials[i].id == id) return n < 32 ? n : 0;
+            if (bam_aerials[i].id == id) return n < 32 ? n : 0;
         }
     return 0;
 }
@@ -54,8 +54,8 @@ unsigned Bam_AerialFromIndex(unsigned slot, unsigned idx)
 {
     unsigned i, n = 0;
     if (!idx) return 0;
-    for (i = 0; i < ROGUE_AERIALS; ++i)
-        if (rogue_aerials[i].slot == slot && ++n == idx) return rogue_aerials[i].id;
+    for (i = 0; i < BAM_AERIALS; ++i)
+        if (bam_aerials[i].slot == slot && ++n == idx) return bam_aerials[i].id;
     return 0;
 }
 
@@ -67,11 +67,11 @@ static unsigned check_symbol(const unsigned char* code)
     unsigned h, i;
     if (!catalog) {
         h = 2166136261U;
-        for (i = 0; i < ROGUE_SPECIALS; ++i) {
-            FNV(h, rogue_specials[i].id); FNV(h, rogue_specials[i].character); FNV(h, rogue_specials[i].slot);
+        for (i = 0; i < BAM_SPECIALS; ++i) {
+            FNV(h, bam_specials[i].id); FNV(h, bam_specials[i].character); FNV(h, bam_specials[i].slot);
         }
-        for (i = 0; i < ROGUE_AERIALS; ++i) {
-            FNV(h, rogue_aerials[i].id); FNV(h, rogue_aerials[i].character); FNV(h, rogue_aerials[i].slot);
+        for (i = 0; i < BAM_AERIALS; ++i) {
+            FNV(h, bam_aerials[i].id); FNV(h, bam_aerials[i].character); FNV(h, bam_aerials[i].slot);
         }
         catalog = h | 1;
     }

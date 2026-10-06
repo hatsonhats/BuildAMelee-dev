@@ -39,11 +39,11 @@ static const float model_scale[] = {
  * kept within 0.8x..1.55x of the donor's own size (Marth's sword on Jigglypuff stays
  * near Marth's; Pichu's tail on Bowser grows, not to Bowser size), and the hitboxes stay on
  * the parts that are drawn.
- * Rogue_ShownScale: that size on screen, against the donor's own (0 when
+ * Bam_ShownScale: that size on screen, against the donor's own (0 when
  * own and source are the same kind). */
 #pragma push
 #pragma dont_inline on
-float Rogue_ShownScale(unsigned own, unsigned source)
+float Bam_ShownScale(unsigned own, unsigned source)
 {
     float shown;
     if (source == own || source >= BODY_SIZE_KINDS || own >= BODY_SIZE_KINDS) return 0.0f;
@@ -57,14 +57,14 @@ float Rogue_ShownScale(unsigned own, unsigned source)
 
 static float shown_scale(Fighter* fp, unsigned* source)
 {
-    if (!fp || !Rogue_IsAbilityState(fp)) return 0.0f;
-    *source = Rogue_AbilitySourceKind(fp);
-    return Rogue_ShownScale(fp->kind, *source);
+    if (!fp || !Bam_IsAbilityState(fp)) return 0.0f;
+    *source = Bam_AbilitySourceKind(fp);
+    return Bam_ShownScale(fp->kind, *source);
 }
 
 /* In the fighter's own skeleton units: the shown size over the model scale
  * difference, as the skeleton applies this fighter's model scale. */
-float Rogue_BorrowScale(Fighter* fp)
+float Bam_BorrowScale(Fighter* fp)
 {
     unsigned source;
     float shown = shown_scale(fp, &source);
@@ -74,14 +74,14 @@ float Rogue_BorrowScale(Fighter* fp)
 
 /* Effects a fighter spawns sized by its own scale (eflib.c): a borrowed
  * move's are sized as its hitbox offsets are, so they line up. */
-float Rogue_EffectScale(HSD_GObj* gobj)
+float Bam_EffectScale(HSD_GObj* gobj)
 {
     if (!gobj || gobj->classifier != HSD_GOBJ_CLASS_FIGHTER) return 1.0f;
-    return Rogue_BorrowScale(GET_FIGHTER(gobj));
+    return Bam_BorrowScale(GET_FIGHTER(gobj));
 }
 
 /* In world units: hitbox radii, which no model scale applies to. */
-float Rogue_HitboxScale(Fighter* fp)
+float Bam_HitboxScale(Fighter* fp)
 {
     unsigned source;
     float shown = shown_scale(fp, &source);
@@ -91,16 +91,16 @@ float Rogue_HitboxScale(Fighter* fp)
 /* Where a borrowed projectile leaves from: not lower than about the middle
  * of the borrower's body, so a shot from a short fighter's low bone does not
  * start in the floor (Samus's Charge Shot from Jigglypuff). */
-void Rogue_ProjectileOrigin(Fighter* fp, Vec3* pos)
+void Bam_ProjectileOrigin(Fighter* fp, Vec3* pos)
 {
     float low;
-    if (!fp || !pos || !Rogue_IsAbilityState(fp) || (unsigned) fp->kind >= BODY_SIZE_KINDS) return;
+    if (!fp || !pos || !Bam_IsAbilityState(fp) || (unsigned) fp->kind >= BODY_SIZE_KINDS) return;
     low = fp->cur_pos.y + 0.45f * body_size[fp->kind] * model_scale[fp->kind];
     if (pos->y < low) pos->y = low;
 }
-float Rogue_OwnerScale(HSD_GObj* owner)
+float Bam_OwnerScale(HSD_GObj* owner)
 {
     Fighter* fp = owner ? GET_FIGHTER(owner) : NULL;
     if (!fp) return 1.0f;
-    return fp->x34_scale.y * Rogue_BorrowScale(fp);
+    return fp->x34_scale.y * Bam_BorrowScale(fp);
 }

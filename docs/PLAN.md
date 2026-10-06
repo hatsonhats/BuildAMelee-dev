@@ -39,10 +39,10 @@ taken so far:
 * Vendor `specials/` (special_runtime, registry, preload, aerial_runtime,
   anim_scale, sword_visual, rest_sleep, transform) and the parts of
   `melee_fighter.c` the engine needs.
-* Replace `RogueDirector_Run()->specials/aerials` and `Rogue_IsBuildFighter`
+* Replace `BamDirector_Run()->specials/aerials` and `Bam_IsBuildFighter`
   with a **Loadout per player slot** (`BAM_Loadout` × 6 slots).
-* Per-fighter engine state (`RogueFighterState`) moves to a match-heap block
-  pointed to from a Fighter struct extension slot; `rogue_donor_attrs` too.
+* Per-fighter engine state (`BamFighterState`) moves to a match-heap block
+  pointed to from a Fighter struct extension slot; `bam_donor_attrs` too.
   `source_vars` shrinks to the ≤9 equipped donors.
 * Apply the 1,026 pinned `special_adapters` edits through the override
   pipeline (recompiled units, byte-compared, entry patches).
@@ -72,7 +72,7 @@ the loadout rides on channels Slippi already synchronises:
 
 ### 3. Build-A-Fighter UI
 * Builder screen: base character, 4 specials, 5 aerials; Training-mode
-  preview (rogue_practice.c does this already); saved builds on the memory
+  preview (bam_practice.c does this already); saved builds on the memory
   card; current build shown in the Slippi CSS.
 
 ### 4. Online hardening

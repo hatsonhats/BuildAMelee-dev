@@ -115,7 +115,7 @@ def keep(hs, name):
 
 def region(part):
     """Body parts that stand in for one another when a fighter lacks one
-    (special_runtime.c Rogue_AbilityFallbackJoint): a hand and its fingers,
+    (special_runtime.c Bam_AbilityFallbackJoint): a hand and its fingers,
     the hip and waist, the neck and head, a shoulder's bones. Other parts are
     their own."""
     if part is None or part < 0:
@@ -154,7 +154,7 @@ def compare(nat, bor, s, world, body):
     shared = sorted(set(n) & set(b))
     for key in shared:
         a, c = n[key], b[key]
-        # Radii are in world units (anim/scale.c Rogue_HitboxScale); a
+        # Radii are in world units (anim/scale.c Bam_HitboxScale); a
         # throw's hitboxes never shrink below the donor's.
         r_exp = a[3] * (max(world, 1.0) if 219 <= key[0] <= 222 else world)
         if r_exp > 0 and abs(c[3] / r_exp - 1) > 0.15:

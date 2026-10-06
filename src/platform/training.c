@@ -165,12 +165,12 @@ static unsigned fighter_lines(unsigned slot, float y)
     static const char* const aerial_slots[5] = { "Neutral air", "Forward air", "Back air", "Up air", "Down air" };
     HSD_GObj* gobj = Player_GetEntity((s32) slot);
     Fighter* fp = gobj ? GET_FIGHTER(gobj) : NULL;
-    RogueFighterState* S;
+    BamFighterState* S;
     if (!fp) return 0;
     BamText_Line(&info, 22, y, "%s  motion %d (0x%X)  frame %d  %d%%", slot ? "CPU" : "YOU", (int) fp->motion_id,
                  (unsigned) fp->motion_id, (int) fp->cur_anim_frame, (int) Player_GetDamage((s32) slot));
     BamText_Style(&info, 0.5f, slot ? 0xFF9A6B : 0xF5C842);
-    S = Rogue_FighterCtx(fp);
+    S = Bam_FighterCtx(fp);
     if (!bam_match || S->fighter != fp) return 1;
     if (S->active)
         BamText_Line(&info, 40, y + 15, "borrowed %s (%s)", S->active->name, who((unsigned) S->active->source_kind));
