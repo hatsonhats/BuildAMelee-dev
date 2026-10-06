@@ -17,68 +17,18 @@ Built from the player's own disc while the patched image is assembled;
 nothing here ships pre-made.
 """
 from __future__ import annotations
-import re
 import struct
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-# FighterKind -> two-letter file code (Pl<code>Nr.dat).
-CODES = {0: 'Mr', 1: 'Fx', 2: 'Ca', 3: 'Dk', 4: 'Kb', 5: 'Kp', 6: 'Lk', 7: 'Sk', 8: 'Ns', 9: 'Pe',
-         10: 'Pp', 11: 'Nn', 12: 'Pk', 13: 'Ss', 14: 'Ys', 15: 'Pr', 16: 'Mt', 17: 'Lg', 18: 'Ms',
-         19: 'Zd', 20: 'Cl', 21: 'Dr', 22: 'Fc', 23: 'Pc', 24: 'Gw', 25: 'Gn', 26: 'Fe'}
-
-# Model-part groups drawn from the donor's model (sword_visual.c vis_donors):
-# kind -> [(group, lowest variant drawn)].
-VIS_DONORS = {
-    24: [(5, 0), (6, 0), (7, 0), (8, 0)],  # Mr. Game & Watch's props
-    9: [(4, 1), (3, 0)],                   # Peach's crown in hand; forward smash items
-    4: [(0, 2)],                           # Kirby's stone
-    14: [(0, 1)],                          # Yoshi's egg
-    13: [(0, 2)],                          # Samus's Morph Ball
-}
+from .hsd import Archive as Dat
+from .donor_notes import FILE_CODES as CODES, VIS_DONORS
 
 JOBJ_SPLINE, JOBJ_PTCL = 0x4000, 0x20
-MESH_ROW = re.compile(r'^\s*\{\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\s*\},\s*$')
 
 
 def trimmed_name(kind: int) -> str:
     return f'Pl{CODES[kind]}Bm.dat'
-
-
-def mesh_rows(anim_rest: Path) -> Dict[int, Set[int]]:
-    """kind -> DObj indices from rogue_mesh[] in src/engine/anim_rest.inc."""
-    out: Dict[int, Set[int]] = {}
-    text = Path(anim_rest).read_text(encoding='utf-8')
-    start = text.index('static const RogueMesh rogue_mesh[')
-    end = text.index('};', start)
-    for line in text[start:end].splitlines()[1:]:
-        m = MESH_ROW.match(line)
-        if m and int(m.group(1)) != 255:
-            out.setdefault(int(m.group(1)), set()).add(int(m.group(3)))
-    return out
-
-
-class Dat:
-    def __init__(self, raw: bytes):
-        size, data_size, nreloc, nroot, nref = struct.unpack_from('>5I', raw, 0)
-        self.data = raw[0x20:0x20 + data_size]
-        at = 0x20 + data_size
-        self.relocs = list(struct.unpack_from(f'>{nreloc}I', raw, at))
-        at += nreloc * 4
-        names_at = at + (nroot + nref) * 8
-        self.roots: Dict[str, int] = {}
-        for i in range(nroot):
-            off, name = struct.unpack_from('>II', raw, at + i * 8)
-            s = names_at + name
-            self.roots[raw[s:raw.index(b'\0', s)].decode()] = off
-        self.reloc_set = set(self.relocs)
-
-    def u32(self, o: int) -> int:
-        return struct.unpack_from('>I', self.data, o)[0]
-
-    def ptr(self, o: int) -> int:
-        """Pointer field at o, or 0 when the field is not relocated (null)."""
-        return self.u32(o) if o in self.reloc_set else 0
 
 
 def _bpp_block(fmt: int) -> Tuple[int, int, int]:
@@ -105,14 +55,14 @@ def _vertex_extents(dat: Dat, pobj: int) -> Dict[int, int]:
     verts, n_display, display = dat.ptr(pobj + 8), struct.unpack_from('>H', dat.data, pobj + 0xE)[0], dat.ptr(pobj + 0x10)
     attrs = []
     a = verts
-    while a and a + 0x18 <= len(dat.data):
+    while a is not None and a + 0x18 <= len(dat.data):
         attr, kind, cnt, ctype = struct.unpack_from('>4I', dat.data, a)
         if attr == 0xFF:
             break
         stride = struct.unpack_from('>H', dat.data, a + 0x12)[0]
         attrs.append((attr, kind, cnt, ctype, stride, dat.ptr(a + 0x14)))
         a += 0x18
-    if not display or not attrs:
+    if display is None or not attrs:
         return {}
     biggest = [-1] * len(attrs)
     pos, end = display, min(len(dat.data), display + n_display * 32)
@@ -138,7 +88,7 @@ def _vertex_extents(dat: Dat, pobj: int) -> Dict[int, int]:
                         pos += comps * DIRECT_SIZE.get(ctype, 4)
     out: Dict[int, int] = {}
     for k, (_attr, kind, _cnt, _ctype, stride, buf) in enumerate(attrs):
-        if buf and kind in (2, 3) and biggest[k] >= 0:
+        if buf is not None and kind in (2, 3) and biggest[k] >= 0:
             out[buf] = max(out.get(buf, 0), (biggest[k] + 1) * stride)
     return out
 
@@ -155,12 +105,10 @@ def trim(raw: bytes, joint_root: str, wanted: Set[int]) -> Tuple[bytes, int, int
     # Joints and DObjs in the order sword_visual.c numbers them.
     joints: List[int] = []
 
-    def walk(j: int) -> None:
-        while j:
+    def walk(j) -> None:
+        while j is not None:
             joints.append(j)
-            child = dat.ptr(j + 8)
-            if child:
-                walk(child)
+            walk(dat.ptr(j + 8))
             j = dat.ptr(j + 12)
     walk(root)
     cut: Set[int] = set()        # pointer fields written as null
@@ -172,7 +120,7 @@ def trim(raw: bytes, joint_root: str, wanted: Set[int]) -> Tuple[bytes, int, int
             clear_flags.add(j)
             continue
         d = dat.ptr(j + 0x10)
-        while d:
+        while d is not None:
             dobjs.append(d)
             d = dat.ptr(d + 4)
     kept = 0
@@ -198,26 +146,26 @@ def trim(raw: bytes, joint_root: str, wanted: Set[int]) -> Tuple[bytes, int, int
             continue
         d = dobjs[i]
         m = dat.ptr(d + 8)
-        t = dat.ptr(m + 8) if m else 0
-        while t:
+        t = dat.ptr(m + 8) if m is not None else None
+        while t is not None:
             img = dat.ptr(t + 0x4C)
-            if img:
+            if img is not None:
                 w, h, fmt, mip = struct.unpack_from('>HHII', dat.data, img + 4)
                 maxlod = struct.unpack_from('>f', dat.data, img + 0x14)[0]
                 data = dat.ptr(img)
-                if data:
+                if data is not None:
                     levels = int(maxlod) + 1 if mip else 1
                     blob[data] = max(blob.get(data, 0), _image_bytes(w, h, fmt, levels))
             tl = dat.ptr(t + 0x50)
-            if tl and dat.ptr(tl):
+            if tl is not None and dat.ptr(tl) is not None:
                 n = struct.unpack_from('>H', dat.data, tl + 0xC)[0]
                 blob[dat.ptr(tl)] = max(blob.get(dat.ptr(tl), 0), n * 2)
             t = dat.ptr(t + 4)
         p = dat.ptr(d + 0xC)
-        while p:
+        while p is not None:
             n_display = struct.unpack_from('>H', dat.data, p + 0xE)[0]
             dl = dat.ptr(p + 0x10)
-            if dl:
+            if dl is not None:
                 blob[dl] = max(blob.get(dl, 0), n_display * 32)
             for buf, size in _vertex_extents(dat, p).items():
                 blob[buf] = max(blob.get(buf, 0), size)
@@ -312,7 +260,7 @@ def _vis_dobjs(raw: bytes, groups: List[Tuple[int, int]]) -> Set[int]:
     out: Set[int] = set()
     for which in (1,):  # the full-detail set (sword_visual.c vis_lookup: vis_table[0][1])
         lookup = dat.ptr(table + 4 * which)
-        if not lookup:
+        if lookup is None:
             continue
         for group, first in groups:
             if group >= count:
@@ -324,10 +272,11 @@ def _vis_dobjs(raw: bytes, groups: List[Tuple[int, int]]) -> Set[int]:
     return out
 
 
-def build_all(read_file, anim_rest: Path, log=print) -> Dict[str, bytes]:
+def build_all(read_file, log=print) -> Dict[str, bytes]:
     """{file name: trimmed archive} for every donor the mod draws parts of.
     `read_file(name)` returns a disc file's bytes."""
-    wanted = mesh_rows(anim_rest)
+    from .bonetables import mesh_dobjs
+    wanted = mesh_dobjs(read_file)
     for kind, groups in VIS_DONORS.items():
         wanted.setdefault(kind, set()).update(_vis_dobjs(read_file(f'Pl{CODES[kind]}.dat'), groups))
     out: Dict[str, bytes] = {}
@@ -335,7 +284,7 @@ def build_all(read_file, anim_rest: Path, log=print) -> Dict[str, bytes]:
         code = CODES[kind]
         raw = read_file(f'Pl{code}Nr.dat')
         dat = Dat(raw)
-        root = next(n for n in dat.roots if n.endswith('_joint') and 'matanim' not in n and 'anim' not in n.lower())
+        root = next(n for n in dat.roots if n.endswith('_joint') and 'anim' not in n.lower())
         archive, kept, total = trim(raw, root, wanted[kind])
         out[trimmed_name(kind)] = archive
         log(f'[bam]   parts {trimmed_name(kind)}: {len(archive) // 1024} KB of {len(raw) // 1024} KB '
@@ -347,7 +296,7 @@ def for_image(image: Path, root: Path, overlay_end: int, log=print) -> Dict[str,
     """Trimmed models from a clean image, after checking that the larger
     filesystem table still leaves the overlay below the arena top."""
     from .iso import disc_reader, fst_address, layout
-    files = build_all(disc_reader(image), Path(root) / 'src' / 'engine' / 'anim_rest.inc', log)
+    files = build_all(disc_reader(image), log)
     with Path(image).open('rb') as stream:
         table, _ranges = layout(stream)
     grown = len(table) + sum(12 + len(n) + 1 for n in files)

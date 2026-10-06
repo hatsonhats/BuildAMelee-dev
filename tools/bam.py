@@ -7,6 +7,8 @@
   bam.py release [X.Y]           set the version, build, make the player zip (build/release/)
   bam.py check-slippi           list Slippi injections inside functions we touch
   bam.py info                   print retail DOL layout and project settings
+  bam.py fingerprint save|diff F  compare the overlay's code across a refactor (layout-independent)
+  bam.py gen-tables [OUT]       write the bone tables (build/generated/engine/anim_rest.inc) from your ISO
 """
 from __future__ import annotations
 import argparse
@@ -119,6 +121,36 @@ def cmd_release(args):
     release(ROOT, args.version, args.decomp)
 
 
+def cmd_fingerprint(args):
+    from bam import fingerprint as fpr
+    p = Project.load(ROOT)
+    elf = p.build_dir / 'overlay' / 'overlay.elf'
+    if args.action == 'save':
+        print(f'{fpr.save(elf, Path(args.file))} functions saved to {args.file}')
+        return
+    rename = dict(r.split('=', 1) for r in (args.rename or []))
+    changed, gone, new = fpr.diff(elf, Path(args.file), rename)
+    for title, names in (('changed', changed), ('only before', gone), ('only after', new)):
+        print(f'{title}: {len(names)}')
+        for n in names:
+            print('  ' + n)
+    if changed or gone or new:
+        sys.exit(1)
+
+
+def cmd_gen_tables(args):
+    from bam.bonetables import generate
+    from bam.iso import disc_reader
+    p = Project.load(ROOT)
+    iso = p.local.get('paths', {}).get('melee_iso')
+    if not iso:
+        sys.exit('set paths.melee_iso in config/local.toml or put the ISO in .iso/')
+    out = Path(args.out) if args.out else p.build_dir / 'generated' / 'engine' / 'anim_rest.inc'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    n = generate(disc_reader(Path(iso)), out)
+    print(f'wrote {out} ({n} body parts with rest data)')
+
+
 def cmd_fetch(args):
     from bam.deps import fetch
     fetch(ROOT, Project.load(ROOT), jobs=args.jobs, build_baseline=not args.no_baseline)
@@ -144,6 +176,12 @@ def main(argv=None):
     s = sub.add_parser('release', help='set the version, build, and package the player zip')
     s.set_defaults(fn=cmd_release)
     s.add_argument('version', nargs='?', help='new version (X.Y, or X.Y.Z for a hotfix); default: keep project.toml\'s')
+    s = sub.add_parser('fingerprint', help='save or compare a layout-independent hash of each overlay function')
+    s.set_defaults(fn=cmd_fingerprint)
+    s.add_argument('action', choices=('save', 'diff')); s.add_argument('file')
+    s.add_argument('--rename', action='append', metavar='OLD=NEW', help='function name prefix renamed since the save')
+    s = sub.add_parser('gen-tables', help='write the bone tables from your ISO (the build does this itself)')
+    s.set_defaults(fn=cmd_gen_tables); s.add_argument('out', nargs='?')
     s = sub.add_parser('fetch'); s.set_defaults(fn=cmd_fetch)
     s.add_argument('--jobs', type=int, default=4)
     s.add_argument('--no-baseline', action='store_true', help='skip building/verifying the retail DOL')

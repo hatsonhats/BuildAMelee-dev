@@ -114,7 +114,8 @@ class Builder:
                 '-requireprotos', '-lang', 'c99', '-O4,p', '-DNDEBUG=1', '-inline', 'auto', '-sym', 'off',
                 '-sdata', '0', '-sdata2', '0']
         base += self.tc.include_flags()
-        base += ['-i', str(self.p.root / 'src')]
+        # Generated includes (the bone tables) come before src/.
+        base += ['-i', str(self.p.build_dir / 'generated'), '-i', str(self.p.root / 'src')]
         for k, v in self.p.defines.items():
             base.append(f'-D{k}={v}')
         self.build_id = f'{self.p.version}-{source_hash(self.p.root)}'
@@ -144,7 +145,30 @@ class Builder:
                     cwd=self.decomp)
         return [obj]
 
+    def bone_tables(self) -> Path:
+        """build/generated/engine/anim_rest.inc from the player's ISO
+        (bonetables.py). Rewritten only when its content changes, so the
+        sources that include it rebuild only then."""
+        from .bonetables import generate
+        from .iso import disc_reader
+        iso = self.p.local.get('paths', {}).get('melee_iso')
+        if not iso:
+            raise BuildError('the bone tables are read from your ISO: set paths.melee_iso in config/local.toml '
+                             'or put the ISO in .iso/')
+        dest = self.p.build_dir / 'generated' / 'engine' / 'anim_rest.inc'
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_suffix('.tmp')
+        generate(disc_reader(Path(iso)), tmp, self.log)
+        if dest.is_file() and dest.read_bytes() == tmp.read_bytes():
+            tmp.unlink()
+        else:
+            tmp.replace(dest)
+            self.log('  GEN  engine/anim_rest.inc')
+        self._hdr_mtime = None
+        return dest
+
     def compile_sources(self) -> List[Path]:
+        self.bone_tables()
         objs = self.assemble_runtime()
         cflags = self.own_cflags()
         # Objects are reused by mtime, so a change of flags or defines (a
@@ -178,9 +202,11 @@ class Builder:
     def _headers_mtime(self) -> float:
         if self._hdr_mtime is None:
             m = 0.0
-            for d in self.p.source_dirs:
-                for h in (self.p.root / d).rglob('*.h'):
-                    m = max(m, h.stat().st_mtime)
+            dirs = [self.p.root / d for d in self.p.source_dirs] + [self.p.build_dir / 'generated']
+            for d in dirs:
+                for pattern in ('*.h', '*.inc'):
+                    for h in d.rglob(pattern):
+                        m = max(m, h.stat().st_mtime)
             m = max(m, (self.p.root / 'project.toml').stat().st_mtime)
             self._hdr_mtime = m
         return self._hdr_mtime
