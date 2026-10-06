@@ -25,6 +25,7 @@
  * Only Slippi Direct 1v1 exchanges. Other online modes play retail moves.
  */
 #include <bam/bam.h>
+#include <bam/retail.h>
 #include <engine/special_internal.h>
 #include <engine/special_catalog.h>
 #include <engine/aerial_catalog.h>
@@ -33,9 +34,6 @@
 #include <sysdolphin/baselib/memory.h>
 #include "build_code.h"
 
-/* Slippi's static helpers (slippi-ssbm-asm Common.s). */
-#define FN_EXITransferBuffer ((void (*)(void*, u32, u32)) 0x800055F0)
-#define FN_LoadMatchState ((void* (*)(void*)) 0x80005610)
 #define CMD_SEND_CHAT 0xBB
 #define EXI_WRITE 1
 /* MSRB offsets (Online.s). */
@@ -44,10 +42,6 @@
 #define MSRB_SENT_CHAT 10
 #define MSRB_OPP_CHAT 11
 /* Scene controller and Slippi's selected online mode (r13 - 0x5060). */
-#define SCENE_MAJOR (*(volatile u8*) 0x80479D30)
-#define SCENE_MINOR (*(volatile u8*) 0x80479D33)
-#define ONLINE_MODE (*(volatile u8*) 0x804D6640)
-#define SCENE_ONLINE_MAJOR 8
 #define SCENE_ONLINE_IN_GAME 2
 #define ONLINE_MODE_DIRECT 2
 #define CHAT_DISABLED 0x10
@@ -90,7 +84,7 @@ static struct {
 
 static u32 ticks_per_ms(void)
 {
-    return (*(u32*) 0x800000F8) / 4000; /* bus clock / 4 = timer clock */
+    return BAM_TICKS_PER_MS;
 }
 
 static u32 now_ms(void)
@@ -109,7 +103,7 @@ static void send_msg(u8 id)
     cmd[0] = CMD_SEND_CHAT;
     cmd[1] = id;
     cmd[2] = 0;
-    FN_EXITransferBuffer(cmd, 3, EXI_WRITE);
+    BAM_SLIPPI_EXI_TRANSFER(cmd, 3, EXI_WRITE);
 }
 
 /* Returns a message index 0..15, -1 none, -2 opponent has chat disabled. */
@@ -117,7 +111,7 @@ static int poll_msg(void)
 {
     int i;
     u8 id;
-    FN_LoadMatchState(msrb);
+    BAM_SLIPPI_LOAD_MATCH_STATE(msrb);
     id = msrb[MSRB_OPP_CHAT];
     if (!id) return -1;
     if (id == CHAT_DISABLED) return -2;
@@ -293,7 +287,7 @@ static void clear_all(void)
 
 static int is_online_match(void)
 {
-    return SCENE_MAJOR == SCENE_ONLINE_MAJOR && SCENE_MINOR == SCENE_ONLINE_IN_GAME;
+    return BAM_SCENE_MAJOR == BAM_SCENE_ONLINE && BAM_SCENE_MINOR == SCENE_ONLINE_IN_GAME;
 }
 
 /* Scene enter (before the scene creates the stage and fighters). */
@@ -311,11 +305,11 @@ static void scene_enter(void)
     port = bam_css_port >= 0 && bam_css_port < BAM_PLAYER_SLOTS ? bam_css_port : 0;
     mine = bam_loadouts[port];
     clear_all();
-    if (ONLINE_MODE != ONLINE_MODE_DIRECT) {
-        BAM_NOTE("online: mode %d is not Direct; everyone plays their own moves\n", ONLINE_MODE);
+    if (BAM_SLIPPI_ONLINE_MODE != ONLINE_MODE_DIRECT) {
+        BAM_NOTE("online: mode %d is not Direct; everyone plays their own moves\n", BAM_SLIPPI_ONLINE_MODE);
         return;
     }
-    FN_LoadMatchState(msrb);
+    BAM_SLIPPI_LOAD_MATCH_STATE(msrb);
     sync.local = msrb[MSRB_LOCAL_INDEX];
     sync.remote = msrb[MSRB_REMOTE_INDEX];
     if (sync.local > 1 || sync.remote > 1 || sync.local == sync.remote) {

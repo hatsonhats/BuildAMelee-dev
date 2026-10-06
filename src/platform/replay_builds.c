@@ -31,6 +31,7 @@
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include "build_code.h"
+#include <bam/retail.h>
 #include <string.h>
 
 #define PLAYERS 0x60    /* first player entry in the block */
@@ -118,7 +119,7 @@ void BAM_ReplayBuildsRewrite(void)
     u8 got[STASH];
     u8* data = pending;
     /* Online only (scene 8); a replay's restored builds are never replaced. */
-    if (!data || *(volatile u8*) 0x80479D30 != 8) return;
+    if (!data || BAM_SCENE_MAJOR != BAM_SCENE_ONLINE) return;
     spare_get(data, got);
     if (!memcmp(got, written, STASH) || !memcmp(got, magic, sizeof(magic))) return;
     if (data[PLAYERS + SPARE_ENTRY * ENTRY + SLOT_TYPE] != PKIND_NA ||

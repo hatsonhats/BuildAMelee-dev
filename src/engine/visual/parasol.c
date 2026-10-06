@@ -21,10 +21,10 @@ void ftAction_8007121C(Fighter_GObj* gobj, CommandInfo* cmd);
  * on the canopy of the parasol drawn in its hand. */
 static union CmdUnion* parasol_hit_cmd(void)
 {
-    /* Words per script command: 0x00-0x09 (common), 0x0A on (fighter). */
+    /* Words per script command: 0x00-0x09 (common), 0x0A on (fighter: the
+     * game's own table, ftaction.c). */
     static const u8 common[10] = { 1, 1, 1, 1, 1, 2, 1, 2, 1, 1 };
-    static const u8 fighter[] = { 5, 5, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
-                                  1, 1, 1, 7, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 1, 4 };
+    extern u8 ftAction_803C0870[0x31];
     ftData* d = gFtDataList[Ft_Kind_Peach];
     int anim;
     u32* p;
@@ -36,8 +36,8 @@ static union CmdUnion* parasol_hit_cmd(void)
     for (i = 0; p && i < 32; ++i) {
         unsigned op = *p >> 26;
         if (op == 0x0B) return (union CmdUnion*) p;
-        if (op == 0 || (op >= 10 && op - 10 >= sizeof(fighter))) return NULL;
-        p += op < 10 ? common[op] : fighter[op - 10];
+        if (op == 0 || (op >= 10 && op - 10 >= sizeof(ftAction_803C0870))) return NULL;
+        p += op < 10 ? common[op] : ftAction_803C0870[op - 10];
     }
     return NULL;
 }

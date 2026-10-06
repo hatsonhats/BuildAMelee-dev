@@ -10,6 +10,7 @@
  * game is ("[bam-qa] scene major=2 minor=2 frame=...").
  */
 #include "../bam/bam.h"
+#include <bam/retail.h>
 #include <dolphin/os.h>
 #include <dolphin/pad.h>
 #include <sysdolphin/baselib/controller.h>
@@ -30,7 +31,7 @@ static unsigned char qa_major = 0xFF, qa_minor = 0xFF;
 void BAM_QaPadMaster(void)
 {
     HSD_PadStatus* mp = &HSD_PadMasterStatus[0];
-    const volatile unsigned char* scene = (const volatile unsigned char*) 0x80479D30;
+    const volatile unsigned char* scene = &BAM_SCENE_MAJOR;
     unsigned i, buttons = 0;
     int x = 0, y = 0, cx = 0, cy = 0, any = 0;
     HSD_PadRenewMasterStatus();

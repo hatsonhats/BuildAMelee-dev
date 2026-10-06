@@ -23,6 +23,7 @@
  * as before.
  */
 #include <engine/special_internal.h>
+#include <bam/retail.h>
 #include <dolphin/os.h>
 #include <string.h>
 
@@ -162,13 +163,13 @@ static void ensure_open(void)
     /* VS (2) and Slippi Online (8) only: those queue no preloads during a
      * match. Other modes keep using the match heap. */
     {
-        u8 major = *(volatile u8*) 0x80479D30;
-        if (major != 2 && major != 8) return;
+        u8 major = BAM_SCENE_MAJOR;
+        if (major != BAM_SCENE_VS && major != BAM_SCENE_ONLINE) return;
     }
     /* Files the scene queued may still be streaming in (DVD and alarm
      * callbacks keep it going while this waits, on the loading screen). */
     {
-        u32 ticks_ms = (*(u32*) 0x800000F8) / 4000;
+        u32 ticks_ms = BAM_TICKS_PER_MS;
         OSTime start = OSGetTime();
         while (!preloader_idle() && (u32) ((OSGetTime() - start) / ticks_ms) < 1500) {}
     }

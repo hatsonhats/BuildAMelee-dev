@@ -26,6 +26,7 @@
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include "css_panel.h"
+#include <bam/retail.h>
 
 /* Port whose build was locked in last: the local player's build online. */
 int bam_css_port = 0;
@@ -169,19 +170,14 @@ static int read_dir(int port, const HSD_PadStatus* pad)
     return css.stick_hold[port] >= 14 && (css.stick_hold[port] - 14) % 5 == 0 ? dir : 0;
 }
 
-/* gm_EvaluateAllControllerInputs copies the pads into this per-port table
- * before the scene's frame runs; Slippi's online CSS (quick chat on the
- * D-pad) and menu code read it. Rebuilt from the pads every frame. */
-struct GmPadState { u64 button, trigger, repeat, release, repeat2; s32 timer, x2C; };
-#define gm_pad_states ((struct GmPadState*) 0x80479C30) /* controller_map */
 
 static void swallow(HSD_PadStatus* pad)
 {
     int port = (int) (pad - HSD_PadCopyStatus);
     if (port >= 0 && port < 4) {
-        struct GmPadState* g = &gm_pad_states[port];
+        struct BamGmPadState* g = &BAM_GM_PADS[port];
         g->button = g->trigger = g->repeat = g->release = g->repeat2 = 0;
-        g = &gm_pad_states[4]; /* "any controller" */
+        g = &BAM_GM_PADS[4]; /* "any controller" */
         g->trigger = g->repeat = g->release = g->repeat2 = 0;
     }
     /* Keep button/last_button: the pad library derives next frame's

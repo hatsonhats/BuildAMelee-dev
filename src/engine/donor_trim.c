@@ -27,6 +27,7 @@
  * already in Melee's preload cache.
  */
 #include <engine/special_internal.h>
+#include <bam/retail.h>
 #include <melee/lb/lbfile.h>
 #include <melee/ef/efasync.h>
 #include <melee/ft/ftdata.h>
@@ -320,7 +321,6 @@ done:
 
 /* Whether a character playing in this match is `kind` (its own fighter
  * then needs the complete file, Metal Box model included). */
-#define FT_MAPPING ((const s8*) 0x803BCDE0) /* ftMapping_list: internal id, extra id, ... */
 static int kind_is_playing(int kind)
 {
     int slot;
@@ -329,7 +329,7 @@ static int kind_is_playing(int kind)
         if ((int) Player_GetPlayerSlotType(slot) == Gm_PKind_NA) continue;
         ck = (int) Player_GetPlayerCharacter(slot);
         if (ck < 0 || ck >= 33) continue;
-        if (FT_MAPPING[ck * 3] == kind || FT_MAPPING[ck * 3 + 1] == kind) return 1;
+        if (BAM_FT_MAPPING[ck * 3] == kind || BAM_FT_MAPPING[ck * 3 + 1] == kind) return 1;
     }
     return 0;
 }
@@ -368,29 +368,27 @@ int Bam_LoadDonorData(int kind)
 
 /* A donor's effects file (EfXxData.dat), as efAsync_LoadSync loads it but
  * into the preload-cache block when it has room. */
-typedef struct EfDatEntry { char* file; char* table; void* data; } EfDatEntry;
-#define EF_ENTRIES ((EfDatEntry*) 0x803C025C) /* efAsync_DatEntries[51] */
 void psInitDataBank(int bank, int* cmdBank, int* texBank, u32* ref, int* formBank);
 
-static EfDatEntry* donor_effects(int kind)
+static BamEfDatEntry* donor_effects(int kind)
 {
     int idx;
     if (kind < 0 || kind >= Ft_Kind_Max) return NULL;
     idx = ftData_UnkBytePerCharacter[kind];
-    if (idx == 0xFF || idx >= 50 || !EF_ENTRIES[idx].file) return NULL;
-    return &EF_ENTRIES[idx];
+    if (idx == 0xFF || idx >= 50 || !BAM_EF_ENTRIES[idx].file) return NULL;
+    return &BAM_EF_ENTRIES[idx];
 }
 
 int Bam_LoadDonorEffects(int kind)
 {
-    EfDatEntry* e = donor_effects(kind);
+    BamEfDatEntry* e = donor_effects(kind);
     int idx;
     size_t size, length = 0;
     u8* buf;
     HSD_Archive* arc;
-    EfDatEntry* table;
+    BamEfDatEntry* table;
     if (!e || e->data) return 1;
-    idx = (int) (e - EF_ENTRIES);
+    idx = (int) (e - BAM_EF_ENTRIES);
     if (!lbDvd_8001819C(e->file) && !kind_is_playing(kind)) {
         size = lbFileGetSize(e->file);
         if (size && BamCache_Room(1) >= OSRoundUp32B(size) + 0x60) {

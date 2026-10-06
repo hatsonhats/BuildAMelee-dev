@@ -1,4 +1,5 @@
 #include <engine/visual/internal.h>
+#include <melee/ft/kinds/ftGameWatch/types.h>
 
 /* One posed copy of the current donor's model per borrower, allocated from
  * the match heap only once a borrower needs one (static storage comes out
@@ -151,7 +152,7 @@ static void cut_pobjs(DonorModel* m, unsigned i, HSD_DObj* dobj, unsigned mask)
  * and his articles ask their owner for it (ftLib_8008770C). */
 static void gw_color(HSD_JObj* j)
 {
-    const GXColor* c = (const GXColor*) (bam_match->donor_attrs[Ft_Kind_GameWatch].bytes + 4);
+    const GXColor* c = &((const ftGameWatchAttributes*) bam_match->donor_attrs[Ft_Kind_GameWatch].bytes)->x4_GAMEWATCH_COLOR[0];
     for (; j; j = j->next) {
         HSD_DObj* d;
         if (!(j->flags & (JOBJ_SPLINE | JOBJ_PTCL)))
@@ -163,7 +164,7 @@ static void gw_color(HSD_JObj* j)
 /* ftLib_8008770C / ftLib_80087744 (platform fix): the color an article of
  * Mr. Game & Watch's takes from its owner. A borrower holding his moves
  * gives his (first costume's) color and outline, not Kirby's copy colors
- * the game falls back to for anyone else (they came out white). */
+ * the game falls back to for anyone else (white). */
 int Bam_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
 {
     Fighter* fp = GET_FIGHTER(gobj);
@@ -172,7 +173,10 @@ int Bam_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
     S = Bam_FighterCtx(fp);
     if (S->fighter != fp || !S->loaded_sources[Ft_Kind_GameWatch]) return 0;
     if (fp->kind == Ft_Kind_Kirby && !Bam_IsAbilityState(fp)) return 0; /* his own copy ability */
-    *(GXColor*) dst = *(const GXColor*) (bam_match->donor_attrs[Ft_Kind_GameWatch].bytes + (outline ? 0x14 : 4));
+    {
+        const ftGameWatchAttributes* a = (const ftGameWatchAttributes*) bam_match->donor_attrs[Ft_Kind_GameWatch].bytes;
+        *(GXColor*) dst = outline ? a->x14_GAMEWATCH_OUTLINE : a->x4_GAMEWATCH_COLOR[0];
+    }
     return 1;
 }
 

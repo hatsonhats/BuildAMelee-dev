@@ -14,6 +14,7 @@
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include <bam/bam.h>
+#include <bam/retail.h>
 #include <engine/special_internal.h>
 #include <engine/special_catalog.h>
 #include <engine/aerial_catalog.h>
@@ -35,11 +36,6 @@
 #include <sysdolphin/baselib/sislib.h>
 #include <string.h>
 
-#define SCENE_MAJOR (*(volatile u8*) 0x80479D30)
-#define MAJOR_TRAINING 0x1C
-/* gm_80479D58.x2 (the scene loop's "run one frame" bit). */
-#define FRAME_STEP (*(volatile u8*) 0x80479D6A)
-#define FRAME_STEP_SEEN (*(volatile u8*) 0x80479D6B) /* x3: x2 as of the last frame */
 #define FREEZE 0     /* debug pause flag that stops the frame */
 #define NATIVE_MENU 2 /* Training Mode's own menu (Start) is up */
 #define FONT_SLOT 4
@@ -78,7 +74,7 @@ static BamLoadout saved[BAM_PLAYER_SLOTS];
 
 int Bam_DrawHitboxes(void) { return !session || opt[BAM_OPT_HITBOXES]; }
 int Bam_DrawHurtboxes(void) { return !session || opt[BAM_OPT_HURTBOXES]; }
-int Bam_TrainingFrozen(void) { return session && gm_GetDbPauseFlag(FREEZE) && !(FRAME_STEP & 1); }
+int Bam_TrainingFrozen(void) { return session && gm_GetDbPauseFlag(FREEZE) && !(BAM_FRAME_STEP & 1); }
 
 /* Platform fix in gm_801B1F70 (the training match's setup, players filled). */
 void BAM_TrainingPrepare(StartMeleeData* data)
@@ -227,7 +223,7 @@ void BAM_TrainingLoop(void)
 {
     HSD_PadStatus* pad;
     u32 press;
-    if (!session || restart || SCENE_MAJOR != MAJOR_TRAINING) return;
+    if (!session || restart || BAM_SCENE_MAJOR != BAM_SCENE_TRAINING) return;
     if (!ui_create()) return;
     pad = &HSD_PadMasterStatus[port];
     press = pad->trigger;
@@ -261,8 +257,8 @@ void BAM_TrainingLoop(void)
         } else if (frozen && ((press | pad->repeat) & HSD_PAD_DPADRIGHT)) {
             /* x3 = 0 so the loop always sees the bit change and clears it
              * after this one frame (a step right after a step left it set). */
-            FRAME_STEP |= 1;
-            FRAME_STEP_SEEN = 0;
+            BAM_FRAME_STEP |= 1;
+            BAM_FRAME_STEP_SEEN = 0;
         }
     }
     /* The D-pad is ours in training; the whole pad while the menu is open

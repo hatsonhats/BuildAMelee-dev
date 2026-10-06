@@ -1,4 +1,5 @@
 #include "css_panel.h"
+#include <bam/retail.h>
 /* Menu code: smaller beats faster (the overlay has a fixed size). */
 #pragma optimize_for_size on
 #pragma auto_inline off
@@ -18,8 +19,6 @@ static BamText kb_text, kb_name;
  * letters of a code instead of a 4-letter name and leaves without creating a
  * name tag. Slippi's keyboard codes only act in its connect-code mode, which
  * stays off here. */
-#define CSS_SUBSCREEN (*(volatile u8*) 0x804D6CF6)
-#define CSS_SUBSCREEN_PORT (*(volatile s8*) 0x804D6CF9)
 extern HSD_GObj* mnNameNew_804D6C08;
 extern void lbAudioAx_80024030(int);
 #define SFX_BACK 0
@@ -37,8 +36,8 @@ void kb_open(void)
     css.kb_frames = 0;
     kb_text.native = kb_name.native = NULL;
     css.kb_state = KB_OPENING;
-    CSS_SUBSCREEN_PORT = (s8) css.kb_port;
-    CSS_SUBSCREEN = 4;
+    BAM_CSS_SUBSCREEN_PORT = (s8) css.kb_port;
+    BAM_CSS_SUBSCREEN = 4;
     BAM_LOG("css: code keyboard for port %d\n", css.kb_port);
 }
 

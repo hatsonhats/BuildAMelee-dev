@@ -485,8 +485,8 @@ int Bam_AbilityPartIndex(Fighter* fp, int part)
 
 /* A joint two effects name by the donor's joint number (efsync.c 0x501,
  * Zelda's up smash: joint 85; efalt.c 0x494: joint 44): the borrower's
- * equivalent while it borrows, never past its joint table (on Pikachu,
- * joint 85 read past the table and the spark spawned there crashed).
+ * equivalent while it borrows, never past its joint table (Pikachu has
+ * no joint 85: an effect spawned past the table crashes).
  * inject: after the retail load, returns the joint to use. */
 HSD_JObj* Bam_EfJointFp(Fighter* fp, HSD_JObj* loaded, int joint)
 {

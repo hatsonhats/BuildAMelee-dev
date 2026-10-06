@@ -27,7 +27,7 @@ void ui_create(void)
     /* Use the CSS's own SIS font (slot 0, loaded by the CSS) instead of
      * loading one into a free slot: Slippi's direct-code entry loads its
      * own text data while the CSS is up, and a slot we held (and later
-     * freed) froze the game there. */
+     * freed) would freeze the game there. */
     css.font = 0;
     if (!HSD_SisLib_804D1124[css.font]) { BAM_LOG("css: CSS font not loaded\n"); return; }
     /* The block lives in this CSS visit's scene heap: reused only when the

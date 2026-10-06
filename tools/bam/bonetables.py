@@ -162,7 +162,7 @@ def prop_bones(joints, joint_part):
 
 
 # Script command lengths in words: 0x00-0x09 generic, then the fighter
-# commands from 0x0A (ftAction_803C0870).
+# commands from 0x0A, as the game's own table (ftAction_803C0870) has them.
 _GENERIC_WORDS = [1, 1, 1, 1, 1, 2, 1, 2, 1, 1]
 _FIGHTER_WORDS = [5, 5, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 7, 4, 1, 1, 1, 1,
                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 1, 4]

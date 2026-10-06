@@ -32,7 +32,7 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
         if (from >= 0 && from != part && own >= 0) {
             /* Held on a finger (Mr. Game & Watch's Judge sign on his right
              * thumb): fingers are not retargeted, so the borrower's thumb
-             * points its own way (the sign was edge-on). Carried from the
+             * points its own way (the sign would be seen edge-on). Carried from the
              * hand with the donor's finger rotations folded in, as props
              * hanging from fingers are. */
             part_fold(fp, part, rel);
@@ -54,8 +54,8 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
     {
         /* The anchor has no parent: lb_8000B1CC (where an absorb, reflect or
          * shield bubble is, and articles' positions) then reads its SRT, not
-         * its matrix, unless it has a rotation or scale. Keep both: the
-         * bubble of a borrowed Oil Panic sat at the stage's origin. */
+         * its matrix, unless it has a rotation or scale. Keep both, or a
+         * borrowed Oil Panic's bubble sits at the stage's origin. */
         float sx = sqrtf(world[0][0] * world[0][0] + world[1][0] * world[1][0] + world[2][0] * world[2][0]);
         float sy = sqrtf(world[0][1] * world[0][1] + world[1][1] * world[1][1] + world[2][1] * world[2][1]);
         float sz = sqrtf(world[0][2] * world[0][2] + world[1][2] * world[1][2] + world[2][2] * world[2][2]);
@@ -95,8 +95,8 @@ static void anchor_place(Fighter* fp, PropAnchor* a)
  * joint index. */
 /* A joint of this fighter for `part`, never NULL: a donor's part the
  * borrower lacks (or has no joint for) falls back to the nearest equivalent,
- * then the root. Constraining an article to NULL asserts in robj.c (Peach's
- * parasol froze the game). */
+ * then the root. Constraining an article to NULL asserts in robj.c (a
+ * freeze). */
 static HSD_JObj* part_joint(Fighter* fp, int part)
 {
     unsigned n = ftPartsTable[fp->kind]->parts_num;

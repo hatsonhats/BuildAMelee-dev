@@ -1,5 +1,6 @@
 /* Retail hook entry points (see project.toml [[hook]]). */
 #include <bam/bam.h>
+#include <bam/retail.h>
 #include <engine/special_internal.h>
 #include <dolphin/os.h>
 #include <melee/ft/fighter.h>
@@ -134,15 +135,13 @@ void BAM_ApplyPartAnim(Fighter_GObj* gobj, s32 arg1, s32 arg2, f32 arg3)
  * Some controllers (8BitDo) reserve L+R+A+Start for their own functions, so
  * the match can't be quit. While paused, Z+A on any controller counts as
  * L+R+A+Start for that port. */
-struct GmPadState2 { u64 button, trigger, repeat, release, repeat2; s32 timer, x2C; };
-#define BAM_GM_PADS ((struct GmPadState2*) 0x80479C30) /* controller_map */
 extern int gm_GetDbPauseFlag(int);
 void BAM_VsFrame(void)
 {
     int p;
     if (!gm_GetDbPauseFlag(1)) return;
     for (p = 0; p < 4; ++p) {
-        struct GmPadState2* g = &BAM_GM_PADS[p];
+        struct BamGmPadState* g = &BAM_GM_PADS[p];
         const u64 z = 0x10, a = 0x100, lras = 0x40 | 0x20 | 0x100 | 0x1000;
         if ((g->button & (z | a)) == (z | a) && (g->trigger & (z | a))) {
             g->button |= lras;
