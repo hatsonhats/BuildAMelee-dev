@@ -99,7 +99,7 @@ typedef struct BodyRest {
     float hip;
     float pos[3][3]; /* XRotN, YRotN, HipN: x, y, z */
 } BodyRest;
-#define BODY_KINDS BAM_REST_KINDS
+#define BODY_KINDS ((unsigned) BAM_REST_KINDS)
 extern const BodyRest body_rest[BODY_KINDS];
 /* Clothing worn instead of carried (wear.c). */
 typedef struct Wear { unsigned char kind, group, root, hip; } Wear;

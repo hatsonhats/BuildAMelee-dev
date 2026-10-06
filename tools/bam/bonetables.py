@@ -344,31 +344,31 @@ def _model_meshes(archive, skips=()):
         i = number[w]
         if archive.u32(j + 4) & 0x4020:
             continue
-        d, seen = archive.u32(j + 16), set()
-        while d and d not in seen:
+        d, seen = archive.ptr(j + 16), set()
+        while d is not None and d not in seen:
             seen.add(d)
-            pobjs, po, pseen = [], archive.u32(d + 12), set()
-            while po and po not in pseen:
+            pobjs, po, pseen = [], archive.ptr(d + 12), set()
+            while po is not None and po not in pseen:
                 pseen.add(po)
                 flags = struct.unpack_from('>H', archive.data, po + 0xC)[0]
                 kind = (flags >> 12) & 3
-                u = archive.u32(po + 0x14)
+                u = archive.ptr(po + 0x14)
                 weights = {}
-                if kind == 2 and u:
+                if kind == 2 and u is not None:
                     k = 0
-                    while archive.u32(u + 4 * k):
-                        e, m = archive.u32(u + 4 * k), 0
-                        while archive.u32(e + 8 * m):
-                            target = index.get(archive.u32(e + 8 * m), -1)
+                    while archive.ptr(u + 4 * k) is not None:
+                        e, m = archive.ptr(u + 4 * k), 0
+                        while archive.ptr(e + 8 * m) is not None:
+                            target = index.get(archive.ptr(e + 8 * m), -1)
                             weights[target] = weights.get(target, 0.0) + archive.unpack('f', e + 8 * m + 4)[0]
                             m += 1
                         k += 1
                 elif kind == 0:
-                    weights[index.get(u, i) if u else i] = 1.0
+                    weights[index.get(u, i) if u is not None else i] = 1.0
                 pobjs.append((kind, weights))
-                po = archive.u32(po + 4)
+                po = archive.ptr(po + 4)
             out.append((i, pobjs))
-            d = archive.u32(d + 4)
+            d = archive.ptr(d + 4)
     return out
 
 
