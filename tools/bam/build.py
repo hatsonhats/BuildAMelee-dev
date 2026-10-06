@@ -188,6 +188,29 @@ class Builder:
                 objs.append(obj)
         return objs
 
+    def check_engine_globals(self, objs: List[Path]) -> None:
+        """Refuse writable globals in src/engine that are not listed in
+        project.toml [state.engine_globals] (they would not be rolled back)."""
+        allowed = self.p.engine_globals
+        found = []
+        for o in objs:
+            if 'engine' not in o.parts:
+                continue
+            elf = Elf(o)
+            for sym in elf.symbols():
+                if not (sym.defined and sym.type == STT_OBJECT and sym.name) or sym.shndx >= len(elf.sections):
+                    continue
+                if elf.sections[sym.shndx].name not in ('.bss', '.sbss', '.data', '.sdata'):
+                    continue
+                if sym.name.startswith('@') and not sym.name.startswith('@LOCAL@'):
+                    continue  # compiler literals
+                if sym.name not in allowed:
+                    found.append(f'{o.stem}: {sym.name}')
+        if found:
+            raise BuildError('writable globals in src/engine are not rolled back by Slippi; put them in the '
+                             'match-heap state (see project.toml [state]) or list them there with a reason: '
+                             + ', '.join(found))
+
     _hdr_mtime: Optional[float] = None
 
     def _flags_stamp(self, name: str, flags: List[str]) -> float:
@@ -450,6 +473,7 @@ class Builder:
 
         self.log('[bam] compiling sources')
         objs = self.compile_sources()
+        self.check_engine_globals(objs)
         units: List[UnitBuild] = []
         for spec in p.overrides:
             ub = self.generate_unit(spec)

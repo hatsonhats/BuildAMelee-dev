@@ -5,8 +5,8 @@
 #include <engine/anim_rest.inc>
 
 /* ---- per-match state ----
- * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
- * restores it; the pointer is set once per match. */
+ * Allocated on the match heap at match start (Bam_MatchBegin) so Slippi rollback
+ * restores it; the pointer is NULL outside matches. */
 typedef struct Scaled {
     const Fighter* fighter;
     HSD_JObj* jobj;
@@ -56,9 +56,14 @@ typedef struct AnimScaleState {
     short last_prop[BAM_FIGHTERS], last_root[BAM_FIGHTERS];
     PropAnchor anchors[BAM_FIGHTERS][ANCHORS];
     unsigned char anchor_next[BAM_FIGHTERS];
+    /* The donor body part last asked for that the borrower lacks, and the
+     * joint it fell back to + 1 (0: none): Rogue_NoteHeldPart. */
+    signed char held_part[BAM_FIGHTERS], held_joint[BAM_FIGHTERS];
 } AnimScaleState;
 static AnimScaleState* bam_anim_scale;
 #define anchor_next (bam_anim_scale->anchor_next)
+#define held_part (bam_anim_scale->held_part)
+#define held_joint (bam_anim_scale->held_joint)
 #define anchors (bam_anim_scale->anchors)
 #define joint_parent (bam_anim_scale->joint_parent)
 #define last_prop (bam_anim_scale->last_prop)
@@ -953,10 +958,9 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
 /* The donor body part last asked for that this fighter lacks, and the joint
  * it fell back to (ftParts_GetBoneIndex): an article attached to that joint
  * next is held in the frame of the part asked for. */
-static signed char held_part[BAM_FIGHTERS], held_joint[BAM_FIGHTERS]; /* joint + 1; 0: none */
 void Rogue_NoteHeldPart(Fighter* fp, int part, int joint)
 {
-    int slot = slot_of_fighter(fp);
+    int slot = bam_anim_scale ? slot_of_fighter(fp) : -1;
     if (slot < 0) return;
     held_part[slot] = (signed char) part;
     held_joint[slot] = (signed char) (joint + 1);

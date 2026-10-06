@@ -76,6 +76,7 @@ class Project:
     overrides: List[OverrideSpec]
     hooks: List[HookSpec]
     exports: List[str]
+    engine_globals: Dict[str, str]
     slippi_ini: Optional[str]
     slippi_gct: Optional[str]
     local: Dict[str, Any]
@@ -154,6 +155,7 @@ class Project:
                    source_dirs=src.get('dirs', ['src']), source_compiler=src.get('compiler', 'Wii/1.7'),
                    source_cflags=src.get('cflags', []), defines={k: str(v) for k, v in data.get('defines', {}).items()},
                    overrides=overrides, hooks=hooks, exports=data.get('exports', []),
+                   engine_globals=data.get('state', {}).get('engine_globals', {}),
                    slippi_ini=data.get('slippi', {}).get('ini'), slippi_gct=data.get('slippi', {}).get('gct'), local=local)
 
     @property

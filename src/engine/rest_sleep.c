@@ -4,8 +4,8 @@
 #include <melee/ft/ftcommon.h>
 
 /* ---- per-match state ----
- * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
- * restores it; the pointer is set once per match. */
+ * Allocated on the match heap at match start (Bam_MatchBegin) so Slippi rollback
+ * restores it; the pointer is NULL outside matches. */
 typedef struct RestSleepState {
     Fighter* sleepers[BAM_FIGHTERS];
 } RestSleepState;

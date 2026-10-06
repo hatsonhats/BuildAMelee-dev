@@ -36,6 +36,30 @@ cflags = []
 BAM_DEBUG = 0             # bam.py build --debug for the detailed log
 BAM_ENABLE_AERIALS = 1
 
+[state]
+# Writable globals allowed in src/engine. Anything the game simulation reads
+# during a match must live in a block allocated on the match heap at match
+# start (Bam_MatchBegin; see AnimScaleState in anim_scale.c), because Slippi
+# rollback restores the heap but not the overlay. The build refuses any
+# other writable global in src/engine. Each entry: name = "why it is safe".
+[state.engine_globals]
+bam_match = "pointer to the match-heap block"
+bam_anim_scale = "pointer to the match-heap block"
+bam_sword_visual = "pointer to the match-heap block"
+bam_rest_sleep = "pointer to the match-heap block"
+bam_loadouts = "builds chosen before the match; fixed during it"
+fighter_ext_offset = "set once at boot"
+scene_generation = "counts scenes, not frames"
+arenas = "loading cache for donor files (scene setup)"
+scene_counter = "loading cache bookkeeping (scene setup)"
+arena_scene = "loading cache bookkeeping (scene setup)"
+temps = "scratch during donor file trimming (scene setup)"
+ntemps = "scratch during donor file trimming (scene setup)"
+no_state_storage = "zeroed stand-in for fighters without a build; never written"
+abilities = "catalog; entry callbacks filled from retail tables, same every time"
+model_wanted = "donor models to load (rendering, not simulation)"
+"@LOCAL@vis_show__FP10DonorModeliUi@told" = "log once"
+
 [slippi]
 # Slippi Dolphin's default code list; the build refuses patches that land on
 # the same instructions Slippi's codes inject into.

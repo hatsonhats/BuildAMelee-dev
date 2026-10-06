@@ -23,8 +23,8 @@
 #include <string.h>
 
 /* ---- per-match state ----
- * Kept in a match-heap block (bam_match_state.inc) so Slippi rollback
- * restores it; the pointer is set once per match. */
+ * Allocated on the match heap at match start (Bam_MatchBegin) so Slippi rollback
+ * restores it; the pointer is NULL outside matches. */
 #define WEAPON_ITEMS 3
 #define DONOR_JOINTS 192
 #define DONOR_MESHES 16
