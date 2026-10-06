@@ -1,0 +1,322 @@
+# Anchor edits (overrides/README.md): each finds `anchor` in a retail source
+# file of the decomp and replaces it. Applied after the line edits in
+# special_adapters.json, file by file in name order, fix by fix in order.
+#
+# Borrowed moves: the engine's edits to retail code every borrowed move goes
+# through (animation retargeting, hitboxes on rebuilt bones, articles,
+# effects, absorb/reflect bubbles, model parts, empty move slots).
+
+[[fix]]
+id = "special-empty-slot-side"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialS.c"
+anchor = "    if (ftData_SpecialS[fp->kind] == NULL) {"
+replacement = "    if (ftData_SpecialS[fp->kind] == NULL && !Rogue_CanTrySpecial(fp, ROGUE_ABILITY_SIDE)) {"
+reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
+
+[[fix]]
+id = "special-empty-slot-up"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_Attack100.c"
+anchor = "    if (ftData_SpecialHi[fp->kind] == NULL) {"
+replacement = "    if (ftData_SpecialHi[fp->kind] == NULL && !Rogue_CanTrySpecial(fp, ROGUE_ABILITY_UP)) {"
+occurrences = 2
+reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
+
+[[fix]]
+id = "special-empty-slot-air-up"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialAir.c"
+anchor = "            if (ftData_SpecialAirHi[fp->kind] == NULL) {"
+replacement = "            if (ftData_SpecialAirHi[fp->kind] == NULL && !Rogue_CanTrySpecial(fp, ROGUE_ABILITY_UP)) {"
+reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
+
+[[fix]]
+id = "special-empty-slot-air-side"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialAir.c"
+anchor = "            if (ftData_SpecialAirS[fp->kind] == NULL) {"
+replacement = "            if (ftData_SpecialAirS[fp->kind] == NULL && !Rogue_CanTrySpecial(fp, ROGUE_ABILITY_SIDE)) {"
+reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
+
+[[fix]]
+id = "special-samus-bomb-jump-owner"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftSamus/ftsamusspeciallw0.c"
+anchor = "    Fighter* fp = GET_FIGHTER(gobj);\n    ftSs_DatAttrs* da = fp->dat_attrs;\n    float float_result = ftSs_Init_80128AC8(gobj, farg1, farg2);\n\n    u8 _[8];\n\n    if (!ftColl_8007B868(gobj)) {\n        switch (fp->x2070.x2071_b0_3) {\n        case 0:\n        case 2:\n        case 3:\n        case 4:\n            if ((fp->x2070.x2073 == 0x14) || ((fp->x2070.x2071_b5) == 0)) {"
+replacement = "    Fighter* fp = GET_FIGHTER(gobj);\n    ftSs_DatAttrs* da;\n    float float_result;\n\n    u8 _[8];\n\n    if (!ftColl_8007B868(gobj)) {\n        switch (fp->x2070.x2071_b0_3) {\n        case 0:\n        case 2:\n        case 3:\n        case 4:\n            if (((fp->x2070.x2073 == 0x14) || ((fp->x2070.x2071_b5) == 0)) &&\n                Rogue_AbilityOwnerResume(fp, Ft_Kind_Samus, ROGUE_ABILITY_DOWN)) {\n                /* Read Samus's attributes only once her move is installed. */\n                da = fp->dat_attrs;\n                float_result = ftSs_Init_80128AC8(gobj, farg1, farg2);"
+reason = "Bomb jump: a Samus bomb exploding on its owner puts the owner back into Samus's down special. For a fighter with borrowed bombs the move had already ended, so the jump read the fighter's own attributes as Samus's and entered its own unrelated motion 0x156. Re-install the borrowed move first, or skip the jump if it is no longer equipped."
+
+[[fix]]
+id = "borrowed-anim-body-scale-full"
+owner = "platform/specials"
+file = "src/melee/ft/ftanim.c"
+anchor = "void ftAnim_8006FE08(Fighter* fp, bool do_blending)\n{\n    if (fp->kind != fp->x597_bits) {"
+replacement = "void ftAnim_8006FE08(Fighter* fp, bool do_blending)\n{\n    {\n        extern void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part);\n        Rogue_AnimRetarget(fp, fp->x597_bits, 0);\n    }\n    if (fp->kind != fp->x597_bits) {"
+reason = "Every whole-body animation (native or borrowed) passes here: a borrowed one maps body-bone translation from the donor's body to the recipient's (hips no longer sink through the floor); a native one clears that mapping."
+
+[[fix]]
+id = "borrowed-anim-body-scale-partial"
+owner = "platform/specials"
+file = "src/melee/ft/ftanim.c"
+anchor = "                     FigaTree* unused)\n{\n    if (fp->kind != fp->x597_bits) {"
+replacement = "                     FigaTree* unused)\n{\n    {\n        extern void Rogue_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part);\n        Rogue_AnimRetarget(fp, fp->x597_bits, part);\n    }\n    if (fp->kind != fp->x597_bits) {"
+reason = "Same for a partial animation; one starting below the body bones leaves the mapping alone."
+
+[[fix]]
+id = "borrowed-anim-body-scale-translate"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetTranslateX(jobj, val->fv);"
+replacement = "            {\n                extern float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value);\n                HSD_JObjSetTranslateX(jobj, Rogue_AnimTranslate(jobj, 0, val->fv));\n            }"
+reason = "Animated translation passes through the borrowed-move body mapping (identity for every joint not registered by Rogue_AnimRetarget)."
+
+[[fix]]
+id = "borrowed-anim-body-scale-translate-y"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetTranslateY(jobj, val->fv);"
+replacement = "            {\n                extern float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value);\n                HSD_JObjSetTranslateY(jobj, Rogue_AnimTranslate(jobj, 1, val->fv));\n            }"
+reason = "See borrowed-anim-body-scale-translate."
+
+[[fix]]
+id = "borrowed-anim-body-scale-translate-z"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetTranslateZ(jobj, val->fv);"
+replacement = "            {\n                extern float Rogue_AnimTranslate(HSD_JObj* jobj, int axis, float value);\n                HSD_JObjSetTranslateZ(jobj, Rogue_AnimTranslate(jobj, 2, val->fv));\n            }"
+reason = "See borrowed-anim-body-scale-translate."
+
+[[fix]]
+id = "borrowed-rest-own-sleep"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftPurin/ftpurinspeciallw.c"
+anchor = "void ftPr_SpecialLw_Anim(Fighter_GObj* fighter_gobj)\n{"
+replacement = "void ftPr_SpecialLw_Anim(Fighter_GObj* fighter_gobj)\n{\n    {\n        extern bool Rogue_RestSleep(Fighter_GObj* gobj);\n        if (Rogue_RestSleep(fighter_gobj)) return;\n    }"
+reason = "Borrowed Rest: once asleep, the borrower plays its own sleep animations for the rest of Rest's duration. Jigglypuff is unchanged."
+
+[[fix]]
+id = "borrowed-rest-no-mash"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_DamageSong.c"
+anchor = "    ftCommon_GrabMash(fp, p_ftCommonData->x640);"
+replacement = "    {\n        extern bool Rogue_RestSleeping(Fighter* fp);\n        if (!Rogue_RestSleeping(fp)) ftCommon_GrabMash(fp, p_ftCommonData->x640);\n    }"
+reason = "A Rest sleep lasts as long as Rest does; mashing only shortens Sing's sleep."
+
+[[fix]]
+id = "borrowed-rest-sing-clears"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_DamageSong.c"
+anchor = "    ftCo_ReleaseItemAndVictim(gobj);\n    Fighter_ChangeMotionState(gobj, ftCo_MS_DamageSong, Ft_MF_None, 0, 1, 0,"
+replacement = "    ftCo_ReleaseItemAndVictim(gobj);\n    {\n        extern void Rogue_RestSleepClear(Fighter* fp);\n        Rogue_RestSleepClear(fp);\n    }\n    Fighter_ChangeMotionState(gobj, ftCo_MS_DamageSong, Ft_MF_None, 0, 1, 0,"
+reason = "A sleep from Sing is mashable as usual, even for a fighter who rested earlier."
+
+[[fix]]
+id = "borrowed-sword-display"
+owner = "platform/specials"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "        if (ftData_UnkMtxFunc0[fighter->kind] != NULL) {\n            ftData_UnkMtxFunc0[fighter->kind](gobj, arg1, mtx);\n        }"
+replacement = "        if (ftData_UnkMtxFunc0[fighter->kind] != NULL) {\n            ftData_UnkMtxFunc0[fighter->kind](gobj, arg1, mtx);\n        }\n        {\n            extern void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx);\n            Rogue_SwordDisplay(gobj, arg1, mtx);\n        }"
+reason = "Draw the Beam Sword model in the hand during a borrowed Marth/Roy/Link/Young Link move, in the fighter's own draw pass (as Jigglypuff's hat is)."
+
+[[fix]]
+id = "borrowed-sword-display-2"
+owner = "platform/specials"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "            if (ftData_UnkMtxFunc0[fighter->kind] != NULL) {\n                ftData_UnkMtxFunc0[fighter->kind](gobj, flag_index, vmtx);\n            }"
+replacement = "            if (ftData_UnkMtxFunc0[fighter->kind] != NULL) {\n                ftData_UnkMtxFunc0[fighter->kind](gobj, flag_index, vmtx);\n            }\n            {\n                extern void Rogue_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx);\n                Rogue_SwordDisplay(gobj, flag_index, vmtx);\n            }"
+reason = "Same for the fighter's second draw pass."
+
+[[fix]]
+id = "borrowed-anim-rotate-x"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetRotationX(jobj, val->fv);\n            break;"
+replacement = "            {\n                extern void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value);\n                Rogue_AnimRotate(jobj, 0, val->fv);\n            }\n            break;"
+reason = "Animated rotation passes through borrowed-move retargeting: a bone a borrowed animation drives is turned to the donor bone's world orientation on the recipient's own rest skeleton (raw copy for every joint not registered by Rogue_AnimRetarget)."
+
+[[fix]]
+id = "borrowed-anim-rotate-y"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetRotationY(jobj, val->fv);\n            break;"
+replacement = "            {\n                extern void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value);\n                Rogue_AnimRotate(jobj, 1, val->fv);\n            }\n            break;"
+reason = "See borrowed-anim-rotate-x."
+
+[[fix]]
+id = "borrowed-anim-rotate-z"
+owner = "platform/specials"
+file = "src/sysdolphin/baselib/jobj.c"
+anchor = "            HSD_JObjSetRotationZ(jobj, val->fv);\n            break;"
+replacement = "            {\n                extern void Rogue_AnimRotate(HSD_JObj* jobj, int axis, float value);\n                Rogue_AnimRotate(jobj, 2, val->fv);\n            }\n            break;"
+reason = "See borrowed-anim-rotate-x."
+
+[[fix]]
+id = "borrowed-prop-track-full"
+owner = "platform/specials"
+file = "src/melee/ft/ftanim.c"
+anchor = "        part = ftPartsRemap(fp->kind, kind, i);"
+replacement = "        part = ftPartsRemap(fp->kind, kind, i);\n        {\n            extern void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count);\n            Rogue_PropTrack(fp, i, cur_track, *cur_node);\n        }"
+reason = "A borrowed animation's tracks for donor bones that are rebuilt on the recipient (Marth's sword, Kirby's hammer bone) or that the recipient lacks are kept (anim_scale.c); Melee drops or misroutes them otherwise."
+
+[[fix]]
+id = "borrowed-prop-track-partial"
+owner = "platform/specials"
+file = "src/melee/ft/ftanim.c"
+anchor = "            int tmp = ftPartsRemap(fp->kind, kind, i);"
+replacement = "            int tmp = ftPartsRemap(fp->kind, kind, i);\n            {\n                extern void Rogue_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count);\n                Rogue_PropTrack(fp, i, cur_track, *cur_node);\n            }"
+reason = "Same for a partial animation."
+
+[[fix]]
+id = "borrowed-prop-hitbox-create"
+owner = "platform/specials"
+file = "src/melee/ft/ftaction.c"
+anchor = "        hitbox->b_offset.z = 0.003906f * cmd->u->create_hitbox_2.x_offset;"
+replacement = "        hitbox->b_offset.z = 0.003906f * cmd->u->create_hitbox_2.x_offset;\n        {\n            extern void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone);\n            Rogue_HitboxCreated(fp, hitbox,\n                ((struct spawn_hitbox_0*) skip)->use_common_bone_ids ? -1 : (int) idx);\n        }"
+reason = "A borrowed move's hitbox offset is carried into the recipient's frame: on a rebuilt donor bone (sword) it follows that bone, on a body bone it gets the rest-pose correction."
+
+[[fix]]
+id = "borrowed-prop-hitbox-refresh"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "void ftColl_8007AD18(Fighter* fp, HitCapsule* arg1)\n{\n    Vec3 sp10;\n    f32 temp_f1;\n"
+replacement = "void ftColl_8007AD18(Fighter* fp, HitCapsule* arg1)\n{\n    Vec3 sp10;\n    f32 temp_f1;\n    {\n        extern void Rogue_HitboxRefresh(Fighter* fp, HitCapsule* hit);\n        Rogue_HitboxRefresh(fp, arg1);\n    }\n"
+reason = "Hitboxes on a rebuilt donor bone move with that bone's animation every frame."
+
+[[fix]]
+id = "borrowed-anim-fold-step"
+owner = "platform/specials"
+file = "src/melee/ft/ftanim.c"
+anchor = "void ftAnim_8006EBA4(Fighter_GObj* gobj)\n{\n    ftAnim_8006E9B4(gobj);"
+replacement = "void ftAnim_8006EBA4(Fighter_GObj* gobj)\n{\n    ftAnim_8006E9B4(gobj);\n    {\n        extern void Rogue_AnimPostStep(Fighter* fp);\n        Rogue_AnimPostStep(GET_FIGHTER(gobj));\n    }"
+reason = "A borrowed move on a fighter missing one of the donor's torso bones (Mario has no BustN) folds that bone's animated rotation into the next one every frame, so arms and head still point where the donor's do."
+
+[[fix]]
+id = "borrowed-article-anchor"
+owner = "platform/specials"
+file = "src/melee/it/it_2725.c"
+anchor = "    lb_8000C2F8(jobj, ftLib_80086630(arg2_gobj, part_idx));"
+replacement = "    {\n        extern HSD_JObj* Rogue_ItemAnchor(HSD_GObj* gobj, int part);\n        lb_8000C2F8(jobj, ftLib_80086960(arg2_gobj) ? Rogue_ItemAnchor(arg2_gobj, part_idx)\n                                                     : ftLib_80086630(arg2_gobj, part_idx));\n    }"
+reason = "An article a borrowed move attaches to the fighter (Peach's Toad, Mr. Game & Watch's parachute) is held in the donor's frame: on the rebuilt donor bone, or the joint turned by the rest correction, instead of this fighter's differently turned joint (Toad was upside down)."
+
+[[fix]]
+id = "borrowed-vis-set"
+owner = "platform/specials"
+file = "src/melee/ft/ftparts.c"
+anchor = "void ftParts_80074B0C(Fighter_GObj* gobj, int model_idx, int val)\n{\n    Fighter* fp = GET_FIGHTER(gobj);"
+replacement = "void ftParts_80074B0C(Fighter_GObj* gobj, int model_idx, int val)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    {\n        extern bool Rogue_VisSet(HSD_GObj* gobj, int group, int val);\n        if (Rogue_VisSet(gobj, model_idx, val)) return;\n    }"
+reason = "A borrowed move switching one of the donor's model-part groups (Mr. Game & Watch's pan, box and key, Peach's crown, Kirby's stone) is kept for the donor's model drawn on the borrower, instead of toggling the borrower's own meshes."
+
+[[fix]]
+id = "borrowed-vis-set-prev"
+owner = "platform/specials"
+file = "src/melee/ft/ftparts.c"
+anchor = "void ftParts_80074A4C(Fighter_GObj* gobj, int model_idx, int val)\n{\n    Fighter* fp = GET_FIGHTER(gobj);"
+replacement = "void ftParts_80074A4C(Fighter_GObj* gobj, int model_idx, int val)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    {\n        extern bool Rogue_VisSet(HSD_GObj* gobj, int group, int val);\n        if (Rogue_VisSet(gobj, model_idx, val)) return;\n    }"
+reason = "Same for the deferred group switch."
+
+[[fix]]
+id = "borrowed-body-hidden"
+owner = "platform/specials"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "        HSD_JObjDispAll(GET_JOBJ(gobj), mtx, HSD_GObj_80390EB8(arg1), 0);"
+replacement = "        {\n            extern bool Rogue_BodyHidden(HSD_GObj* gobj);\n            if (!Rogue_BodyHidden(gobj)) HSD_JObjDispAll(GET_JOBJ(gobj), mtx, HSD_GObj_80390EB8(arg1), 0);\n        }"
+reason = "While a borrowed move turns the fighter into the donor's model part (Kirby's stone), the fighter's own body is not drawn; the stone is, in its place."
+
+[[fix]]
+id = "borrowed-body-hidden-2"
+owner = "platform/specials"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "            HSD_JObjDispAll(jobj, vmtx, HSD_GObj_80390EB8(flag_index), 0);"
+replacement = "            {\n                extern bool Rogue_BodyHidden(HSD_GObj* gobj);\n                if (!Rogue_BodyHidden(gobj)) HSD_JObjDispAll(jobj, vmtx, HSD_GObj_80390EB8(flag_index), 0);\n            }"
+reason = "Same for the fighter's second draw pass."
+
+[[fix]]
+id = "borrowed-parasol-float"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_FallSpecial.c"
+anchor = "void ftCo_FallSpecial_Phys(Fighter_GObj* gobj)\n{\n    float lstick_x, drift, target_vel;\n\n    ftCo_DatAttrs* ca;\n    Fighter* fp;\n    fp = GET_FIGHTER(gobj);\n    ca = &fp->co_attrs;\n"
+replacement = "void ftCo_FallSpecial_Phys(Fighter_GObj* gobj)\n{\n    float lstick_x, drift, target_vel;\n\n    ftCo_DatAttrs* ca;\n    Fighter* fp;\n    fp = GET_FIGHTER(gobj);\n    ca = &fp->co_attrs;\n    {\n        extern bool Rogue_ParasolFloat(HSD_GObj* gobj);\n        extern void ftCo_ItemParasolOpen_Phys(Fighter_GObj* gobj);\n        if (Rogue_ParasolFloat(gobj)) {\n            ftCo_ItemParasolOpen_Phys(gobj);\n            return;\n        }\n    }\n"
+reason = "After a borrowed Peach up special the fighter floats down on her parasol (the parasol fall's physics) until it lands, leaves the special fall or closes it with the stick, as Peach does holding her parasol."
+
+[[fix]]
+id = "borrowed-absorb-callback"
+owner = "platform/specials"
+file = "src/melee/ft/fighter.c"
+anchor = "                if (ftData_OnAbsorb[fp->kind]) {\n                    ftData_OnAbsorb[fp->kind](gobj);\n                }"
+replacement = "                {\n                    FighterKind absorb_kind = Rogue_IsAbilityState(fp) ? Rogue_AbilitySourceKind(fp) : fp->kind;\n                    if (ftData_OnAbsorb[absorb_kind]) {\n                        ftData_OnAbsorb[absorb_kind](gobj);\n                    }\n                }"
+reason = "A borrowed absorbing move (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) caught projectiles without filling: the absorb callback was looked up by the borrower's kind. During a borrowed move it is the donor's (its variables are installed then)."
+
+[[fix]]
+id = "borrowed-gw-item-color"
+owner = "platform/specials"
+file = "src/melee/ft/ftlib.c"
+anchor = "void ftLib_8008770C(HSD_GObj* gobj, void* dst)\n{"
+replacement = "void ftLib_8008770C(HSD_GObj* gobj, void* dst)\n{\n    extern int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline);\n    if (Rogue_DonorItemColor(gobj, dst, 0)) return;"
+reason = "Mr. Game & Watch's articles (Judge hammer, turtle, torch, sausages) take their color from their owner; on a borrower the game read Kirby's copy colors and they came out white."
+
+[[fix]]
+id = "borrowed-gw-item-outline"
+owner = "platform/specials"
+file = "src/melee/ft/ftlib.c"
+anchor = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{"
+replacement = "void ftLib_80087744(HSD_GObj* gobj, void* dst)\n{\n    extern int Rogue_DonorItemColor(HSD_GObj* gobj, void* dst, int outline);\n    if (Rogue_DonorItemColor(gobj, dst, 1)) return;"
+reason = "Same for their outline color."
+
+[[fix]]
+id = "borrowed-absorb-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->absorb_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, absorb->x0_bone_id)].joint;"
+replacement = "    fp->absorb_hit.bone = Rogue_DonorBoneJObj(fp, absorb->x0_bone_id);"
+reason = "A borrowed absorb (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) names the donor's bone: the mapped joint of a bone posed from the root (Oil Panic's bucket on Mr. Game & Watch's thumb) is the root itself, so the bubble sat at the feet and nothing reached the bucket. It now rides on the donor's posed bone, as articles do."
+
+[[fix]]
+id = "borrowed-reflect-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->reflect_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, reflect->x0_bone_id)].joint;"
+replacement = "    fp->reflect_hit.bone = Rogue_DonorBoneJObj(fp, reflect->x0_bone_id);"
+reason = "Same for a borrowed reflector's bubble (Fox's and Falco's Reflector, Mario's Cape, Ness's bat)."
+
+[[fix]]
+id = "borrowed-shield-bone"
+owner = "platform/specials"
+file = "src/melee/ft/ftcoll.c"
+anchor = "    fp->shield_hit.bone = fp->parts[Rogue_AbilityMapBone(fp, shield->bone)].joint;"
+replacement = "    fp->shield_hit.bone = Rogue_DonorBoneJObj(fp, shield->bone);"
+reason = "Same for a move's own shield bubble."
+
+[[fix]]
+id = "borrowed-held-part"
+owner = "platform/specials"
+file = "src/melee/ft/ftparts.c"
+anchor = "        joint = Rogue_AbilityFallbackJoint(fp, part);"
+replacement = "        joint = Rogue_AbilityFallbackJoint(fp, part);\n        {\n            extern void Rogue_NoteHeldPart(Fighter* fp, int part, int joint);\n            Rogue_NoteHeldPart(fp, part, joint);\n        }"
+reason = "An article a borrowed move holds on a body part this fighter lacks (Mr. Game & Watch's Judge sign on his right thumb) is held in the donor's frame of that part, not of the hand it falls back to (the sign was edge-on)."
+
+[[fix]]
+id = "borrowed-charge-flash"
+owner = "platform/specials"
+file = "src/melee/ft/ftcolanim.c"
+anchor = "if (ftData_UnkMotionStates4[fp->kind] != NULL) {"
+occurrences = 4
+replacement = "{\n        extern void Rogue_ChargeFlash(Fighter* fp);\n        Rogue_ChargeFlash(fp);\n    }\n    if (ftData_UnkMotionStates4[fp->kind] != NULL) {"
+reason = "A fully charged borrowed move (Charge Shot, Giant Punch, needles, Shadow Ball, Oil Panic) keeps flashing the fighter, as the donor's does, after the motion changes."
+
+[[fix]]
+id = "borrowed-parasol-open"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftCommon/ftCo_ItemParasolOpen.c"
+anchor = "void ftCo_800CEFE0(Fighter_GObj* gobj, int arg1)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n"
+replacement = "void ftCo_800CEFE0(Fighter_GObj* gobj, int arg1)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    {\n        extern bool Rogue_ParasolOpen(HSD_GObj* gobj);\n        if (Rogue_ParasolOpen(gobj)) return;\n    }\n"
+reason = "A borrowed Peach up special ends in the special fall with the parasol float kept by BuildAMelee, not in the common held-parasol states: their parasol item is removed with the borrowed move, which left the float invisible and impossible to close."
+
+[[fix]]
+id = "borrowed-effect-scale"
+owner = "platform/specials"
+file = "src/melee/ef/eflib.c"
+anchor = "        HSD_JObjGetScale(GET_JOBJ(gobj), &scale);"
+occurrences = 4
+replacement = "        HSD_JObjGetScale(GET_JOBJ(gobj), &scale);\n        {\n            extern float Rogue_EffectScale(HSD_GObj* gobj);\n            scale.y *= Rogue_EffectScale(gobj);\n        }"
+reason = "A borrowed move's effects are sized as its hitboxes are placed (the borrow scale): Pichu's forward smash sparks on Bowser came out at his feet, short of the hitboxes."

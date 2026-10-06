@@ -1,0 +1,13 @@
+# Anchor edits (overrides/README.md): each finds `anchor` in a retail source
+# file of the decomp and replaces it. Applied after the line edits in
+# special_adapters.json, file by file in name order, fix by fix in order.
+#
+# Compatibility with Slippi's optional codes.
+
+[[fix]]
+id = "always-show-hitboxes-gecko"
+owner = "platform/specials/debug"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "    fighter = GET_FIGHTER(gobj);\n    do_invalidate = false;\n    if (fighter->x21FC_flag.b6 != 0) {"
+replacement = "    fighter = GET_FIGHTER(gobj);\n    do_invalidate = false;\n    /* The \"Always Display Hitboxes\" gecko code (040805FC 60000000) nops the\n     * retail branch at 0x800805FC; this function is rebuilt in the overlay,\n     * so honor that patch here. */\n    if (fighter->x21FC_flag.b6 != 0 || *(volatile u32*) 0x800805FC == 0x60000000) {"
+reason = "This function runs from the overlay, so a gecko patch of its retail body (Always Display Hitboxes) had no effect."

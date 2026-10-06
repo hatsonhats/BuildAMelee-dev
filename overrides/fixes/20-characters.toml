@@ -1,0 +1,109 @@
+# Anchor edits (overrides/README.md): each finds `anchor` in a retail source
+# file of the decomp and replaces it. Applied after the line edits in
+# special_adapters.json, file by file in name order, fix by fix in order.
+#
+# Borrowed moves: edits for one character's moves (as donor or as
+# borrower). Each names the character in its owner.
+
+[[fix]]
+id = "boomerang-return-donor-context"
+owner = "platform/specials/link"
+file = "src/melee/ft/kinds/ftLink/ftlinkspecials.c"
+anchor = "void ftLk_SpecialS2_Enter(HSD_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);"
+replacement = "void ftLk_SpecialS2_Enter(HSD_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    if (Rogue_IsBuildFighter(fp) && !Rogue_AbilityResumeFamily(fp, Ft_Kind_Link, ROGUE_ABILITY_SIDE)) return;"
+reason = "A returning boomerang re-enters Link's catch state after the initial special has cleaned up; reinstall its persistent donor context before selecting the donor motion table."
+
+[[fix]]
+id = "boomerang-return-recipient-bone"
+owner = "platform/specials/link"
+file = "src/melee/ft/kinds/ftLink/ftlinkspecialhi.c"
+anchor = "    return ftParts_GetBoneIndex(GET_FIGHTER(gobj), FtPart_LThumbNb);"
+replacement = "    return Rogue_AbilityPartIndex(GET_FIGHTER(gobj), FtPart_LThumbNb);"
+reason = "Some recipients lack Link's thumb part; attach the returning article to TransN rather than indexing the invalid native part sentinel."
+
+[[fix]]
+id = "peach-native-float-donor-isolation"
+owner = "platform/specials/peach-recipient"
+file = "src/melee/ft/fighter.c"
+anchor = "            fp->u.pe.has_float = true;"
+replacement = "            Rogue_AbilityVars(fp, Ft_Kind_Peach)->pe.has_float = true;"
+reason = "Native grounded motion changes replenish Peach's float. During a borrowed move that boolean must update her saved native bank, not overwrite the donor's overlapping item pointer (Fox Blaster reproduced this as pointer 1)."
+
+[[fix]]
+id = "samus-charge-recipient-attachment"
+owner = "platform/specials/samus"
+file = "src/melee/ft/kinds/ftSamus/ftsamusspecialn.c"
+anchor = "result = it_802B55C8(gobj, &vec1, FtPart_RHandNb, It_Kind_Samus_Charge,"
+replacement = "result = it_802B55C8(gobj, &vec1, Rogue_AbilityMapBone(fp, FtPart_RHandNb), It_Kind_Samus_Charge,"
+reason = "The charging item's persistent attachment stores a raw recipient bone index. Remap it at creation just like its spawn position; the donor hand index is not a valid joint on Ice Climbers."
+
+[[fix]]
+id = "samus-charge-shot-release-height"
+owner = "platform/specials/samus"
+file = "src/melee/ft/kinds/ftSamus/ftsamusspecialn.c"
+anchor = "        vec1.z = 0;\n        held_item = fp->item_gobj;"
+replacement = "        {\n            extern void Rogue_ProjectileOrigin(Fighter* fp, Vec3* pos);\n            Rogue_ProjectileOrigin(fp, &vec1);\n        }\n        vec1.z = 0;\n        held_item = fp->item_gobj;"
+occurrences = 1
+reason = "On a fighter whose throw bone sits low (Jigglypuff, Ice Climbers) the shot was released into the floor and vanished at once."
+
+[[fix]]
+id = "mario-cape-missing-thumb"
+owner = "platform/specials/mario"
+file = "src/melee/ft/kinds/ftMario/ftmariospecials.c"
+anchor = "ftParts_GetBoneIndex(fp, FtPart_RThumbNb)"
+replacement = "Rogue_AbilityPartIndex(fp, FtPart_RThumbNb)"
+occurrences = 2
+reason = "Jigglypuff has no thumb joint. Use the checked recipient part lookup for both cape position and its persistent attachment, with the native translation joint as fallback."
+
+[[fix]]
+id = "purin-native-accessory-bank-header"
+owner = "platform/specials/purin-recipient"
+file = "src/melee/ft/kinds/ftPurin/ftpurin.c"
+anchor = "#include \"ftpurin.h\""
+replacement = "#include \"ftpurin.h\"\n#include <engine/special_engine.h>"
+reason = "Declare the borrowed-special variable-bank facade for native accessory callbacks."
+
+[[fix]]
+id = "purin-native-accessory-bank"
+owner = "platform/specials/purin-recipient"
+file = "src/melee/ft/kinds/ftPurin/ftpurin.c"
+anchor = "fp->u.pr"
+replacement = "Rogue_AbilityVars(fp, Ft_Kind_Purin)->pr"
+occurrences = 24
+reason = "Native Jigglypuff accessory callbacks remain active during borrowed moves. Its hat pointer overlaps Mario's cape GObj; native callbacks must read the saved recipient bank instead of treating a donor item as a joint."
+
+[[fix]]
+id = "borrowed-inhale-no-copy"
+owner = "platform/specials/kirby"
+file = "src/melee/ft/kinds/ftKirby/ftkirbyspecialn.c"
+anchor = "    ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0, true);"
+replacement = "    if (fp->kind == Ft_Kind_Kirby) /* a borrowed inhale swallows without copying */\n        ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp, Ft_Kind_Kirby)->kb.xE0, true);"
+reason = "Only Kirby himself copies abilities. A borrowed inhale swallows and spits, so the copy-ability moves only ever run on Kirby with his own variables installed, and their states need no borrowing edits."
+
+[[fix]]
+id = "borrowed-inhale-no-copy-air"
+owner = "platform/specials/kirby"
+file = "src/melee/ft/kinds/ftKirby/ftkirbyspecialn.c"
+anchor = "            ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0, true);"
+replacement = "            if (fp2->kind == Ft_Kind_Kirby)\n                ftKb_SpecialN_800F1BAC(gobj, Rogue_AbilityVars(fp2, Ft_Kind_Kirby)->kb.xE0, true);"
+reason = "As borrowed-inhale-no-copy, in the air."
+
+# ---- Training Mode with builds (src/platform/training.c) --------------------
+
+[[fix]]
+id = "bam-gw-judge-thumb-r"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchspecials.c"
+anchor = "ftParts_GetBoneIndex(fp, FtPart_RThumbNb)"
+replacement = "Rogue_AbilityPartIndex(fp, FtPart_RThumbNb)"
+occurrences = 2
+reason = "BuildAMelee: the Judge sign hangs from the right thumb; a borrower without that joint (Jigglypuff) attached it to an invalid part and the number never showed. Use the checked part lookup with its nearest-joint fallback."
+
+[[fix]]
+id = "bam-gw-judge-thumb-l"
+owner = "platform/specials"
+file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchspecials.c"
+anchor = "ftParts_GetBoneIndex(fp, FtPart_LThumbNb)"
+replacement = "Rogue_AbilityPartIndex(fp, FtPart_LThumbNb)"
+occurrences = 1
+reason = "BuildAMelee: same as bam-gw-judge-thumb-r for the 7 (food) effect position."

@@ -29,6 +29,24 @@ class OverrideSpec:
     keep_functions: List[str] = field(default_factory=list)  # always keep in the overlay
 
 
+def load_fixes(path: Path) -> List[Dict[str, Any]]:
+    """Anchor edits from a .toml file or every .toml in a directory (in name
+    order), each tagged with the file it came from. Ids must be unique."""
+    files = sorted(path.glob('*.toml')) if path.is_dir() else [path]
+    fixes, seen = [], {}
+    for f in files:
+        for fx in tomllib.loads(f.read_text(encoding='utf-8')).get('fix', []):
+            for key in ('id', 'owner', 'file', 'anchor', 'replacement'):
+                if key not in fx:
+                    raise ValueError(f'{f.name}: a fix without `{key}` ({fx.get("id", "?")})')
+            if fx['id'] in seen:
+                raise ValueError(f'{f.name}: fix id {fx["id"]} also in {seen[fx["id"]]}')
+            seen[fx['id']] = f.name
+            fx['_source'] = f.name
+            fixes.append(fx)
+    return fixes
+
+
 @dataclass
 class HookSpec:
     id: str
@@ -94,14 +112,15 @@ class Project:
                 line_files = {k[len('src/'):] if k.startswith('src/') else k: True for k in manifest['files']}
             anchors_by_unit: Dict[str, List[Dict[str, Any]]] = {}
             if s.get('anchor_edits'):
-                fixes = tomllib.loads((root / s['anchor_edits']).read_text(encoding='utf-8')).get('fix', [])
+                fixes = load_fixes(root / s['anchor_edits'])
                 owners = tuple(s.get('owners', []))
                 for fx in fixes:
                     if owners and not fx['owner'].startswith(owners):
                         continue
                     u = fx['file'][len('src/'):] if fx['file'].startswith('src/') else fx['file']
                     anchors_by_unit.setdefault(u, []).append(dict(anchor=fx['anchor'], replacement=fx['replacement'],
-                                                                  occurrences=fx.get('occurrences', 1), id=fx['id']))
+                                                                  occurrences=fx.get('occurrences', 1), id=fx['id'],
+                                                                  source=fx['_source']))
             for u in sorted(set(line_files) | set(anchors_by_unit)):
                 if u in s.get('exclude_units', []):
                     continue

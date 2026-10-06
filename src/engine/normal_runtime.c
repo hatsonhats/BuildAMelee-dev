@@ -3,7 +3,7 @@
  * Each of the twelve slots (jab, dash attack, the three tilts, the three
  * smash attacks, the four throws) can hold another character's move. It is
  * borrowed the way the aerials are: where the game picks the move for the
- * slot (overrides/platform_fixes.toml, the "normal-*" fixes), the donor's
+ * slot (overrides/fixes/30-normals.toml), the donor's
  * attributes, animation table, move variables and callbacks are installed
  * (Rogue_BorrowBegin) and the game then runs the move as that character
  * would. A slot's "family" is every motion the move can pass through: the

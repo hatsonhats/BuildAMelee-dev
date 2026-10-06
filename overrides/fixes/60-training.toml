@@ -1,0 +1,45 @@
+# Anchor edits (overrides/README.md): each finds `anchor` in a retail source
+# file of the decomp and replaces it. Applied after the line edits in
+# special_adapters.json, file by file in name order, fix by fix in order.
+#
+# Training mode: setup and restart, and the hitbox/hurtbox display options.
+
+[[fix]]
+id = "training-prepare"
+owner = "platform/training"
+file = "src/melee/gm/gmtrainingmode.c"
+anchor = "    gm_LoadRumbleEnabled(data);\n    gm_80189CDC(data);"
+replacement = "    {\n        extern void BAM_TrainingPrepare(StartMeleeData* data);\n        BAM_TrainingPrepare(data);\n    }\n    gm_LoadRumbleEnabled(data);\n    gm_80189CDC(data);"
+reason = "The training match's players are set: map the player's port build onto match slot 0 (the CPU gets none) and start the training session."
+
+[[fix]]
+id = "training-restart"
+owner = "platform/training"
+file = "src/melee/gm/gmtrainingmode.c"
+anchor = "    temp_r3 = gm_GetGameModeStateExitData(arg0);\n    gm_80162968(temp_r3->match_end.frame_count / 60);"
+replacement = "    temp_r3 = gm_GetGameModeStateExitData(arg0);\n    {\n        extern int BAM_TrainingTakeRestart(void);\n        if (BAM_TrainingTakeRestart()) {\n            /* A build change from the training menu: load the match again\n             * (cut short, so no play stats). */\n            gm_SetNextGameModeStateId(2);\n            return;\n        }\n    }\n    gm_80162968(temp_r3->match_end.frame_count / 60);"
+reason = "Restart the training match after a build change instead of returning to the character select screen. Ordinary exits are unchanged."
+
+[[fix]]
+id = "training-split-fighter-bubbles"
+owner = "platform/training"
+file = "src/melee/ft/ftdrawcommon.c"
+anchor = "    if (fighter->x21FC_flag.b6 != 0 || *(volatile u32*) 0x800805FC == 0x60000000) {\n        for (i = 0; i < ARRAY_SIZE(fighter->x914); i++) {\n            if (lbColl_80009F54(&fighter->x914[i], arg1, fighter->x34_scale.y))\n            {\n                do_invalidate = true;\n            }\n        }\n        if (fighter->x221D_b6) {"
+replacement = "    if ((fighter->x21FC_flag.b6 != 0 || *(volatile u32*) 0x800805FC == 0x60000000) && Bam_DrawHitboxes()) {\n        for (i = 0; i < ARRAY_SIZE(fighter->x914); i++) {\n            if (lbColl_80009F54(&fighter->x914[i], arg1, fighter->x34_scale.y))\n            {\n                do_invalidate = true;\n            }\n        }\n    }\n    if ((fighter->x21FC_flag.b6 != 0 || *(volatile u32*) 0x800805FC == 0x60000000) && Bam_DrawHurtboxes()) {\n        if (fighter->x221D_b6) {"
+reason = "Training options show hitboxes and hurtboxes separately (applied after always-show-hitboxes-gecko). Both filters are 1 outside training, so the develop-mode display is unchanged."
+
+[[fix]]
+id = "training-split-item-hitboxes"
+owner = "platform/training"
+file = "src/melee/it/itdraw.c"
+anchor = "            if (ip->xDAA_flag.b2) {"
+replacement = "            if (ip->xDAA_flag.b2 && Bam_DrawHitboxes()) {"
+reason = "Item hitbox bubbles follow the training SHOW HITBOXES option."
+
+[[fix]]
+id = "training-split-item-hurtboxes"
+owner = "platform/training"
+file = "src/melee/it/itdraw.c"
+anchor = "            if (!ip->xDC8_word.flags.x13 && ip->xDAA_flag.b1) {"
+replacement = "            if (!ip->xDC8_word.flags.x13 && ip->xDAA_flag.b1 && Bam_DrawHurtboxes()) {"
+reason = "Item hurtbox bubbles follow the training SHOW HURTBOXES option."

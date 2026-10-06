@@ -278,11 +278,11 @@ args = ["r3", "regs"]
 ret = "r3"
 note = "garbage joint pointers from borrowed moves: log caller, treat as none"
 
-# ---- borrowed-move engine: rogueMelee's pinned edits to retail units ---------
+# ---- borrowed-move engine: edits to retail units (overrides/README.md) -------
 
 [[override_set]]
 line_edits = "overrides/special_adapters.json"
-anchor_edits = "overrides/platform_fixes.toml"
+anchor_edits = "overrides/fixes"
 owners = ["platform/specials", "platform/aerials", "platform/training"]
 strip_unchanged = true
 compiler = "Wii/1.7"

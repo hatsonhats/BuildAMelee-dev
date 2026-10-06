@@ -8,6 +8,7 @@
   bam.py check-slippi           list Slippi injections inside functions we touch
   bam.py info                   print retail DOL layout and project settings
   bam.py fingerprint save|diff F  compare the overlay's code across a refactor (layout-independent)
+  bam.py edits [FILTER]         show every edit to retail code as a diff (units matching FILTER)
   bam.py gen-tables [OUT]       write the bone tables (build/generated/engine/anim_rest.inc) from your ISO
 """
 from __future__ import annotations
@@ -138,6 +139,34 @@ def cmd_fingerprint(args):
         sys.exit(1)
 
 
+def cmd_edits(args):
+    """Unified diff of each overridden retail unit: line edits and fixes applied."""
+    import difflib
+    from bam.build import Builder
+    from bam.transform import apply_line_edits, apply_anchor_edits, LineEdit, AnchorEdit
+    import json
+    p = Project.load(ROOT)
+    b = Builder(p, args.decomp)
+    shown = 0
+    for spec in p.overrides:
+        if args.filter and args.filter not in spec.unit:
+            continue
+        original = b._unit_source(spec.unit).read_text(encoding='utf-8')
+        text = original
+        if spec.line_edits:
+            entry = json.loads((ROOT / spec.line_edits).read_text(encoding='utf-8'))['files']
+            entry = entry.get('src/' + spec.unit) or entry.get(spec.unit)
+            text = apply_line_edits(text, [LineEdit(e['line'], e['before'], e['after']) for e in entry['edits']], spec.unit)
+        if spec.anchor_edits:
+            text = apply_anchor_edits(text, [AnchorEdit(e['anchor'], e['replacement'], e.get('occurrences', 1), e.get('id', ''))
+                                             for e in spec.anchor_edits], spec.unit)
+        diff = difflib.unified_diff(original.splitlines(True), text.splitlines(True),
+                                    f'a/src/{spec.unit}', f'b/src/{spec.unit}', n=2)
+        sys.stdout.writelines(diff)
+        shown += 1
+    print(f'# {shown} units', file=sys.stderr)
+
+
 def cmd_gen_tables(args):
     from bam.bonetables import generate
     from bam.iso import disc_reader
@@ -180,6 +209,8 @@ def main(argv=None):
     s.set_defaults(fn=cmd_fingerprint)
     s.add_argument('action', choices=('save', 'diff')); s.add_argument('file')
     s.add_argument('--rename', action='append', metavar='OLD=NEW', help='function name prefix renamed since the save')
+    s = sub.add_parser('edits', help='show the edits to retail code as a unified diff')
+    s.set_defaults(fn=cmd_edits); s.add_argument('filter', nargs='?', help='only units whose path contains this')
     s = sub.add_parser('gen-tables', help='write the bone tables from your ISO (the build does this itself)')
     s.set_defaults(fn=cmd_gen_tables); s.add_argument('out', nargs='?')
     s = sub.add_parser('fetch'); s.set_defaults(fn=cmd_fetch)

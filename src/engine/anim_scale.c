@@ -1210,7 +1210,7 @@ void Rogue_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     /* Offsets and radii fit this fighter's body (Rogue_BorrowScale), as
      * the move's weapons and props are drawn: a hitbox stays on the part it
      * belongs to, and keeps its size relative to it (the hitbox size
-     * command scales the same way, overrides/platform_fixes.toml). */
+     * command scales the same way, overrides/fixes/30-normals.toml). */
     {
         float s = Rogue_BorrowScale(fp);
         hit->b_offset.x *= s; hit->b_offset.y *= s; hit->b_offset.z *= s;

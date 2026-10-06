@@ -236,6 +236,24 @@ class Builder:
                 names.append(s.name)
         return sorted(set(names))
 
+    fix_dependencies: List[str]
+
+    def note_fix_dependencies(self, unit: str, original: str, after_lines: str, fixes) -> None:
+        """Record fixes whose anchor is not in the retail source as is: they
+        match text a line edit or an earlier fix wrote, so they depend on it
+        (and break if it changes). Listed in the build report."""
+        if not hasattr(self, 'fix_dependencies'):
+            self.fix_dependencies = []
+        for i, e in enumerate(fixes):
+            if e['anchor'] in original:
+                continue
+            first = e['anchor'].strip().split('\n')[0].strip()
+            by = [f['id'] for f in fixes[:i] if first in f['replacement']]
+            what = f'fix {by[-1]}' if by else ('the line edits' if e['anchor'] in after_lines else 'an earlier fix')
+            line = f'{e.get("id")} ({unit}) depends on {what}'
+            if line not in self.fix_dependencies:
+                self.fix_dependencies.append(line)
+
     def generate_unit(self, spec: OverrideSpec) -> UnitBuild:
         unit = spec.unit
         src = self._unit_source(unit)
@@ -251,6 +269,7 @@ class Builder:
             edits = [LineEdit(e['line'], e['before'], e['after']) for e in entry['edits']]
             text = apply_line_edits(text, edits, label)
         if spec.anchor_edits:
+            self.note_fix_dependencies(unit, original, text, spec.anchor_edits)
             text = apply_anchor_edits(text, [AnchorEdit(e['anchor'], e['replacement'], e.get('occurrences', 1), e.get('id', ''))
                                              for e in spec.anchor_edits], label)
         # Decomp units may define their globals in "x.static.h"; inline those
@@ -638,6 +657,7 @@ class Builder:
             patches=[dict(addr=f'0x{pt.addr:08X}', value=f'0x{pt.value:08X}', original=f'0x{pt.original:08X}', hook=pt.hook) for pt in patches],
             overrides=[dict(name=d.name, retail=f'0x{d.retail_addr:08X}', overlay=f'0x{d.overlay_addr:08X}', changed=d.changed, reason=d.reason) for d in diffs],
             units=[dict(unit=u.spec.unit, functions=sorted(u.defined_functions), externized=u.externized) for u in units],
+            fix_dependencies=getattr(self, 'fix_dependencies', []),
             dol=dict(path=str(dol_path), sections=out.describe().splitlines()))
         report_path = out_dir / 'build-report.json'
         report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -645,6 +665,9 @@ class Builder:
         changed = sum(1 for d in diffs if d.changed)
         self.log(f'[bam] overlay 0x{len(full):X} bytes, {(p.overlay_reserve - len(full)) / 1024:.1f} KB free ({len(image):#x} code/data + {tramp.size:#x} trampolines); '
                  f'{len(patches)} patches; {changed}/{len(diffs)} recompiled functions differ')
+        deps = getattr(self, 'fix_dependencies', [])
+        if deps:
+            self.log(f'[bam] {len(deps)} fixes match text an earlier edit wrote (build-report.json fix_dependencies)')
         self.log(f'[bam] wrote {dol_path}  (BuildAMelee {self.build_id})')
 
         if iso_out:
