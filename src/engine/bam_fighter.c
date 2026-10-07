@@ -175,7 +175,7 @@ int Bam_DonorFits(int kind)
     if (gFtDataList[kind] || BamCache_Room(1) >= 0x20000) return 1;
     room = Bam_HeapRoom();
     if (room >= BAM_HEAP_FLOOR + 0x20000) return 1;
-    BAM_NOTE("donor kind=%d does not fit (%u KB free, cache %u KB)\n", kind, room / 1024,
+    BAM_NOTE("memory: donor kind=%d does not fit (%u KB free, cache %u KB)\n", kind, room / 1024,
              BamCache_Room(1) / 1024);
     return 0;
 }

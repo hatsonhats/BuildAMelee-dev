@@ -36,7 +36,7 @@ void Bam_AerialPrepare(Fighter* fp)
         source = def->donor;
         /* Out of memory: this slot keeps the native aerial. */
         if (!Bam_DonorEnsure(S, source)) {
-            BAM_NOTE("aerial_skipped kind=%u slot=%u (out of memory)\n", source, slot);
+            BAM_NOTE("memory: aerial kind=%u slot=%u skipped, out of memory\n", source, slot);
             S->aerial_equipped[slot] = 0;
             continue;
         }
@@ -49,7 +49,7 @@ void Bam_AerialPrepare(Fighter* fp)
             anims[landing] = (short) state->anim_id;
         }
         if (!Bam_DonorReadAnims(S, source, anims, 2, "aerial_slices")) {
-            BAM_NOTE("aerial_skipped kind=%u slot=%u (no memory for animations)\n", source, slot);
+            BAM_NOTE("memory: aerial kind=%u slot=%u skipped, no room for its animations\n", source, slot);
             S->aerial_equipped[slot] = 0;
         }
     }

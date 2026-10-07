@@ -314,7 +314,7 @@ static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
         arc = HSD_MemAlloc(sizeof(HSD_Archive));
     }
     if (!buf || !arc) {
-        BAM_NOTE("donor parts kind=%u skipped (%u KB free, parts %u KB)\n", kind, Bam_HeapRoom() / 1024, size / 1024);
+        BAM_NOTE("memory: donor parts kind=%u skipped (%u KB free, parts %u KB)\n", kind, Bam_HeapRoom() / 1024, size / 1024);
         return 0;
     }
     memset(arc, 0, sizeof(HSD_Archive));
@@ -322,14 +322,14 @@ static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
     /* HSD_ArchiveParse halts the game on a malformed archive: check its
      * header first and fall back to the full costume. */
     if (length < 0x20 || *(u32*) buf != length || ((u32*) buf)[1] + 0x20 > length) {
-        BAM_NOTE("donor parts kind=%u: %s is malformed (%u bytes, header %u)\n", kind, name, (unsigned) length,
+        BAM_NOTE("parts: kind=%u: %s is malformed (%u bytes, header %u)\n", kind, name, (unsigned) length,
                  *(u32*) buf);
         return 0;
     }
     lbArchive_InitializeDAT(arc, buf, length);
     joint = HSD_ArchiveGetPublicAddress(arc, cs->joint_name);
     if (!joint) {
-        BAM_NOTE("donor parts kind=%u: %s has no %s\n", kind, name, cs->joint_name);
+        BAM_NOTE("parts: kind=%u: %s has no %s\n", kind, name, cs->joint_name);
         return 0;
     }
     bam_visual->part_joint[kind] = joint;
@@ -352,7 +352,7 @@ void Bam_DonorModelsLoad(void)
         size = (unsigned) lbFileGetSize(ftData_803C2360[kind][0].dat_filename);
         room = Bam_HeapRoom();
         if (room < size + BAM_HEAP_FLOOR) {
-            BAM_NOTE("donor_model_load kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
+            BAM_NOTE("memory: donor model kind=%u skipped (%u KB free, model %u KB)\n", kind, room / 1024, size / 1024);
             continue;
         }
         ftData_80085820(kind, 0);

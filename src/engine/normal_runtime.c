@@ -195,12 +195,12 @@ void Bam_NormalPrepare(Fighter* fp)
         donor = Bam_InternalKindForCharacter((CharacterKind) (ck - 1));
         if (donor >= Ft_Kind_Max || donor == fp->kind) continue;
         if (!Bam_DonorEnsure(S, donor)) {
-            BAM_NOTE("normal_skipped slot=%d kind=%u (out of memory)\n", slot, donor);
+            BAM_NOTE("memory: normal slot=%d kind=%u skipped, out of memory\n", slot, donor);
             continue;
         }
         n = family_anims(fp, slot, donor, anims);
         if (!Bam_DonorReadAnims(S, donor, anims, n, "normal_slices")) {
-            BAM_NOTE("normal_skipped slot=%d kind=%u (no memory for animations)\n", slot, donor);
+            BAM_NOTE("memory: normal slot=%d kind=%u skipped, no room for its animations\n", slot, donor);
             continue;
         }
         S->normals[slot] = (unsigned char) (donor + 1);

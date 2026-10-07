@@ -76,4 +76,5 @@ Run the host tests too: `python -m unittest discover -s tests`.
   without it. The history of a fix belongs in the commit message.
 - Logging: `BAM_NOTE` reaches every player's log, so keep it for crashes,
   freezes, dropped moves, the online exchange and replays; everything else is
-  `BAM_LOG` (debug builds only).
+  `BAM_LOG` (debug builds only). Release lines read `area: what happened
+  (details)`; add a new one to [docs/LOGS.md](docs/LOGS.md).

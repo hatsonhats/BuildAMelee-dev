@@ -106,7 +106,7 @@ static int load_special_slices(BamFighterState* S, const BamAbilityDefinition* d
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
             buf = Bam_SliceAlloc(total);
             if (!buf) {
-                BAM_NOTE("special_slices id=%u: out of memory\n", def->id);
+                BAM_NOTE("memory: special %u skipped, no room for its animations\n", def->id);
                 return 0;
             }
             S->special_blobs[S->special_blob_count++] = buf;
@@ -160,13 +160,13 @@ int Bam_DonorEnsure(BamFighterState* S, int source)
     if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
     /* Out of memory for this source: the slot keeps its native move. */
     if (!Bam_DonorFits(source)) {
-        BAM_NOTE("donor kind=%u: out of memory\n", source);
+        BAM_NOTE("memory: donor kind=%u does not fit\n", source);
         return 0;
     }
     {
         unsigned before = Bam_HeapRoom();
         if (!load_donor_core(source)) {
-            BAM_NOTE("donor kind=%u: out of memory while loading\n", source);
+            BAM_NOTE("memory: donor kind=%u ran out while loading\n", source);
             return 0;
         }
         BAM_LOG("donor_cost kind=%u core=%u KB\n", source, (before - Bam_HeapRoom()) / 1024);
@@ -353,7 +353,7 @@ int Bam_DonorReadAnims(BamFighterState* S, int source, const short* anims, unsig
             if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
             buf = Bam_SliceAlloc(total);
             if (!buf) {
-                BAM_NOTE("%s kind=%d: no memory for %u KB of animations\n", what, source, total / 1024);
+                BAM_NOTE("memory: %s kind=%d skipped, no room for %u KB of animations\n", what, source, total / 1024);
                 return 0;
             }
             S->special_blobs[S->special_blob_count++] = buf;
@@ -440,7 +440,7 @@ void Bam_AbilityFighterCreated(Fighter* fp)
         if (!needed) continue;
         if (S->loaded_sources[source]) { S->loaded[i] = true; continue; }
         if (!Bam_DonorEnsure(S, source)) {
-            BAM_NOTE("donor_skipped kind=%u ability=%u\n", source, i);
+            BAM_NOTE("memory: donor kind=%u move %u skipped\n", source, i);
             continue;
         }
         S->loaded[def->id] = true;

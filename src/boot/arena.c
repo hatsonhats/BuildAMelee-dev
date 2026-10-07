@@ -79,12 +79,12 @@ void BAM_ReserveOverlay(void)
     u32 hi = (u32) OSGetArenaHi() & ~31U;
     u32 lo = (u32) OSGetArenaLo();
     if (hi < BAM_OVERLAY_END || lo > BAM_OVERLAY_BASE) {
-        BAM_NOTE("FATAL: arena %08x-%08x cannot hold the overlay at %08x-%08x\n",
+        BAM_NOTE("boot: FATAL: arena %08x-%08x cannot hold the overlay at %08x-%08x\n",
                  (unsigned) lo, (unsigned) hi, (unsigned) BAM_OVERLAY_BASE, (unsigned) BAM_OVERLAY_END);
         OSPanic(__FILE__, __LINE__, "BuildAMelee overlay does not fit the arena");
     }
     OSSetArenaHi((void*) BAM_OVERLAY_BASE);
-    BAM_NOTE("overlay %08x-%08x, arena top was %08x, version %s build %s\n",
+    BAM_NOTE("boot: overlay %08x-%08x, arena top was %08x, version %s build %s\n",
             (unsigned) BAM_OVERLAY_BASE, (unsigned) BAM_OVERLAY_END, (unsigned) hi, BAM_VERSION, BAM_BUILD_ID);
     BAM_ShrinkPreloadCache(hi - BAM_OVERLAY_BASE);
 }

@@ -160,6 +160,6 @@ void* BAM_CheckJointPos(void* jobj, u32* regs)
 {
     u32 p = (u32) jobj;
     if (p == 0 || (p >= 0x80000000 && p < 0x81800000 && !(p & 3))) return jobj;
-    BAM_NOTE("bad joint %08x passed to lb_8000B1CC from %08x\n", (unsigned) p, (unsigned) regs[0x7C / 4]);
+    BAM_NOTE("joint: bad joint %08x passed to lb_8000B1CC from %08x, ignored\n", (unsigned) p, (unsigned) regs[0x7C / 4]);
     return NULL;
 }

@@ -29,7 +29,8 @@ Open `build\output\BuildAMelee.iso` in Slippi Dolphin. The mod logs to
 Dolphin's log (`[bam]` lines); the first line shows the version and build id.
 Release builds log only what matters for bug reports (crashes and freezes,
 moves dropped for memory, the online build exchange, replays); a `--debug`
-build logs everything. Every build prints how much of the overlay is free.
+build logs everything ([docs/LOGS.md](docs/LOGS.md) explains each line).
+Every build prints how much of the overlay is free.
 
 ## Releasing
 

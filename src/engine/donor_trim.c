@@ -359,7 +359,7 @@ int Bam_LoadDonorData(int kind)
     }
     /* The complete file, into the match heap, only with room to spare. */
     if (Bam_HeapRoom() < OSRoundUp32B(lbFileGetSize(name)) + 0x100 + HEAP_FLOOR) {
-        BAM_NOTE("donor_data kind=%d: out of memory\n", kind);
+        BAM_NOTE("memory: donor data kind=%d does not fit\n", kind);
         return 0;
     }
     ftData_8008572C(kind);
@@ -412,7 +412,7 @@ int Bam_LoadDonorEffects(int kind)
     /* As the game loads it: preloaded, or into the match heap. */
     if (!lbDvd_8001819C(e->file) &&
         Bam_HeapRoom() < OSRoundUp32B(lbFileGetSize(e->file)) + 0x100 + HEAP_FLOOR) {
-        BAM_NOTE("donor_effects kind=%d: out of memory\n", kind);
+        BAM_NOTE("memory: donor effects kind=%d do not fit\n", kind);
         return 0;
     }
     efAsync_LoadSync(idx);
