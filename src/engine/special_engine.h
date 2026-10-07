@@ -19,32 +19,14 @@ typedef enum BamAbilityID {
     BAM_ABILITY_FOX_REFLECTOR = 1 + Ft_Kind_Fox * 4 + BAM_ABILITY_DOWN,
     BAM_ABILITY_COUNT = 1 + Ft_Kind_Max * 4
 } BamAbilityID;
-typedef enum BamAbilityCompatibility {
-    BAM_COMPAT_NATIVE, BAM_COMPAT_SIMPLE,
-    BAM_COMPAT_ADAPTED, BAM_COMPAT_UNSUPPORTED
-} BamAbilityCompatibility;
-enum BamAbilityFlags {
-    BAM_ABILITY_NEEDS_ARTICLE = 1 << 0,
-    BAM_ABILITY_NEEDS_ATTRS = 1 << 1,
-    BAM_ABILITY_NEEDS_ANIMATION = 1 << 2,
-    BAM_ABILITY_NEEDS_BONE_MAP = 1 << 3,
-    BAM_ABILITY_NEEDS_STATE_TABLE = 1 << 4,
-    BAM_ABILITY_GROUND_ONLY = 1 << 5
-};
 typedef struct BamAbilityDefinition {
-    BamAbilityID id;
-    const char* name;
+    BamAbilityID id;  /* = 1 + donor kind * 4 + slot, as bam_specials[].id */
     CharacterKind source_kind;
     FighterKind internal_kind;
     BamAbilitySlot native_slot;
     HSD_GObjEvent ground_enter, air_enter;
-    BamAbilityCompatibility compatibility;
-    unsigned flags;
     int first_state, last_state;
     MotionState* states;
-    /* Runtime lifecycle coverage by internal FighterKind bit; this does not
-     * certify every collision, visual effect or opponent matchup. */
-    u32 tested_recipients;
     unsigned attrs_size;
 } BamAbilityDefinition;
 const BamAbilityDefinition* Bam_GetAbility(BamAbilityID id);

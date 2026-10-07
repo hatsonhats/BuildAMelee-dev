@@ -1,4 +1,3 @@
-/* Generated from authored catalogs: id, character, donor (FighterKind), slot. */
 #include <engine/aerial_catalog.h>
 const BamAerialDef bam_aerials[BAM_AERIALS] = {
     { 1, 0, 2, 0 }, /* Captain Falcon Neutral Air */
