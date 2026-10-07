@@ -5,9 +5,8 @@
 #ifndef BAM_CSS_PANEL_H
 #define BAM_CSS_PANEL_H
 #include <bam/bam.h>
-#include <engine/special_internal.h>
-#include <engine/special_catalog.h>
-#include <engine/aerial_catalog.h>
+#include <engine/internal.h>
+#include <engine/catalog.h>
 #include "ui_text.h"
 #include "build_store.h"
 #include "training.h"

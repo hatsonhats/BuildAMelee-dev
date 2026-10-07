@@ -70,7 +70,7 @@ static int same_family(int a, int b)
 
 static int special_ok(const BamSpecialDef* d, unsigned slot)
 {
-    return d && d->slot == slot && BamSpecial_Offerable(d) && Bam_GetAbility(d->id) &&
+    return d && d->slot == slot && BamSpecial_Offerable(d) && Bam_DonorSpecial(d->id) &&
            !same_family((int) d->character, css.ckind);
 }
 

@@ -11,9 +11,8 @@
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include "build_code.h"
-#include <engine/special_internal.h>
-#include <engine/special_catalog.h>
-#include <engine/aerial_catalog.h>
+#include <engine/internal.h>
+#include <engine/catalog.h>
 
 const char bam_code_alphabet[33] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 

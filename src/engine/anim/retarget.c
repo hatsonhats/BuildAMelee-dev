@@ -69,11 +69,11 @@ static void forget(const Fighter* fp)
  * differently. Amalgam Fox avoids this by re-making every borrowed animation
  * on Fox's skeleton ahead of time; here the same correction is applied live.
  *
- * With D the donor's and R the recipient's rest world rotation of a body
- * part, the recipient bone is turned so its world orientation is the donor
+ * With D the donor's and R the borrower's rest world rotation of a body
+ * part, the borrower bone is turned so its world orientation is the donor
  * bone's animated world orientation carried over by C = D^-1 * R:
- *     recipient local = C(parent)^-1 * donor local * C(bone)
- * At rest this gives exactly the recipient's own rest pose. Rest rotations
+ *     borrower local = C(parent)^-1 * donor local * C(bone)
+ * At rest this gives exactly the borrower's own rest pose. Rest rotations
  * come from the user's disc at build time (bone_tables.h). Bones whose
  * correction is the identity, and finger bones, keep the raw copy. */
 
@@ -126,7 +126,7 @@ RotFix* rotfix_find(HSD_JObj* jobj)
         if (bam_anim->rotfix[bam_anim->rotfix_hash[h] - 1].jobj == jobj) return &bam_anim->rotfix[bam_anim->rotfix_hash[h] - 1];
     return NULL;
 }
-/* The recipient's own joint for a body part, or -1. Not ftParts_GetBoneIndex:
+/* The borrower's own joint for a body part, or -1. Not ftParts_GetBoneIndex:
  * during a borrowed move that falls back to the nearest part the fighter
  * has, which would put one part's correction on another part's bone. */
 int part_joint_raw(Fighter* fp, int part)
@@ -138,7 +138,7 @@ int part_joint_raw(Fighter* fp, int part)
     if (joint == FTPART_INVALID || (unsigned) joint >= table->parts_num || !fp->parts[joint].joint) return -1;
     return joint;
 }
-/* The retargeted-part index (into bam_rest_part) of a recipient joint. */
+/* The retargeted-part index (into bam_rest_part) of a borrower joint. */
 static int rest_index_of(Fighter* fp, HSD_JObj* jobj)
 {
     unsigned i;
@@ -157,7 +157,7 @@ Quat correction(unsigned donor, unsigned own, int i)
         c = q_mul(q_conj(d), r);
     return c;
 }
-/* Recipient joint index of each joint's parent (0xFF: root), per fighter. */
+/* Borrower joint index of each joint's parent (0xFF: root), per fighter. */
 
 
 static void build_parents(Fighter* fp, unsigned slot)
@@ -171,7 +171,7 @@ static void build_parents(Fighter* fp, unsigned slot)
             if (fp->parts[k].joint == parent) { bam_anim->joint_parent[slot][i] = (unsigned char) k; break; }
     }
 }
-static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, int first_part, int borrowed)
+static void rotate_retarget(Fighter* fp, unsigned slot, unsigned donor_kind, int first_part, int borrowed)
 {
     unsigned i, k;
     RotFix* block = &bam_anim->rotfix[slot * ROTFIX_PER_FIGHTER];
@@ -195,15 +195,15 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
             joint = part_joint_raw(fp, part);
             if (joint < 0) continue;
             parent = rest_index_of(fp, HSD_JObjGetParent(fp->parts[joint].joint));
-            cb = correction(source_kind, fp->kind, (int) i);
-            cp = correction(source_kind, fp->kind, parent);
-            /* Donor ancestors (by body part) the recipient does not have. */
+            cb = correction(donor_kind, fp->kind, (int) i);
+            cp = correction(donor_kind, fp->kind, parent);
+            /* Donor ancestors (by body part) the borrower does not have. */
             {
-                int up = bam_part_parent[source_kind][part], chain[ROTFIX_FOLDS], n = 0, ok = 1;
+                int up = bam_part_parent[donor_kind][part], chain[ROTFIX_FOLDS], n = 0, ok = 1;
                 while (up != 0xFF && n < ROTFIX_FOLDS) {
                     if (part_joint_raw(fp, up) >= 0) break;
                     chain[n++] = up;
-                    up = bam_part_parent[source_kind][up];
+                    up = bam_part_parent[donor_kind][up];
                 }
                 if (up != 0xFF && n == ROTFIX_FOLDS) ok = 0;
                 nfold = 0;
@@ -212,8 +212,8 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
             /* Every body bone is registered: the per-frame pass needs the
              * donor's own values for it (Bam_AnimPostStep). */
             /* Until a track writes it, the bone holds the donor's rest pose. */
-            if (!rest_world(source_kind, i, &db)) continue;
-            rest = parent >= 0 && rest_world(source_kind, (unsigned) parent, &dp) ? q_mul(q_conj(dp), db) : db;
+            if (!rest_world(donor_kind, i, &db)) continue;
+            rest = parent >= 0 && rest_world(donor_kind, (unsigned) parent, &dp) ? q_mul(q_conj(dp), db) : db;
             jobjs[0] = fp->parts[joint].joint;
             jobjs[1] = fp->parts[joint].x4_jobj2;
             for (k = 0; k < 2; ++k) {
@@ -222,9 +222,9 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
                 e->jobj = jobjs[k];
                 e->a = q_conj(cp);
                 e->b = cb;
-                q_to_euler(q_mul(q_conj(mid_quat(source_kind, part)), rest), e->donor);
+                q_to_euler(q_mul(q_conj(mid_quat(donor_kind, part)), rest), e->donor);
                 e->slot = (unsigned char) slot;
-                e->kind = (unsigned char) source_kind;
+                e->kind = (unsigned char) donor_kind;
                 e->nfold = nfold;
                 memcpy(e->fold, fold, sizeof(e->fold));
                 parts[i * 2 + k] = (unsigned char) part;
@@ -259,7 +259,7 @@ void Bam_AnimRotate(HSD_JObj* jobj, int axis, float value)
     rotfix_apply(e);
 }
 
-void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
+void Bam_AnimRetarget(Fighter* fp, unsigned donor_kind, int first_part)
 {
     static const int parts[3] = { FtPart_XRotN, FtPart_YRotN, FtPart_HipN };
     BamFighterState* S;
@@ -271,18 +271,18 @@ void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
     S = Bam_FighterCtx(fp);
     if (S && S->fighter == fp) {
         unsigned slot = (unsigned) (S - bam_match->fighters);
-        int borrowed = source_kind != fp->kind && (S->active || S->aerial || S->normal_on) &&
-            source_kind < BAM_REST_KINDS && fp->kind < BAM_REST_KINDS;
-        if (slot < BAM_FIGHTERS) rotate_retarget(fp, slot, source_kind, first_part, borrowed);
+        int borrowed = donor_kind != fp->kind && (S->active || S->aerial || S->normal_on) &&
+            donor_kind < BAM_REST_KINDS && fp->kind < BAM_REST_KINDS;
+        if (slot < BAM_FIGHTERS) rotate_retarget(fp, slot, donor_kind, first_part, borrowed);
     }
     /* A partial animation that starts below the body bones leaves them alone. */
     if (first_part > FtPart_HipN) return;
     forget(fp);
     S = Bam_FighterCtx(fp);
-    if (source_kind == fp->kind || S->fighter != fp || (!S->active && !S->aerial && !S->normal_on) ||
-        source_kind >= BODY_KINDS || fp->kind >= BODY_KINDS) return;
+    if (donor_kind == fp->kind || S->fighter != fp || (!S->active && !S->aerial && !S->normal_on) ||
+        donor_kind >= BODY_KINDS || fp->kind >= BODY_KINDS) return;
     own = &body_rest[fp->kind];
-    donor = &body_rest[source_kind];
+    donor = &body_rest[donor_kind];
     if (own->hip <= 0.0f || donor->hip <= 0.0f) return;
     ratio = own->hip / donor->hip;
     /* Within the borrow scale's range (Bam_BorrowScale): Jigglypuff's and

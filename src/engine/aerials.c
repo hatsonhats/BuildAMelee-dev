@@ -1,4 +1,4 @@
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/lb/lbfile.h>
 #include <dolphin/dvd.h>
 #include <sysdolphin/baselib/memory.h>
@@ -29,7 +29,7 @@ void Bam_AerialPrepare(Fighter* fp)
         S->aerial_equipped[slot]=Bam_EquippedAerial(fp, slot);
     for (slot = 0; slot < BAM_AERIAL_SLOTS; ++slot) {
         const BamAerialDef* def = BamAerial_Find(S->aerial_equipped[slot]);
-        const BamAbilityDefinition* donor;
+        const BamDonorSpecial* donor;
         short anims[2];
         int source, landing;
         if (!def) continue;
@@ -40,7 +40,7 @@ void Bam_AerialPrepare(Fighter* fp)
             S->aerial_equipped[slot] = 0;
             continue;
         }
-        donor = Bam_GetAbility(1 + source * 4);
+        donor = Bam_DonorSpecial(1 + source * 4);
         /* Read only this equipped attack and its landing. */
         for (landing = 0; landing < 2; ++landing) {
             int motion = aerial_motion(def, landing != 0);
@@ -95,7 +95,7 @@ bool Bam_AerialTryEnter(Fighter_GObj* gobj, int motion)
         if (slot == 3) fp->accessory4_cb = ftGw_AttackAirN_ItemSparkySetup;
     }
 #if BAM_DEBUG
-    BAM_LOG("aerial_enter id=%u recipient=%u match=%u\n", def->id, fp->kind, S->match_generation);
+    BAM_LOG("aerial_enter id=%u borrower=%u match=%u\n", def->id, fp->kind, S->match_generation);
 #endif
     return true;
 }
@@ -105,11 +105,11 @@ MotionState* Bam_AerialMotionState(Fighter* fp, int motion)
     BamFighterState* const S = Bam_FighterCtx(fp);
     const BamAerialDef* def = S->aerial;
     if (!def || (motion != aerial_motion(def, false) && motion != aerial_motion(def, true))) {
-        Bam_AbilityCleanup(fp);
+        Bam_BorrowEnd(fp);
         return NULL;
     }
     if (motion < ftCo_MS_Count) return &fp->x1C_actionStateList[motion];
-    return &Bam_GetAbility(1 + def->donor * 4)->states[motion - ftCo_MS_Count];
+    return &Bam_DonorSpecial(1 + def->donor * 4)->states[motion - ftCo_MS_Count];
 }
 
 float Bam_AerialLandingLag(Fighter* fp, int motion, float native_lag)
@@ -118,7 +118,7 @@ float Bam_AerialLandingLag(Fighter* fp, int motion, float native_lag)
     float lag, scale;
     BamFighterState* const S = Bam_FighterCtx(fp);
     const BamAerialDef* def = S->aerial;
-    if (!Bam_IsAbilityState(fp) || !def || motion != aerial_motion(def, false)) return native_lag;
+    if (!Bam_InBorrowedMove(fp) || !def || motion != aerial_motion(def, false)) return native_lag;
     attrs = gFtDataList[def->donor]->x0;
     switch (def->slot) {
     case 0: lag = attrs->landingairn_lag; break;

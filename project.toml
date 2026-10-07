@@ -311,7 +311,7 @@ owners = ["platform/specials", "platform/aerials", "platform/training"]
 strip_unchanged = true
 compiler = "Wii/1.7"
 extra_cflags = ["-lang", "c99"]
-prepend = "#include <engine/special_engine.h>"
+prepend = "#include <engine/engine.h>"
 # Slippi Recording injects at Fighter_Create+0x54: never replace it; the
 # engine's creation hook runs from the fighter-created inject instead.
 # Slippi also injects into these bodies; their edits move to hooks or drop:

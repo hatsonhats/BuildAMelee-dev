@@ -1,4 +1,4 @@
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/ft/fighter.h>
 #include <melee/ft/ftanim.h>
 #include <melee/ft/ftcommon.h>
@@ -59,7 +59,7 @@ void Bam_RestSleepClear(Fighter* fp)
 }
 
 #include <sysdolphin/baselib/memory.h>
-/* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
+/* Called from Bam_MatchBegin / Bam_MatchEnd (fighter.c). */
 void Bam_RestSleepMatchBegin(void)
 {
     bam_rest_sleep = HSD_MemAlloc(sizeof(*bam_rest_sleep));

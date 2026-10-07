@@ -1,6 +1,6 @@
 /* BuildAMelee fighter identity, loadouts and per-match state.
  *
- * Glue between the borrowed-move engine (special_engine.h) and the game. A
+ * Glue between the borrowed-move engine (engine.h) and the game. A
  * loadout is assigned per player slot
  * before a match; every fighter in that slot (Popo and Nana both) borrows.
  *
@@ -12,15 +12,14 @@
  */
 #ifndef BAM_FIGHTER_H
 #define BAM_FIGHTER_H
-#include <engine/../bam/bam.h>
+#include <bam/bam.h>
 #include <melee/ft/forward.h>
 #include <melee/ft/types.h>
-#include <engine/aerial_catalog.h>
-#include <engine/special_catalog.h>
+#include <engine/catalog.h>
 
 #define BAM_SPECIAL_SLOTS 4
 #ifndef BAM_AERIAL_SLOTS
-#define BAM_AERIAL_SLOTS 5 /* also in aerial_catalog.h */
+#define BAM_AERIAL_SLOTS 5 /* also in catalog.h */
 #endif
 /* Ground attacks and throws, each borrowed whole from one character. */
 #define BAM_NORMAL_SLOTS 12
@@ -39,7 +38,7 @@ enum BamNormalSlot {
 
 typedef struct BamLoadout {
     unsigned char enabled;                      /* 0: this slot plays retail */
-    unsigned char specials[BAM_SPECIAL_SLOTS];  /* BamAbilityID, 0 = native */
+    unsigned char specials[BAM_SPECIAL_SLOTS];  /* BamSpecialID, 0 = native */
     unsigned char aerials[BAM_AERIAL_SLOTS];    /* bam_aerials id, 0 = native */
     unsigned char normals[BAM_NORMAL_SLOTS];    /* donor CharacterKind + 1, 0 = native */
 } BamLoadout;
@@ -79,7 +78,7 @@ void BamFighter_Created(Fighter* fp);
 void Bam_OnSceneEnter(void* info);
 void Bam_OnSceneExit(void);
 
-/* Whether a donor can be loaded at all (bam_fighter.c). */
+/* Whether a donor can be loaded at all (fighter.c). */
 int Bam_DonorFits(int kind);
 unsigned Bam_HeapRoom(void);
 void Bam_LogHeapRoom(const char* where);

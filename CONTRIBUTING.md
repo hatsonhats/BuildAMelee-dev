@@ -3,6 +3,22 @@
 Read [README.md](README.md) for setup and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for how the mod sits inside the game. This page is the common jobs.
 
+## Words used in the code
+
+| Word | Means |
+|---|---|
+| **donor** | The character a borrowed move comes from (`Bam_DonorKind`, `donor_*`) |
+| **borrower** | The fighter using a borrowed move |
+| **borrowed move** | Any move from another character in a build: special, aerial, ground attack or throw (`Bam_InBorrowedMove`) |
+| **slot** | A place in a build: 4 specials, 5 aerials, 12 ground attacks and throws |
+| **special** / **aerial** / **normal** | The three kinds of slot; "normal" means ground attacks and throws |
+| **build** / **loadout** | A player's choices for every slot (`BamLoadout`) |
+| **kind** | The game's internal fighter number (`enum FighterKind`); **character** is the CSS order (`CharacterKind`) |
+| **part** | A body part the game names on every fighter (`FtPart_*`); a **joint** is one fighter's own bone number |
+| **prop** | A donor bone that is not a body part (sword, tail), rebuilt on the borrower |
+| **article** | An item a move spawns (Toad, the parasol, Judge's sign) |
+| **match block** | State allocated on the match heap at match start, restored by rollback |
+
 ## Rules that keep online play working
 
 - **Do not move retail code.** Changes go in through hooks and fixes
@@ -28,8 +44,8 @@ for how the mod sits inside the game. This page is the common jobs.
      held by the fighter, sizes: `src/engine/anim/` (`internal.h` lists the files)
    - the donor's model, held weapons, the parasol: `src/engine/visual/`
    - starting and ending a borrowed move, the donor's variables:
-     `src/engine/special_runtime.c`, `normal_runtime.c`, `aerial_runtime.c`
-   - loading a donor's files and articles: `src/engine/special_preload.c`
+     `src/engine/borrow.c`, `normals.c`, `aerials.c`
+   - loading a donor's files and articles: `src/engine/donor_load.c`
    - something in the retail code of the move itself: a fix in
      `overrides/fixes/` (`bam.py edits <file>` shows what is already changed)
 3. If only one character needs it, see [docs/DONOR_NOTES.md](docs/DONOR_NOTES.md)

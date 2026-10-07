@@ -1,4 +1,4 @@
-#include <engine/aerial_catalog.h>
+#include <engine/catalog.h>
 const BamAerialDef bam_aerials[BAM_AERIALS] = {
     { 1, 0, 2, 0 }, /* Captain Falcon Neutral Air */
     { 2, 0, 2, 1 }, /* Captain Falcon Forward Air */

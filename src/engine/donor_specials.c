@@ -1,4 +1,4 @@
-#include <engine/special_engine.h>
+#include <engine/engine.h>
 #include <melee/ft/ftdata.h>
 #include <melee/ft/kinds/ftCommon/ftCo_Fall.h>
 #include <melee/ft/kinds/ftKoopa/ftkoopa.h>
@@ -29,18 +29,18 @@
 #include <melee/ft/kinds/ftPichu/ftpichu.h>
 
 /* Each donor's four specials: the donor's own motion-state table and
- * attributes. The moves' names are in the catalog (special_catalog_data.c),
+ * attributes. The moves' names are in the catalog (catalog_specials_data.c),
  * by the same id. */
 #define ABILITY(kind, character, slot, table, count, attrs) \
     { 1 + kind * 4 + slot, character, kind, slot, NULL, NULL, \
       ftCo_MS_Count, ftCo_MS_Count + count - 1, table, sizeof(attrs) }
 #define FOUR(kind, character, table, count, attrs) \
-    ABILITY(kind, character, BAM_ABILITY_NEUTRAL, table, count, attrs), \
-    ABILITY(kind, character, BAM_ABILITY_SIDE, table, count, attrs), \
-    ABILITY(kind, character, BAM_ABILITY_UP, table, count, attrs), \
-    ABILITY(kind, character, BAM_ABILITY_DOWN, table, count, attrs)
+    ABILITY(kind, character, BAM_SPECIAL_NEUTRAL, table, count, attrs), \
+    ABILITY(kind, character, BAM_SPECIAL_SIDE, table, count, attrs), \
+    ABILITY(kind, character, BAM_SPECIAL_UP, table, count, attrs), \
+    ABILITY(kind, character, BAM_SPECIAL_DOWN, table, count, attrs)
 
-static BamAbilityDefinition abilities[] = {
+static BamDonorSpecial abilities[] = {
     FOUR(Ft_Kind_Koopa, CKind_Koopa, ftKp_Init_MotionStateTable, ftKp_MS_SelfCount, ftKoopaAttributes),
     FOUR(Ft_Kind_Link, CKind_Link, ftLk_Init_MotionStateTable, ftLk_MS_SelfCount, ftLk_DatAttrs),
     FOUR(Ft_Kind_CLink, CKind_CLink, ftCl_Init_MotionStateTable, ftLk_MS_SelfCount, ftLk_DatAttrs),
@@ -69,30 +69,30 @@ static BamAbilityDefinition abilities[] = {
     FOUR(Ft_Kind_Purin, CKind_Purin, ftPr_Init_MotionStateTable, ftPr_MS_SelfCount, ftPurinAttributes),
 };
 
-const BamAbilityDefinition* Bam_GetAbility(BamAbilityID id)
+const BamDonorSpecial* Bam_DonorSpecial(BamSpecialID id)
 {
     unsigned i;
     for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i) {
-        BamAbilityDefinition* def = &abilities[i];
+        BamDonorSpecial* def = &abilities[i];
         if (def->id != id) continue;
         switch (def->native_slot) {
-        case BAM_ABILITY_NEUTRAL:
+        case BAM_SPECIAL_NEUTRAL:
             def->ground_enter = ftData_SpecialN[def->internal_kind];
             def->air_enter = ftData_SpecialAirN[def->internal_kind]; break;
-        case BAM_ABILITY_SIDE:
+        case BAM_SPECIAL_SIDE:
             def->ground_enter = ftData_SpecialS[def->internal_kind];
             def->air_enter = ftData_SpecialAirS[def->internal_kind]; break;
-        case BAM_ABILITY_UP:
+        case BAM_SPECIAL_UP:
             def->ground_enter = ftData_SpecialHi[def->internal_kind];
             def->air_enter = ftData_SpecialAirHi[def->internal_kind]; break;
-        case BAM_ABILITY_DOWN:
+        case BAM_SPECIAL_DOWN:
             def->ground_enter = ftData_SpecialLw[def->internal_kind];
             def->air_enter = ftData_SpecialAirLw[def->internal_kind]; break;
         default: return NULL;
         }
         /* Hand Slap is ground-only: in the air the borrowed input is
          * consumed and the fighter falls instead. */
-        if (def->internal_kind == Ft_Kind_Donkey && def->native_slot == BAM_ABILITY_DOWN)
+        if (def->internal_kind == Ft_Kind_Donkey && def->native_slot == BAM_SPECIAL_DOWN)
             def->air_enter = ftCo_Fall_Enter;
         return def;
     }
@@ -103,7 +103,7 @@ FighterKind Bam_InternalKindForCharacter(CharacterKind character)
 {
     unsigned i;
     for (i = 0; i < sizeof(abilities) / sizeof(*abilities); ++i) {
-        if (abilities[i].source_kind == character)
+        if (abilities[i].character == character)
             return abilities[i].internal_kind;
     }
     return Ft_Kind_Max;

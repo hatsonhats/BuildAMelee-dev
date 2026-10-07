@@ -1,7 +1,7 @@
 /* Retail hook entry points (see project.toml [[hook]]). */
 #include <bam/bam.h>
 #include <bam/retail.h>
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <dolphin/os.h>
 #include <melee/ft/fighter.h>
 #include <melee/ft/types.h>
@@ -68,7 +68,7 @@ void BAM_OnFrame(void)
     if (!bam_match || Bam_TrainingFrozen()) return;
     for (i = 0; i < BAM_FIGHTERS; ++i)
         if (bam_match->fighters[i].fighter) {
-            Bam_AbilityFighterFrame(bam_match->fighters[i].fighter);
+            Bam_BorrowFighterFrame(bam_match->fighters[i].fighter);
             Bam_ParasolTrack(bam_match->fighters[i].fighter);
         }
 }
@@ -91,7 +91,7 @@ void BAM_OnLandingAirLag(u32* regs)
 /* inject at the entry of every native aerial-jump enter (multi-jump
  * ftCo_800D74A4 and the Ness/Yoshi/Peach/Mewtwo variants).
  *
- * Shine (and other borrowed moves) can be jump-cancelled. The recipient's
+ * Shine (and other borrowed moves) can be jump-cancelled. The borrower's
  * jump code then runs while the donor's attributes and motion table are
  * still installed: a multi-jumper (Jigglypuff, Kirby) asks for its own
  * kind-specific jump state 341+, which the borrowed move maps onto the
@@ -99,7 +99,7 @@ void BAM_OnLandingAirLag(u32* regs)
  * End the borrowed move first so the jump is fully native. */
 void BAM_BeforeNativeJump(Fighter_GObj* gobj)
 {
-    Bam_AbilityCleanup(GET_FIGHTER(gobj));
+    Bam_BorrowEnd(GET_FIGHTER(gobj));
 }
 
 /* override: ftAnim_ApplyPartAnim (same body, plus the guard below).
@@ -118,7 +118,7 @@ void BAM_ApplyPartAnim(Fighter_GObj* gobj, s32 arg1, s32 arg2, f32 arg3)
     Fighter* fp = GET_FIGHTER(gobj);
     struct Fighter_x8B0_t* st;
     struct ftData_x1C* data;
-    if (Bam_IsAbilityState(fp)) return;
+    if (Bam_InBorrowedMove(fp)) return;
     st = &fp->x8B0[arg1];
     data = fp->ft_data->x1C[arg1];
     st->x11 = arg2;

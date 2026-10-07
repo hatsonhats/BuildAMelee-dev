@@ -6,7 +6,7 @@
  *
  * Match list (deterministic, see match_pair):
  *   0..25            native: character k with its own moves (hitbox baseline)
- *   26..             recipient R, donor D (every R, every other D): every
+ *   26..             borrower R, donor D (every R, every other D): every
  *                    slot of the loadout borrowed from D at once (one donor's
  *                    files per match, like the most common real loadout).
  * Steps per match: 12 ground attacks / throws, the donor's 5 aerials, its
@@ -30,9 +30,8 @@
  * the runner after a crash or freeze.
  */
 #include "../bam/bam.h"
-#include <engine/special_internal.h>
-#include <engine/special_catalog.h>
-#include <engine/aerial_catalog.h>
+#include <engine/internal.h>
+#include <engine/catalog.h>
 #include <melee/ft/kinds/ftCommon/forward.h>
 #include <melee/ft/ft_0892.h>
 #include <melee/ft/ftcommon.h>
@@ -81,7 +80,7 @@ static int same_family(int a, int b)
     return (a == CKind_Zelda || a == CKind_Seak) && (b == CKind_Zelda || b == CKind_Seak);
 }
 
-/* Match m -> recipient R and donor D (D < 0: native). 0 past the end. */
+/* Match m -> borrower R and donor D (D < 0: native). 0 past the end. */
 static int match_pair(unsigned m, int* R, int* D)
 {
     unsigned n = 0;
@@ -101,7 +100,7 @@ static const BamSpecialDef* special_of(int ck, unsigned slot)
     unsigned i;
     for (i = 0; i < BAM_SPECIALS; ++i) {
         const BamSpecialDef* s = &bam_specials[i];
-        if (s->character == ck && s->slot == slot && BamSpecial_Offerable(s) && Bam_GetAbility(s->id))
+        if (s->character == ck && s->slot == slot && BamSpecial_Offerable(s) && Bam_DonorSpecial(s->id))
             return s;
     }
     return NULL;
@@ -331,7 +330,7 @@ static void input_clear(void)
 static int busy(Fighter* fp)
 {
     BamFighterState* S = Bam_FighterCtx(fp);
-    return Bam_IsAbilityState(fp) || (S->fighter == fp && (S->active || S->aerial || S->normal_on)) ||
+    return Bam_InBorrowedMove(fp) || (S->fighter == fp && (S->active || S->aerial || S->normal_on)) ||
            fp->motion_id >= 341;
 }
 
@@ -712,7 +711,7 @@ static void qa_frame(void)
             OSReport("[qa] D %u %u %u %d %d %d %d %d %d\n", cur_match, cur_step, rf, (int) p1->motion_id,
                      p1->unk_gobj == p2->gobj ? 2 : p1->unk_gobj ? 1 : 0, p1->dmg.x1914, p1->dmg.x1924,
                      p1->hurtbox_detect_cb != NULL, (int) p1->cmd_vars[0]);
-        if (Bam_IsAbilityState(p1)) {
+        if (Bam_InBorrowedMove(p1)) {
             saw_borrow = 1;
             if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Bam_BorrowScale(p1)); }
         }
@@ -810,7 +809,7 @@ void QA_GfxLog(HSD_GObj* gobj, int gfx, HSD_JObj* jobj, int type)
     int j, n;
     if (!gobj || gobj->classifier != HSD_GOBJ_CLASS_FIGHTER) return;
     fp = GET_FIGHTER(gobj);
-    if (!fp || fp->player_id != 0 || (!Bam_IsAbilityState(fp) && cur_D >= 0)) return;
+    if (!fp || fp->player_id != 0 || (!Bam_InBorrowedMove(fp) && cur_D >= 0)) return;
     n = (int) ftPartsTable[fp->kind]->parts_num;
     for (j = 0; j < n && fp->parts[j].joint != jobj; ++j) {}
     OSReport("[qa] G %u %u %d gfx=%d type=%d jobj=%p joint=%d/%d\n", cur_match, cur_step, (int) fp->motion_id, gfx,

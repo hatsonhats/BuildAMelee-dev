@@ -1,4 +1,4 @@
-#include <engine/special_catalog.h>
+#include <engine/catalog.h>
 const BamSpecialDef bam_specials[BAM_SPECIALS] = {
     { 1, 8, 0, 0, "Fireball" },
     { 2, 8, 0, 1, "Cape" },

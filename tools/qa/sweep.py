@@ -18,7 +18,7 @@ instances, and writes a report:
 Options:
     --workers N        parallel Dolphin instances (default: half the CPU threads)
     --matches A-B      only matches A..B-1 (0-25 are each character's own moves)
-    --pair R:D         one recipient with one donor, e.g. --pair Jigglypuff:Marth
+    --pair R:D         one borrower with one donor, e.g. --pair Jigglypuff:Marth
     --tag NAME         output folder name (default: a timestamp)
     --no-build         reuse the last QA build
     --timeout S        seconds without progress before a freeze is declared
@@ -462,7 +462,7 @@ def report(run: Path):
     import csv
     with (run / 'results.csv').open('w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
-        w.writerow(['match', 'step', 'recipient', 'donor', 'move', 'result', 'note'])
+        w.writerow(['match', 'step', 'borrower', 'donor', 'move', 'result', 'note'])
         w.writerows(rows)
     print('\n'.join(lines[:2]))
     print(f'Report: {run / "report.txt"}')

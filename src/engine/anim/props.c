@@ -2,12 +2,12 @@
 
 /* ---- Body-less bones (Marth's sword, Pikachu's tail...) ----
  *
- * Many moves put their hitboxes on a bone the recipient does not have:
+ * Many moves put their hitboxes on a bone the borrower does not have:
  * Marth's sword hitboxes ride on his sword bone, offset along the blade.
- * Melee would put them on the recipient's root at the feet; a nearest-hand
+ * Melee would put them on the borrower's root at the feet; a nearest-hand
  * fallback kept the sword-bone offsets in the hand's frame, so they pointed
  * the wrong way and bunched around the body. Instead the donor bone is
- * rebuilt on the recipient: it hangs from the same body part, with the
+ * rebuilt on the borrower: it hangs from the same body part, with the
  * donor's rest transform and, every frame, the donor animation's own tracks
  * for it (captured while Melee retargets the animation, evaluated with
  * HSD's FObj interpreter). Hitboxes on it are placed on that body part with
@@ -45,8 +45,8 @@ int own_joint(Fighter* fp, int part)
 {
     return part_joint_raw(fp, part);
 }
-/* The recipient body part a prop entry hangs from: the donor's, or when the
- * recipient lacks it (Kirby has no finger bones) the donor's next part up
+/* The borrower body part a prop entry hangs from: the donor's, or when the
+ * borrower lacks it (Kirby has no finger bones) the donor's next part up
  * that it has. -1 if none. */
 int rest_slot(int part);
 /* The body part something hanging from donor part `part` is carried by:
@@ -67,12 +67,12 @@ static int prop_part(Fighter* fp, int prop)
 {
     return fold_base(fp, bam_prop[prop].part);
 }
-/* The recipient joint a prop entry hangs from, or -1. */
+/* The borrower joint a prop entry hangs from, or -1. */
 int prop_root(Fighter* fp, int prop)
 {
     int part = prop_part(fp, prop), joint;
     if (part >= 0) return own_joint(fp, part);
-    joint = Bam_AbilityFallbackJoint(fp, bam_prop[prop].part);
+    joint = Bam_FallbackJoint(fp, bam_prop[prop].part);
     if (joint < 0 || (unsigned) joint >= ftPartsTable[fp->kind]->parts_num || !fp->parts[joint].joint) return -1;
     return joint;
 }
@@ -102,8 +102,8 @@ int body_slot(int part)
 
 /* Melee is retargeting donor joint `joint` of the current animation
  * (ftanim.c): keep its tracks if it is a prop (including a weapon bone the
- * recipient has a namesake of, like Kirby's hammer bone) or a body part the
- * recipient lacks (folded into the next bone). */
+ * borrower has a namesake of, like Kirby's hammer bone) or a body part the
+ * borrower lacks (folded into the next bone). */
 void Bam_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
 {
     int slot = slot_of_fighter(fp);
@@ -114,7 +114,7 @@ void Bam_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
     if (kind >= BAM_REST_KINDS) return;
     from = ftPartsTable[kind];
     if (prop_find(kind, joint) < 0 && chain_find(kind, joint) < 0) {
-        /* Body parts the recipient lacks: those folded into a bone (no
+        /* Body parts the borrower lacks: those folded into a bone (no
          * finger bones) and those a prop hangs from. */
         int part = (unsigned) joint < from->parts_num ? from->joint_to_part[joint] : FTPART_INVALID, k, used = 0;
         if (part == FTPART_INVALID) return;
@@ -274,7 +274,7 @@ void chain_world(Fighter* fp, int row, Mtx out)
 }
 
 /* Transform from the body part a prop hangs from to the prop, including the
- * rest correction between the donor's and the recipient's body part. */
+ * rest correction between the donor's and the borrower's body part. */
 /* From the body part fold_base carries donor part `from` by to that donor
  * part (the rest correction, and the donor bones between them folded in). */
 void part_fold(Fighter* fp, int from, Mtx out)
@@ -328,25 +328,25 @@ int prop_relative(Fighter* fp, int prop, Mtx out)
 
 bool prop_active(Fighter* fp, unsigned kind)
 {
-    return Bam_IsAbilityState(fp) && Bam_AbilitySourceKind(fp) == kind && fp->x597_bits == kind &&
+    return Bam_InBorrowedMove(fp) && Bam_DonorKind(fp) == kind && fp->x597_bits == kind &&
         fp->kind != kind;
 }
 
 /* The last rebuilt bone a borrowed move resolved, per borrower: articles the
  * move then attaches to that joint ride on the rebuilt bone (Bam_ItemAnchor). */
 
-/* Recipient joint for donor joint `bone` when it is a prop, else -1. */
+/* Borrower joint for donor joint `bone` when it is a prop, else -1. */
 int Bam_PropJoint(Fighter* fp, int bone)
 {
     int prop, root, slot, row;
-    if (!prop_active(fp, Bam_AbilitySourceKind(fp))) return -1;
-    prop = prop_find(Bam_AbilitySourceKind(fp), bone);
+    if (!prop_active(fp, Bam_DonorKind(fp))) return -1;
+    prop = prop_find(Bam_DonorKind(fp), bone);
     root = prop >= 0 ? prop_root(fp, prop) : -1;
     slot = slot_of_fighter(fp);
     if (root >= 0 && slot >= 0) {
         bam_anim->last_prop[slot] = (short) (prop + 1);
         bam_anim->last_root[slot] = (short) root;
-    } else if (prop < 0 && (row = chain_find(Bam_AbilitySourceKind(fp), bone)) >= 0 && fp->parts[0].joint) {
+    } else if (prop < 0 && (row = chain_find(Bam_DonorKind(fp), bone)) >= 0 && fp->parts[0].joint) {
         /* Posed from the root (bam_chain): articles ride on that pose. */
         root = 0;
         if (slot >= 0) {
@@ -372,8 +372,8 @@ int Bam_PropWeaponMtx(Fighter* fp, Mtx out)
     float scale;
     Mtx rel, align, model;
     Quaternion q;
-    if (!fp || !Bam_IsAbilityState(fp)) return -1;
-    source = Bam_AbilitySourceKind(fp);
+    if (!fp || !Bam_InBorrowedMove(fp)) return -1;
+    source = Bam_DonorKind(fp);
     if (!prop_active(fp, source)) return -1;
     for (i = 0; i < BAM_WEAPON_COUNT; ++i)
         if (bam_weapon[i].kind == source && (unsigned) fp->anim_id >= bam_weapon[i].first &&

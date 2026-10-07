@@ -74,7 +74,7 @@ void Bam_ParasolTrack(Fighter* fp)
     int slot = slot_of(fp), hand;
     Mtx w;
     if (slot < 0) return;
-    if (Bam_IsAbilityState(fp)) {
+    if (Bam_InBorrowedMove(fp)) {
         if (Bam_PropWeaponMtx(fp, w) != 2 || (hand = parasol_base(fp)) < 0) return;
         bam_visual->parasol_float[slot] = 1;
         parasol_hit_off_set(fp, slot, hand, w);
@@ -96,8 +96,8 @@ bool Bam_ParasolOpen(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     int slot = slot_of(fp);
     ftPe_DatAttrs* da;
-    if (slot < 0 || fp->kind == Ft_Kind_Peach || !Bam_IsAbilityState(fp) ||
-        Bam_AbilitySourceKind(fp) != Ft_Kind_Peach)
+    if (slot < 0 || fp->kind == Ft_Kind_Peach || !Bam_InBorrowedMove(fp) ||
+        Bam_DonorKind(fp) != Ft_Kind_Peach)
         return false;
     da = fp->dat_attrs;
     bam_visual->parasol_float[slot] = 1;

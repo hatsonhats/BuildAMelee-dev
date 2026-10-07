@@ -46,8 +46,8 @@ bool Bam_VisSet(HSD_GObj* gobj, int group, int val)
     Fighter* fp = GET_FIGHTER(gobj);
     unsigned source;
     int slot;
-    if (!fp || !Bam_IsAbilityState(fp)) return false;
-    source = Bam_AbilitySourceKind(fp);
+    if (!fp || !Bam_InBorrowedMove(fp)) return false;
+    source = Bam_DonorKind(fp);
     if (source == fp->kind) return false;
     /* A donor's model-part switch that is not drawn on the borrower (Samus
      * curling into her Morph Ball) names one of the DONOR's groups; applied
@@ -172,7 +172,7 @@ int Bam_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
     if (!fp || fp->kind == Ft_Kind_GameWatch || !bam_match) return 0;
     S = Bam_FighterCtx(fp);
     if (S->fighter != fp || !S->loaded_sources[Ft_Kind_GameWatch]) return 0;
-    if (fp->kind == Ft_Kind_Kirby && !Bam_IsAbilityState(fp)) return 0; /* his own copy ability */
+    if (fp->kind == Ft_Kind_Kirby && !Bam_InBorrowedMove(fp)) return 0; /* his own copy ability */
     {
         const ftGameWatchAttributes* a = (const ftGameWatchAttributes*) bam_match->donor_attrs[Ft_Kind_GameWatch].bytes;
         *(GXColor*) dst = outline ? a->x14_GAMEWATCH_OUTLINE : a->x4_GAMEWATCH_COLOR[0];
@@ -252,7 +252,7 @@ void Bam_DonorModelPreload(unsigned kind)
     model_wanted[kind] = 1;
 }
 
-/* The donor's default costume into the preload-cache block (bam_cache.c),
+/* The donor's default costume into the preload-cache block (donor_cache.c),
  * parsed as ftData_80085820 would; 0 when the block has no room. */
 static int model_into_cache(unsigned kind, const Fighter_CostumeStrings* cs)
 {
@@ -406,7 +406,7 @@ static bool vis_show(DonorModel* m, int slot, unsigned kind)
 unsigned donor_display(Fighter* fp, unsigned slot, int pass, MtxPtr vmtx)
 {
     unsigned char item_of[8];
-    unsigned mask, i, replaced = 0, source = Bam_AbilitySourceKind(fp);
+    unsigned mask, i, replaced = 0, source = Bam_DonorKind(fp);
     DonorModel* m;
     memset(item_of, 0xFF, sizeof(item_of));
     mask = Bam_DonorMeshShow(fp, item_of);
@@ -441,8 +441,8 @@ bool Bam_BodyHidden(HSD_GObj* gobj)
     Fighter* fp = GET_FIGHTER(gobj);
     unsigned i, source;
     int slot;
-    if (!fp || !Bam_IsAbilityState(fp)) return false;
-    source = Bam_AbilitySourceKind(fp);
+    if (!fp || !Bam_InBorrowedMove(fp)) return false;
+    source = Bam_DonorKind(fp);
     slot = slot_of(fp);
     if (slot < 0 || source == fp->kind || !bam_visual->donor_models[slot] || bam_visual->donor_models[slot]->kind != source ||
         !bam_visual->donor_models[slot]->root)

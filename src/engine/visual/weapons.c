@@ -111,7 +111,7 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     Mtx place;
     slot = slot_of(fp);
     if (slot < 0) return;
-    if (!Bam_IsAbilityState(fp)) {
+    if (!Bam_InBorrowedMove(fp)) {
         bam_visual->donor_vis_kind[slot] = Ft_Kind_Max;
         if (bam_visual->parasol_float[slot]) parasol_display(fp, slot, pass, vmtx);
         return;
@@ -120,7 +120,7 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
         release_slot((unsigned) slot);
         bam_visual->weapon_owner[slot] = fp;
     }
-    source = Bam_AbilitySourceKind(fp);
+    source = Bam_DonorKind(fp);
     replaced = donor_display(fp, (unsigned) slot, pass, vmtx);
     item = Bam_PropWeaponMtx(fp, place);
     if (item == 2 && (hand = parasol_base(fp)) >= 0 && weapon_model((unsigned) slot, 2)) {
@@ -162,7 +162,7 @@ void Bam_SwordRelease(const Fighter* fp)
 
 #include <sysdolphin/baselib/memory.h>
 VisualState* bam_visual;
-/* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
+/* Called from Bam_MatchBegin / Bam_MatchEnd (fighter.c). */
 void Bam_SwordVisualMatchBegin(void)
 {
     bam_visual = HSD_MemAlloc(sizeof(*bam_visual));

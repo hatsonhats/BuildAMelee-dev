@@ -122,9 +122,9 @@ The overlay is therefore **not** rolled back, by design. Rules that follow:
 | --- | --- |
 | `boot/` | Overlay entry, arena carve-out (`BAM_ReserveOverlay`, `ClearArena`) |
 | `bam/bam.h`, `bam/retail.h` | Shared definitions and logging; named retail and Slippi addresses |
-| `engine/` | The borrowed-move engine: catalog (`special_registry.c`, `*_catalog*`), loading donors (`special_preload.c`, `donor_trim.c`, `bam_cache.c`), running a borrowed move (`special_runtime.c`, `normal_runtime.c`, `aerial_runtime.c`, `special_transform.c`, `rest_sleep.c`), fighters and the per-match block (`bam_fighter.c`) |
-| `engine/anim/` | Posing borrowed animations and placing hitboxes and articles (`internal.h` lists the files) |
-| `engine/visual/` | Drawing a borrowed move's parts: the donor's model, held weapons, the parasol |
+| `engine/` | The borrowed-move engine. `engine.h` is its public header and lists the others: `fighter.h` (loadouts, build fighters, the match block), `catalog.h` (the moves players pick: `catalog_*.c`), `borrow.h` (borrowing a move: `borrow.c`, `donor_specials.c`, `normals.c`, `aerials.c`, `transform.c`, `rest_sleep.c`), `donor_load.h` (a donor's files: `donor_load.c`, `donor_trim.c`, `donor_cache.c`). `state.h` is the per-match state, `internal.h` what only engine files use |
+| `engine/anim/` | Posing borrowed animations and placing hitboxes and articles (`anim.h` public, `internal.h` lists the files) |
+| `engine/visual/` | Drawing a borrowed move's parts: the donor's model, held weapons, the parasol (`visual.h`) |
 | `platform/` | Game-facing features: the build panel (`css_*`), saved builds and share codes, training mode, the online build exchange, replays, hooks and the watchdog |
 | `qa/` | The automated move sweep (QA builds only) |
 

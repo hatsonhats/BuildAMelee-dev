@@ -10,7 +10,7 @@
  * Tables: build/generated/engine/bone_tables.h (tools/bam/bonetables.py). */
 #ifndef BAM_ANIM_INTERNAL_H
 #define BAM_ANIM_INTERNAL_H
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <sysdolphin/baselib/jobj.h>
 #include <melee/ft/fighter.h>
 #include <math.h>
@@ -35,7 +35,7 @@ typedef struct RotFix {
     HSD_JObj* jobj;
     Quat a, b;        /* C(parent)^-1 and C(bone). */
     float donor[3];   /* The donor's latest local Euler angles for this bone. */
-    /* Donor body parts between this bone and its parent that the recipient
+    /* Donor body parts between this bone and its parent that the borrower
      * lacks (Marth's BustN on Mario), top first: their animated rotation is
      * folded in, so the limb still points where the donor's does. */
     unsigned char slot, kind, nfold, fold[4];

@@ -14,7 +14,7 @@
  *
  * Slippi's rollback restores the scene heap and retail .data/.bss; the
  * overlay is outside that range by design (it holds code and match-invariant
- * data; per-match state lives in heap blocks, see engine/bam_fighter.h).
+ * data; per-match state lives in heap blocks, see engine/fighter.h).
  */
 #include "../bam/bam.h"
 #include <dolphin/os.h>

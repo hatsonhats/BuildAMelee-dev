@@ -26,9 +26,8 @@
  */
 #include <bam/bam.h>
 #include <bam/retail.h>
-#include <engine/special_internal.h>
-#include <engine/special_catalog.h>
-#include <engine/aerial_catalog.h>
+#include <engine/internal.h>
+#include <engine/catalog.h>
 #include <dolphin/os.h>
 #include <string.h>
 #include <sysdolphin/baselib/memory.h>
@@ -357,7 +356,7 @@ static unsigned loaded_mask(int p)
     if (!S->fighter) return 0;
     for (s = 0; s < BAM_SPECIAL_SLOTS; ++s) {
         unsigned id = S->specials[s];
-        if (id && id < BAM_ABILITY_COUNT && S->loaded[id]) mask |= 1U << s;
+        if (id && id < BAM_SPECIAL_ID_COUNT && S->loaded[id]) mask |= 1U << s;
     }
     for (s = 0; s < BAM_AERIAL_SLOTS; ++s)
         if (S->aerial_equipped[s]) mask |= 1U << (BAM_SPECIAL_SLOTS + s);

@@ -11,7 +11,7 @@ id = "special-empty-slot-side"
 owner = "platform/specials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialS.c"
 anchor = "    if (ftData_SpecialS[fp->kind] == NULL) {"
-replacement = "    if (ftData_SpecialS[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_ABILITY_SIDE)) {"
+replacement = "    if (ftData_SpecialS[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_SPECIAL_SIDE)) {"
 reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
 
 [[fix]]
@@ -19,7 +19,7 @@ id = "special-empty-slot-up"
 owner = "platform/specials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_Attack100.c"
 anchor = "    if (ftData_SpecialHi[fp->kind] == NULL) {"
-replacement = "    if (ftData_SpecialHi[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_ABILITY_UP)) {"
+replacement = "    if (ftData_SpecialHi[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_SPECIAL_UP)) {"
 occurrences = 2
 reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
 
@@ -28,7 +28,7 @@ id = "special-empty-slot-air-up"
 owner = "platform/specials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialAir.c"
 anchor = "            if (ftData_SpecialAirHi[fp->kind] == NULL) {"
-replacement = "            if (ftData_SpecialAirHi[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_ABILITY_UP)) {"
+replacement = "            if (ftData_SpecialAirHi[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_SPECIAL_UP)) {"
 reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
 
 [[fix]]
@@ -36,7 +36,7 @@ id = "special-empty-slot-air-side"
 owner = "platform/specials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_SpecialAir.c"
 anchor = "            if (ftData_SpecialAirS[fp->kind] == NULL) {"
-replacement = "            if (ftData_SpecialAirS[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_ABILITY_SIDE)) {"
+replacement = "            if (ftData_SpecialAirS[fp->kind] == NULL && !Bam_CanTrySpecial(fp, BAM_SPECIAL_SIDE)) {"
 reason = "A fighter with no native move in this special slot (Nana: Popo drives her side and up specials) can still use a borrowed special there."
 
 [[fix]]
@@ -44,7 +44,7 @@ id = "special-samus-bomb-jump-owner"
 owner = "platform/specials"
 file = "src/melee/ft/kinds/ftSamus/ftsamusspeciallw0.c"
 anchor = "    Fighter* fp = GET_FIGHTER(gobj);\n    ftSs_DatAttrs* da = fp->dat_attrs;\n    float float_result = ftSs_Init_80128AC8(gobj, farg1, farg2);\n\n    u8 _[8];\n\n    if (!ftColl_8007B868(gobj)) {\n        switch (fp->x2070.x2071_b0_3) {\n        case 0:\n        case 2:\n        case 3:\n        case 4:\n            if ((fp->x2070.x2073 == 0x14) || ((fp->x2070.x2071_b5) == 0)) {"
-replacement = "    Fighter* fp = GET_FIGHTER(gobj);\n    ftSs_DatAttrs* da;\n    float float_result;\n\n    u8 _[8];\n\n    if (!ftColl_8007B868(gobj)) {\n        switch (fp->x2070.x2071_b0_3) {\n        case 0:\n        case 2:\n        case 3:\n        case 4:\n            if (((fp->x2070.x2073 == 0x14) || ((fp->x2070.x2071_b5) == 0)) &&\n                Bam_AbilityOwnerResume(fp, Ft_Kind_Samus, BAM_ABILITY_DOWN)) {\n                /* Read Samus's attributes only once her move is installed. */\n                da = fp->dat_attrs;\n                float_result = ftSs_Init_80128AC8(gobj, farg1, farg2);"
+replacement = "    Fighter* fp = GET_FIGHTER(gobj);\n    ftSs_DatAttrs* da;\n    float float_result;\n\n    u8 _[8];\n\n    if (!ftColl_8007B868(gobj)) {\n        switch (fp->x2070.x2071_b0_3) {\n        case 0:\n        case 2:\n        case 3:\n        case 4:\n            if (((fp->x2070.x2073 == 0x14) || ((fp->x2070.x2071_b5) == 0)) &&\n                Bam_BorrowOwnerResume(fp, Ft_Kind_Samus, BAM_SPECIAL_DOWN)) {\n                /* Read Samus's attributes only once her move is installed. */\n                da = fp->dat_attrs;\n                float_result = ftSs_Init_80128AC8(gobj, farg1, farg2);"
 reason = "Bomb jump: a Samus bomb exploding on its owner puts the owner back into Samus's down special. For a fighter with borrowed bombs the move had already ended, so the jump read the fighter's own attributes as Samus's and entered its own unrelated motion 0x156. Re-install the borrowed move first, or skip the jump if it is no longer equipped."
 
 [[fix]]
@@ -53,7 +53,7 @@ owner = "platform/specials"
 file = "src/melee/ft/ftanim.c"
 anchor = "void ftAnim_8006FE08(Fighter* fp, bool do_blending)\n{\n    if (fp->kind != fp->x597_bits) {"
 replacement = "void ftAnim_8006FE08(Fighter* fp, bool do_blending)\n{\n    {\n        extern void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part);\n        Bam_AnimRetarget(fp, fp->x597_bits, 0);\n    }\n    if (fp->kind != fp->x597_bits) {"
-reason = "Every whole-body animation (native or borrowed) passes here: a borrowed one maps body-bone translation from the donor's body to the recipient's (hips no longer sink through the floor); a native one clears that mapping."
+reason = "Every whole-body animation (native or borrowed) passes here: a borrowed one maps body-bone translation from the donor's body to the borrower's (hips no longer sink through the floor); a native one clears that mapping."
 
 [[fix]]
 id = "borrowed-anim-body-scale-partial"
@@ -133,7 +133,7 @@ owner = "platform/specials"
 file = "src/sysdolphin/baselib/jobj.c"
 anchor = "            HSD_JObjSetRotationX(jobj, val->fv);\n            break;"
 replacement = "            {\n                extern void Bam_AnimRotate(HSD_JObj* jobj, int axis, float value);\n                Bam_AnimRotate(jobj, 0, val->fv);\n            }\n            break;"
-reason = "Animated rotation passes through borrowed-move retargeting: a bone a borrowed animation drives is turned to the donor bone's world orientation on the recipient's own rest skeleton (raw copy for every joint not registered by Bam_AnimRetarget)."
+reason = "Animated rotation passes through borrowed-move retargeting: a bone a borrowed animation drives is turned to the donor bone's world orientation on the borrower's own rest skeleton (raw copy for every joint not registered by Bam_AnimRetarget)."
 
 [[fix]]
 id = "borrowed-anim-rotate-y"
@@ -157,7 +157,7 @@ owner = "platform/specials"
 file = "src/melee/ft/ftanim.c"
 anchor = "        part = ftPartsRemap(fp->kind, kind, i);"
 replacement = "        part = ftPartsRemap(fp->kind, kind, i);\n        {\n            extern void Bam_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count);\n            Bam_PropTrack(fp, i, cur_track, *cur_node);\n        }"
-reason = "A borrowed animation's tracks for donor bones that are rebuilt on the recipient (Marth's sword, Kirby's hammer bone) or that the recipient lacks are kept (src/engine/anim/props.c); Melee drops or misroutes them otherwise."
+reason = "A borrowed animation's tracks for donor bones that are rebuilt on the borrower (Marth's sword, Kirby's hammer bone) or that the borrower lacks are kept (src/engine/anim/props.c); Melee drops or misroutes them otherwise."
 
 [[fix]]
 id = "borrowed-prop-track-partial"
@@ -173,7 +173,7 @@ owner = "platform/specials"
 file = "src/melee/ft/ftaction.c"
 anchor = "        hitbox->b_offset.z = 0.003906f * cmd->u->create_hitbox_2.x_offset;"
 replacement = "        hitbox->b_offset.z = 0.003906f * cmd->u->create_hitbox_2.x_offset;\n        {\n            extern void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone);\n            Bam_HitboxCreated(fp, hitbox,\n                ((struct spawn_hitbox_0*) skip)->use_common_bone_ids ? -1 : (int) idx);\n        }"
-reason = "A borrowed move's hitbox offset is carried into the recipient's frame: on a rebuilt donor bone (sword) it follows that bone, on a body bone it gets the rest-pose correction."
+reason = "A borrowed move's hitbox offset is carried into the borrower's frame: on a rebuilt donor bone (sword) it follows that bone, on a body bone it gets the rest-pose correction."
 
 [[fix]]
 id = "borrowed-prop-hitbox-refresh"
@@ -244,7 +244,7 @@ id = "borrowed-absorb-callback"
 owner = "platform/specials"
 file = "src/melee/ft/fighter.c"
 anchor = "                if (ftData_OnAbsorb[fp->kind]) {\n                    ftData_OnAbsorb[fp->kind](gobj);\n                }"
-replacement = "                {\n                    FighterKind absorb_kind = Bam_IsAbilityState(fp) ? Bam_AbilitySourceKind(fp) : fp->kind;\n                    if (ftData_OnAbsorb[absorb_kind]) {\n                        ftData_OnAbsorb[absorb_kind](gobj);\n                    }\n                }"
+replacement = "                {\n                    FighterKind absorb_kind = Bam_InBorrowedMove(fp) ? Bam_DonorKind(fp) : fp->kind;\n                    if (ftData_OnAbsorb[absorb_kind]) {\n                        ftData_OnAbsorb[absorb_kind](gobj);\n                    }\n                }"
 reason = "A borrowed absorbing move (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) caught projectiles without filling: the absorb callback was looked up by the borrower's kind. During a borrowed move it is the donor's (its variables are installed then)."
 
 [[fix]]
@@ -267,7 +267,7 @@ reason = "Same for their outline color."
 id = "borrowed-absorb-bone"
 owner = "platform/specials"
 file = "src/melee/ft/ftcoll.c"
-anchor = "    fp->absorb_hit.bone = fp->parts[Bam_AbilityMapBone(fp, absorb->x0_bone_id)].joint;"
+anchor = "    fp->absorb_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, absorb->x0_bone_id)].joint;"
 replacement = "    fp->absorb_hit.bone = Bam_DonorBoneJObj(fp, absorb->x0_bone_id);"
 reason = "A borrowed absorb (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) names the donor's bone: the mapped joint of a bone posed from the root (Oil Panic's bucket on Mr. Game & Watch's thumb) is the root itself, so the bubble sat at the feet and nothing reached the bucket. It now rides on the donor's posed bone, as articles do."
 
@@ -275,7 +275,7 @@ reason = "A borrowed absorb (Mr. Game & Watch's Oil Panic, Ness's PSI Magnet) na
 id = "borrowed-reflect-bone"
 owner = "platform/specials"
 file = "src/melee/ft/ftcoll.c"
-anchor = "    fp->reflect_hit.bone = fp->parts[Bam_AbilityMapBone(fp, reflect->x0_bone_id)].joint;"
+anchor = "    fp->reflect_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, reflect->x0_bone_id)].joint;"
 replacement = "    fp->reflect_hit.bone = Bam_DonorBoneJObj(fp, reflect->x0_bone_id);"
 reason = "Same for a borrowed reflector's bubble (Fox's and Falco's Reflector, Mario's Cape, Ness's bat)."
 
@@ -283,7 +283,7 @@ reason = "Same for a borrowed reflector's bubble (Fox's and Falco's Reflector, M
 id = "borrowed-shield-bone"
 owner = "platform/specials"
 file = "src/melee/ft/ftcoll.c"
-anchor = "    fp->shield_hit.bone = fp->parts[Bam_AbilityMapBone(fp, shield->bone)].joint;"
+anchor = "    fp->shield_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, shield->bone)].joint;"
 replacement = "    fp->shield_hit.bone = Bam_DonorBoneJObj(fp, shield->bone);"
 reason = "Same for a move's own shield bubble."
 
@@ -291,8 +291,8 @@ reason = "Same for a move's own shield bubble."
 id = "borrowed-held-part"
 owner = "platform/specials"
 file = "src/melee/ft/ftparts.c"
-anchor = "        joint = Bam_AbilityFallbackJoint(fp, part);"
-replacement = "        joint = Bam_AbilityFallbackJoint(fp, part);\n        {\n            extern void Bam_NoteHeldPart(Fighter* fp, int part, int joint);\n            Bam_NoteHeldPart(fp, part, joint);\n        }"
+anchor = "        joint = Bam_FallbackJoint(fp, part);"
+replacement = "        joint = Bam_FallbackJoint(fp, part);\n        {\n            extern void Bam_NoteHeldPart(Fighter* fp, int part, int joint);\n            Bam_NoteHeldPart(fp, part, joint);\n        }"
 reason = "An article a borrowed move holds on a body part this fighter lacks (Mr. Game & Watch's Judge sign on his right thumb) is held in the donor's frame of that part, not of the hand it falls back to (the sign was edge-on)."
 
 [[fix]]

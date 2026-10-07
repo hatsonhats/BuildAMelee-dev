@@ -24,14 +24,14 @@ are made from your ISO:
 
 | Where | Characters | What |
 |---|---|---|
-| `special_registry.c` | all | The catalog: which special each character's slot borrows |
-| `special_preload.c` `Bam_DonorEnsure` | Bowser, Samus, Mewtwo, Ness, Peach, Yoshi, Zelda, Sheik, Mr. Game & Watch, Kirby, Ice Climbers, Link, Young Link, Mario, Dr. Mario, Luigi, Pikachu, Pichu, Fox, Falco | Articles and per-donor variables set up before a match |
-| `special_runtime.c` `Bam_AbilityCleanup` | Donkey Kong, Mr. Game & Watch, Samus, Ness, Mewtwo, Peach, Sheik, Captain Falcon, Ganondorf, Mario, Dr. Mario, Fox, Falco | What a donor's own code tears down when the move ends early |
-| `special_runtime.c` `Bam_ChargeFlash` | Donkey Kong, Sheik, Samus, Mewtwo, Mr. Game & Watch | Full-charge flash kept after the motion changes |
-| `special_transform.c` | Zelda, Sheik | Borrowed Transform switches the borrowed form |
+| `donor_specials.c` | all | The catalog: which special each character's slot borrows |
+| `donor_load.c` `Bam_DonorEnsure` | Bowser, Samus, Mewtwo, Ness, Peach, Yoshi, Zelda, Sheik, Mr. Game & Watch, Kirby, Ice Climbers, Link, Young Link, Mario, Dr. Mario, Luigi, Pikachu, Pichu, Fox, Falco | Articles and per-donor variables set up before a match |
+| `borrow.c` `Bam_BorrowEnd` | Donkey Kong, Mr. Game & Watch, Samus, Ness, Mewtwo, Peach, Sheik, Captain Falcon, Ganondorf, Mario, Dr. Mario, Fox, Falco | What a donor's own code tears down when the move ends early |
+| `borrow.c` `Bam_ChargeFlash` | Donkey Kong, Sheik, Samus, Mewtwo, Mr. Game & Watch | Full-charge flash kept after the motion changes |
+| `transform.c` | Zelda, Sheik | Borrowed Transform switches the borrowed form |
 | `rest_sleep.c` | Jigglypuff | Rest's sleep on a borrower |
-| `normal_runtime.c` | Mr. Game & Watch, Kirby, Ness, Peach, Link, Young Link, Donkey Kong, Samus, Fox, Falco, Mewtwo, Zelda, Sheik | Borrowed normals with their own states or articles (bat, yo-yo, clubs, cargo throws) |
-| `aerial_runtime.c` | Mr. Game & Watch, Link, Young Link | Aerials with their own code (G&W's props, Link's down air) |
+| `normals.c` | Mr. Game & Watch, Kirby, Ness, Peach, Link, Young Link, Donkey Kong, Samus, Fox, Falco, Mewtwo, Zelda, Sheik | Borrowed normals with their own states or articles (bat, yo-yo, clubs, cargo throws) |
+| `aerials.c` | Mr. Game & Watch, Link, Young Link | Aerials with their own code (G&W's props, Link's down air) |
 | `anim/wear.c` | Peach | Her dress worn by the borrower (fitted to waist and height) |
 | `visual/donor_model.c` | Mr. Game & Watch | His model and articles take his color, not white |
 | `visual/weapons.c` `sword_kind`, `hammer_kind` | Marth, Roy, Link, Young Link, Ice Climbers | Fighters whose own model already shows the weapon |

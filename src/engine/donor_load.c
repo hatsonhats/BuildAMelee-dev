@@ -1,4 +1,4 @@
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/ft/kinds/ftKoopa/types.h>
 #include <melee/lb/lbfile.h>
 #include <dolphin/dvd.h>
@@ -77,16 +77,16 @@ static int anim_slot(const char* name)
         if (strncmp(p, "Special", 7) != 0) continue;
         q = p + 7;
         if (strncmp(q, "Air", 3) == 0) q += 3;
-        if (q[0] == 'H' && q[1] == 'i') return BAM_ABILITY_UP;
-        if (q[0] == 'L' && q[1] == 'w') return BAM_ABILITY_DOWN;
-        if (q[0] == 'N') return BAM_ABILITY_NEUTRAL;
-        if (q[0] == 'S') return BAM_ABILITY_SIDE;
+        if (q[0] == 'H' && q[1] == 'i') return BAM_SPECIAL_UP;
+        if (q[0] == 'L' && q[1] == 'w') return BAM_SPECIAL_DOWN;
+        if (q[0] == 'N') return BAM_SPECIAL_NEUTRAL;
+        if (q[0] == 'S') return BAM_SPECIAL_SIDE;
     }
     return -1;
 }
 
 /* 0 when there was no memory for the animations. */
-static int load_special_slices(BamFighterState* S, const BamAbilityDefinition* def)
+static int load_special_slices(BamFighterState* S, const BamDonorSpecial* def)
 {
     int source = def->internal_kind, m, pass, file, count = ftData_Table_Unk0[source].count;
     unsigned loaded = 0, total = 0;
@@ -153,10 +153,10 @@ static int load_special_slices(BamFighterState* S, const BamAbilityDefinition* d
  * registering only records where the article data is. */
 int Bam_DonorEnsure(BamFighterState* S, int source)
 {
-    const BamAbilityDefinition* donor;
+    const BamDonorSpecial* donor;
     if (source < 0 || source >= BAM_DONOR_KINDS) return 0;
     if (S->loaded_sources[source]) return 1;
-    donor = Bam_GetAbility(1 + source * 4);
+    donor = Bam_DonorSpecial(1 + source * 4);
     if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
     /* Out of memory for this source: the slot keeps its native move. */
     if (!Bam_DonorFits(source)) {
@@ -384,7 +384,7 @@ int Bam_DonorReadAnims(BamFighterState* S, int source, const short* anims, unsig
     return 1;
 }
 
-void Bam_AbilityFighterCreated(Fighter* fp)
+void Bam_BorrowFighterCreated(Fighter* fp)
 {
     int i;
     unsigned index;
@@ -398,7 +398,7 @@ void Bam_AbilityFighterCreated(Fighter* fp)
     index = (unsigned) Bam_FighterIndex(fp);
     S = &bam_match->fighters[index];
     *Bam_FighterExtSlot(fp) = S;
-    if (S->fighter) Bam_AbilityFighterDestroyed(S->fighter);
+    if (S->fighter) Bam_BorrowFighterDestroyed(S->fighter);
     memset(S, 0, sizeof(*S));
     S->fighter = fp;
     S->match_generation = bam_match->generation;
@@ -423,14 +423,14 @@ void Bam_AbilityFighterCreated(Fighter* fp)
     }
 
     Bam_LogHeapRoom("before donors");
-    for (i = 1; i < BAM_ABILITY_COUNT; ++i) {
-        const BamAbilityDefinition* def = Bam_GetAbility(i);
+    for (i = 1; i < BAM_SPECIAL_ID_COUNT; ++i) {
+        const BamDonorSpecial* def = Bam_DonorSpecial(i);
         int slot, source;
         bool needed = false;
         if (!def) continue;
         source = def->internal_kind;
-        for (slot = 0; slot < BAM_ABILITY_SLOTS; ++slot) {
-            const BamAbilityDefinition* equipped = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
+        for (slot = 0; slot < BAM_SPECIAL_SLOT_COUNT; ++slot) {
+            const BamDonorSpecial* equipped = Bam_DonorSpecial(Bam_EquippedSpecial(fp, slot));
             if (!equipped) continue;
             if (equipped->internal_kind == source ||
                 ((source == Ft_Kind_Zelda || source == Ft_Kind_Seak) &&
@@ -447,8 +447,8 @@ void Bam_AbilityFighterCreated(Fighter* fp)
     }
     {
         int slot;
-        for (slot = 0; slot < BAM_ABILITY_SLOTS; ++slot) {
-            const BamAbilityDefinition* d = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
+        for (slot = 0; slot < BAM_SPECIAL_SLOT_COUNT; ++slot) {
+            const BamDonorSpecial* d = Bam_DonorSpecial(Bam_EquippedSpecial(fp, slot));
             if (d && S->loaded[d->id] && !load_special_slices(S, d)) S->loaded[d->id] = false;
         }
     }

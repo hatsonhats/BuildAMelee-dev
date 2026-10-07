@@ -26,7 +26,7 @@
  * when the character is also playing (its own fighter uses this data) or is
  * already in Melee's preload cache.
  */
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <bam/retail.h>
 #include <melee/lb/lbfile.h>
 #include <melee/ef/efasync.h>
@@ -46,7 +46,7 @@ HSD_Archive* lbDvd_8001819C(const char* basename);
 
 #define HEAP_FLOOR BAM_HEAP_FLOOR
 
-/* The complete file in the preload-cache block (bam_cache.c), parsed in
+/* The complete file in the preload-cache block (donor_cache.c), parsed in
  * place, as the game loads it into the match heap. */
 static ftData* load_into_cache(int kind)
 {
@@ -112,7 +112,7 @@ static int lower_index(const u32* a, int n, u32 v)
     return lo;
 }
 
-/* Temporary space: the top of the preload-cache block (bam_cache.c) when
+/* Temporary space: the top of the preload-cache block (donor_cache.c) when
  * it has room, else the match heap (freed when the load finishes). */
 #define MAX_TEMPS 8
 static void* temps[MAX_TEMPS];

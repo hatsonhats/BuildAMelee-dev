@@ -1,4 +1,4 @@
-#include <engine/special_catalog.h>
+#include <engine/catalog.h>
 #include <string.h>
 const BamSpecialDef* BamSpecial_Find(unsigned id)
 {

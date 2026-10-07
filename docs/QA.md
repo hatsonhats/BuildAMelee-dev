@@ -40,7 +40,7 @@ Useful options:
 | Option | What it does |
 |---|---|
 | `--workers N` | Dolphin instances at once (default: half the CPU threads). Each uses about 1 GB of RAM and two threads. |
-| `--pair Jigglypuff:Marth` | One recipient with one donor (about 30 seconds). |
+| `--pair Jigglypuff:Marth` | One borrower with one donor (about 30 seconds). |
 | `--matches 26-100` | A range of matches (0-25 are each character's own moves). |
 | `--tag NAME` | Output folder name (default: date and time). |
 | `--no-build` | Reuse the last QA build. |
@@ -68,7 +68,7 @@ includes the native matches (0-25) checks more than `--pair` alone.
   Final Destination. Port 1 is driven by inputs (`src/qa/qa_bot.c`), port 2
   is an idle Mario.
   - Matches 0-25: each character with its own moves (the reference).
-  - Matches 26-673: every recipient with every other donor, every slot from
+  - Matches 26-673: every borrower with every other donor, every slot from
     that donor (12 ground attacks and throws, 5 aerials, then specials).
   - Per step: both fighters made idle and placed, the move's inputs played
     (tilts at half stick, smashes on the C-stick, throws after a grab,

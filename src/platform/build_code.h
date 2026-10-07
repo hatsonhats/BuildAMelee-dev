@@ -3,7 +3,7 @@
 #ifndef BAM_BUILD_CODE_H
 #define BAM_BUILD_CODE_H
 #include <bam/bam.h>
-#include <engine/bam_fighter.h>
+#include <engine/fighter.h>
 
 /* One symbol (0..31) per move slot: specials, aerials, ground attacks and
  * throws, then a check symbol. */

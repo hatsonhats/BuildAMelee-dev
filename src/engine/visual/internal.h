@@ -7,7 +7,7 @@
  * Slippi rollback restores it; NULL outside matches. */
 #ifndef BAM_VISUAL_INTERNAL_H
 #define BAM_VISUAL_INTERNAL_H
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/lb/lbfile.h>
 #include <melee/lb/lbarchive.h>
 #include <sysdolphin/baselib/archive.h>

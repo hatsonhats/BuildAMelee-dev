@@ -57,8 +57,8 @@ float Bam_ShownScale(unsigned own, unsigned source)
 
 static float shown_scale(Fighter* fp, unsigned* source)
 {
-    if (!fp || !Bam_IsAbilityState(fp)) return 0.0f;
-    *source = Bam_AbilitySourceKind(fp);
+    if (!fp || !Bam_InBorrowedMove(fp)) return 0.0f;
+    *source = Bam_DonorKind(fp);
     return Bam_ShownScale(fp->kind, *source);
 }
 
@@ -94,7 +94,7 @@ float Bam_HitboxScale(Fighter* fp)
 void Bam_ProjectileOrigin(Fighter* fp, Vec3* pos)
 {
     float low;
-    if (!fp || !pos || !Bam_IsAbilityState(fp) || (unsigned) fp->kind >= BODY_SIZE_KINDS) return;
+    if (!fp || !pos || !Bam_InBorrowedMove(fp) || (unsigned) fp->kind >= BODY_SIZE_KINDS) return;
     low = fp->cur_pos.y + 0.45f * body_size[fp->kind] * model_scale[fp->kind];
     if (pos->y < low) pos->y = low;
 }

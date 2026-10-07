@@ -137,7 +137,7 @@ def skeleton(joints):
 def prop_bones(joints, joint_part):
     """Bones with no body part (sword, cape, cannon...): for each, the nearest
     ancestor with a body part and the rest transform from that ancestor to
-    the bone, so a borrowed move can rebuild the bone on a recipient's own
+    the bone, so a borrowed move can rebuild the bone on a borrower's own
     body part. -> [(joint, part, quaternion, translation)]"""
     out = []
     for j, (parent, _rot, _pos, _scl) in enumerate(joints):
@@ -455,7 +455,7 @@ def mesh_groups(fighter, model, entries, kit, hits, joint_part, extra=(), names=
                 best, mask = g, sum(1 << i for i, v in enumerate(on) if v)
         if best is not None:
             meshes.append((best, d, mask))
-    # Only appendages the recipient has no counterpart of: those hanging
+    # Only appendages the borrower has no counterpart of: those hanging
     # from the hips or torso (tails), and held weapons. A rebuilt foot or
     # hand (Mewtwo's down-air foot) would just be a second, floating limb.
     weapon_groups = {gid[root_of[j]] for j, *_rest in (kit or ()) if j in root_of}
@@ -562,7 +562,7 @@ def finger_rest(disc):
 def part_parents(disc):
     """{kind: ([body part of the nearest ancestor joint that has one, per part],
     {part: rest rotation of the body-less joints in between, when not none})}:
-    the donor's body hierarchy, so a recipient missing a torso bone (Mario has
+    the donor's body hierarchy, so a borrower missing a torso bone (Mario has
     no BustN) can fold the donor's rotation of it into the next bone."""
     out = {}
     for kind in KINDS:
@@ -681,7 +681,7 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
               'typedef struct BamPartMid { unsigned char kind, part; short q[4]; } BamPartMid;',
               f'#define BAM_PART_MID_COUNT {len(mids)}',
               'static const BamPartMid bam_part_mid[BAM_PART_MID_COUNT + 1] = {'] + mids + ['    { 255, 255, { 0 } },', '};']
-    # Body-less bones borrowed hitboxes ride on, rebuilt on the recipient.
+    # Body-less bones borrowed hitboxes ride on, rebuilt on the borrower.
     lines += ['/* Body-less bones (sword, tail...) that move hitboxes ride on: kind, joint, parent entry (0xFF: hangs',
               ' * from the body part), body part, rest rotation (rad x 4096), position (x 256), scale (x 4096). */',
               'typedef struct BamProp { unsigned char kind, joint, parent, part; short rot[3], pos[3], scale[3]; } BamProp;']

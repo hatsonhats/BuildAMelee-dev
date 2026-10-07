@@ -1,4 +1,4 @@
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/ft/fighter.h>
 #include <melee/pl/player.h>
 #include <sysdolphin/baselib/memory.h>
@@ -87,7 +87,7 @@ void Bam_MatchBegin(void)
 void Bam_MatchEnd(void)
 {
     if (!bam_match) return;
-    Bam_AbilityMatchEnd();
+    Bam_BorrowMatchEnd();
     Bam_AnimScaleMatchEnd();
     Bam_SwordVisualMatchEnd();
     Bam_RestSleepMatchEnd();
@@ -104,7 +104,7 @@ void BamFighter_Created(Fighter* fp)
     *Bam_FighterExtSlot(fp) = NULL;
     if (!Bam_IsBuildFighter(fp)) return;
     Bam_MatchBegin();
-    Bam_AbilityFighterCreated(fp);
+    Bam_BorrowFighterCreated(fp);
 }
 
 void Bam_OnSceneEnter(void* info)
@@ -160,7 +160,7 @@ void Bam_LogHeapRoom(const char* where)
  *   needs them, its articles (donor_trim.c): 50-160 KB; loading it needs the
  *   whole file and some bookkeeping as temporary space
  *   its effects file (up to ~160 KB)
- * Both go to the preload-cache block (bam_cache.c) when it has room, else
+ * Both go to the preload-cache block (donor_cache.c) when it has room, else
  * to the match heap, which must keep BAM_HEAP_FLOOR free; every load checks
  * its own room and fails cleanly (the slot then keeps its own move).
  * Animations go to ARAM; models (drawn only) load after the fighters

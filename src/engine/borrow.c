@@ -1,10 +1,10 @@
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <stddef.h>
 #include <melee/ft/fighter.h>
 #include <melee/lb/lb_00B0.h>
 #include <melee/ft/kinds/ftKoopa/types.h>
 /* Returned for fighters that own no state. Hot path: native fighter code
- * reaches this through Bam_AbilityVars many times per frame, so it must
+ * reaches this through Bam_DonorVars many times per frame, so it must
  * stay two compares. It is never written; every write is behind an
  * ownership check (S->fighter == fp), which this state never passes. */
 /* Only the fields before "owned fighters only" are ever read through it. */
@@ -23,7 +23,7 @@ BamFighterState* Bam_FighterCtx(const Fighter* fp)
 #endif
     return &no_state;
 }
-bool Bam_IsAbilityState(const Fighter* fp)
+bool Bam_InBorrowedMove(const Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
 #if BAM_DEBUG
@@ -34,16 +34,16 @@ bool Bam_IsAbilityState(const Fighter* fp)
            (S->active != NULL || S->aerial != NULL || S->normal_on);
 }
 
-void Bam_AbilityCleanup(Fighter* fp)
+void Bam_BorrowEnd(Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
     FighterKind source;
-    BamAbilitySlot slot;
-    if (!Bam_IsAbilityState(fp)) return;
+    BamSpecialSlot slot;
+    if (!Bam_InBorrowedMove(fp)) return;
 
 
-    source = Bam_AbilitySourceKind(fp);
-    slot = S->active ? S->active->native_slot : BAM_ABILITY_SLOTS;
+    source = Bam_DonorKind(fp);
+    slot = S->active ? S->active->native_slot : BAM_SPECIAL_SLOT_COUNT;
 #if BAM_DEBUG
     if (S->normal_on)
         BAM_LOG("normal_restore slot=%d donor=%u match=%u\n", S->normal_slot, S->normal_donor, S->match_generation);
@@ -54,18 +54,18 @@ void Bam_AbilityCleanup(Fighter* fp)
     /*
      * Tear down source-owned attached state while source attrs/vars are still
      * installed. Free projectiles/items may outlive the animation; their owner
-     * callbacks use Bam_AbilityVars() to reach persistent source state.
+     * callbacks use Bam_DonorVars() to reach persistent source state.
      */
     switch (source) {
     case Ft_Kind_Donkey:
-        if (slot == BAM_ABILITY_UP)
+        if (slot == BAM_SPECIAL_UP)
             ftDk_SpecialHi_DestroyAllEffects(fp->gobj);
         break;
     case Ft_Kind_GameWatch:
         ftGw_Init_OnDamage(fp->gobj);
         break;
     case Ft_Kind_Samus:
-        if (slot == BAM_ABILITY_NEUTRAL)
+        if (slot == BAM_SPECIAL_NEUTRAL)
             ftSamus_UnkAndDestroyAllEF(fp->gobj);
         break;
     case Ft_Kind_Ness:
@@ -76,25 +76,25 @@ void Bam_AbilityCleanup(Fighter* fp)
         }
         break;
     case Ft_Kind_Mewtwo:
-        if (slot == BAM_ABILITY_NEUTRAL) {
+        if (slot == BAM_SPECIAL_NEUTRAL) {
             int charge = fp->u.mt.x2234_shadowBallCharge;
             ftMt_SpecialN_OnDeath(fp->gobj);
             fp->u.mt.x2234_shadowBallCharge = charge;
         }
         break;
     case Ft_Kind_Peach:
-        if (slot == BAM_ABILITY_NEUTRAL)
+        if (slot == BAM_SPECIAL_NEUTRAL)
             ftPe_SpecialN_OnDeath2(fp->gobj);
-        else if (slot == BAM_ABILITY_UP)
+        else if (slot == BAM_SPECIAL_UP)
             ftPe_8011D598(fp->gobj);
         break;
     case Ft_Kind_Seak:
-        if (slot == BAM_ABILITY_SIDE)
+        if (slot == BAM_SPECIAL_SIDE)
             ftSk_SpecialS_CheckAndDestroyChain(fp->gobj);
         break;
     case Ft_Kind_Captain:
     case Ft_Kind_Ganon:
-        if (slot == BAM_ABILITY_SIDE)
+        if (slot == BAM_SPECIAL_SIDE)
             ftCa_SpecialS_RemoveGFX(fp->gobj);
         break;
     default:
@@ -102,11 +102,11 @@ void Bam_AbilityCleanup(Fighter* fp)
     }
 
     if ((source == Ft_Kind_Mario || source == Ft_Kind_DrMario) &&
-        slot == BAM_ABILITY_SIDE)
+        slot == BAM_SPECIAL_SIDE)
         ftMr_SpecialS_RemoveCape(fp->gobj);
 
     if ((source == Ft_Kind_Fox || source == Ft_Kind_Falco) &&
-        (slot == BAM_ABILITY_NEUTRAL || S->normal_on))
+        (slot == BAM_SPECIAL_NEUTRAL || S->normal_on))
         ftFx_SpecialN_RemoveBlaster(fp->gobj);
     /* Donkey Kong's cargo throw reads his attributes through x2CC. */
     if (S->normal_on) fp->x2CC = S->native_cargo;
@@ -125,11 +125,11 @@ void Bam_AbilityCleanup(Fighter* fp)
     S->normal_on = false;
 }
 
-FighterKind Bam_AbilitySourceKind(const Fighter* fp)
+FighterKind Bam_DonorKind(const Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
     if (!fp) return Ft_Kind_Max;
-    if (!Bam_IsAbilityState(fp))
+    if (!Bam_InBorrowedMove(fp))
         return fp->kind;
     if (S->active != NULL)
         return S->active->internal_kind;
@@ -137,16 +137,16 @@ FighterKind Bam_AbilitySourceKind(const Fighter* fp)
     return S->aerial ? S->aerial->donor : fp->kind;
 }
 
-ftData* Bam_AbilityData(Fighter* fp)
+ftData* Bam_DonorData(Fighter* fp)
 {
     FighterKind source;
-    if (!Bam_IsAbilityState(fp))
+    if (!Bam_InBorrowedMove(fp))
         return fp->ft_data;
-    source = Bam_AbilitySourceKind(fp);
+    source = Bam_DonorKind(fp);
     return source >= 0 && source < Ft_Kind_Max ? gFtDataList[source] : fp->ft_data;
 }
 
-static FighterKind abilityFamily(FighterKind kind)
+static FighterKind borrow_family(FighterKind kind)
 {
     switch (kind) {
     case Ft_Kind_Falco: return Ft_Kind_Fox;
@@ -160,39 +160,39 @@ static FighterKind abilityFamily(FighterKind kind)
     }
 }
 
-union Fighter_FighterVars* Bam_AbilityVars(Fighter* fp, FighterKind family)
+union Fighter_FighterVars* Bam_DonorVars(Fighter* fp, FighterKind family)
 {
     int source;
     BamFighterState* const S = Bam_FighterCtx(fp);
     if (S->fighter != fp) return &fp->u;
-    family = abilityFamily(family);
-    if (Bam_IsAbilityState(fp) &&
-        abilityFamily(Bam_AbilitySourceKind(fp)) == family)
+    family = borrow_family(family);
+    if (Bam_InBorrowedMove(fp) &&
+        borrow_family(Bam_DonorKind(fp)) == family)
         return &fp->u;
-    if (abilityFamily(fp->kind) == family)
-        return Bam_IsAbilityState(fp) ? &S->native_vars : &fp->u;
+    if (borrow_family(fp->kind) == family)
+        return Bam_InBorrowedMove(fp) ? &S->native_vars : &fp->u;
     /* Projectiles can outlive the animation which created them. Their owner
      * callbacks must update the source's persistent state, never the unrelated
      * base fighter's overlapping union fields. Prefer the equipped clone. */
-    for (source = 0; source < BAM_ABILITY_SLOTS; ++source) {
-        const BamAbilityDefinition* def = Bam_GetAbility(Bam_EquippedSpecial(fp, source));
-        if (def && abilityFamily(def->internal_kind) == family &&
+    for (source = 0; source < BAM_SPECIAL_SLOT_COUNT; ++source) {
+        const BamDonorSpecial* def = Bam_DonorSpecial(Bam_EquippedSpecial(fp, source));
+        if (def && borrow_family(def->internal_kind) == family &&
             S->loaded_sources[def->internal_kind])
             return &S->source_vars[def->internal_kind];
     }
     for (source = 0; source < Ft_Kind_Max; ++source)
-        if (abilityFamily(source) == family && S->loaded_sources[source])
+        if (borrow_family(source) == family && S->loaded_sources[source])
             return &S->source_vars[source];
     return &fp->u;
 }
 
-void Bam_AbilityFighterDestroyed(Fighter* fp)
+void Bam_BorrowFighterDestroyed(Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
     if (S->fighter != fp || !fp) return;
     Bam_AnimRetarget(fp, fp->kind, 0); /* Forget its body-bone mapping. */
     Bam_SwordRelease(fp);
-    Bam_AbilityCleanup(fp);
+    Bam_BorrowEnd(fp);
     Bam_AerialRelease(S);
 #if BAM_DEBUG
     BAM_LOG("fighter_context_destroy kind=%u match=%u\n", fp->kind, S->match_generation);
@@ -204,13 +204,13 @@ void Bam_AbilityFighterDestroyed(Fighter* fp)
  * ftKp_SpecialLw_80134D78 from his per-frame callback, which a borrower
  * does not have). The flame shrinks while breathing and regrows between
  * uses. */
-void Bam_AbilityFighterFrame(Fighter* fp)
+void Bam_BorrowFighterFrame(Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
     const ftKoopaAttributes* da = (const ftKoopaAttributes*) bam_match->donor_attrs[Ft_Kind_Koopa].bytes;
     struct ftKoopa_FighterVars* fuel;
     if (S->fighter != fp || fp->kind == Ft_Kind_Koopa || !S->loaded_sources[Ft_Kind_Koopa]) return;
-    if (Bam_IsAbilityState(fp) && Bam_AbilitySourceKind(fp) == Ft_Kind_Koopa) {
+    if (Bam_InBorrowedMove(fp) && Bam_DonorKind(fp) == Ft_Kind_Koopa) {
         /* Borrowed Bowser move in progress: its vars are installed. */
         if (fp->motion_id >= 0x155 && fp->motion_id < 0x15B) return;
         fuel = &fp->u.kp;
@@ -221,21 +221,21 @@ void Bam_AbilityFighterFrame(Fighter* fp)
     if (fuel->x2230 > da->x18) fuel->x2230 = da->x18;
 }
 
-void Bam_AbilityMatchEnd(void)
+void Bam_BorrowMatchEnd(void)
 {
     unsigned i;
     /* Retail defers fighter destruction until the next heap reset. Release our
      * donor context while its fighter and articles are still valid. */
     for (i = 0; i < BAM_FIGHTERS; ++i)
-        if (bam_match->fighters[i].fighter) Bam_AbilityFighterDestroyed(bam_match->fighters[i].fighter);
+        if (bam_match->fighters[i].fighter) Bam_BorrowFighterDestroyed(bam_match->fighters[i].fighter);
     Bam_AnimScaleReset();
 }
 
-void Bam_AbilityTransformed(Fighter* src, Fighter* dst)
+void Bam_BorrowTransformed(Fighter* src, Fighter* dst)
 {
     BamFighterState* const S = Bam_FighterCtx(src);
     if (!src || S->fighter != src || !Bam_IsBuildFighter(dst)) return;
-    Bam_AbilityCleanup(src);
+    Bam_BorrowEnd(src);
     /* Both native forms already exist; all borrowed assets and persistent
      * charge data belong to the borrower and survive the entity swap. */
     S->fighter = dst;
@@ -244,18 +244,18 @@ void Bam_AbilityTransformed(Fighter* src, Fighter* dst)
 #endif
 }
 
-Fighter_GObj* Bam_AbilityClimberPartner(Fighter* fp)
+Fighter_GObj* Bam_ClimberPartner(Fighter* fp)
 {
     Fighter_GObj* partner = Player_GetEntityAtIndex(fp->player_id, 1);
     if (partner && GET_FIGHTER(partner)->kind != Ft_Kind_Nana) return NULL;
     return partner;
 }
 
-MotionState* Bam_AbilityMotionState(Fighter* fp, int motion)
+MotionState* Bam_DonorMotionState(Fighter* fp, int motion)
 {
-    const BamAbilityDefinition* def;
+    const BamDonorSpecial* def;
     BamFighterState* const S = Bam_FighterCtx(fp);
-    if (!Bam_IsAbilityState(fp)) return NULL;
+    if (!Bam_InBorrowedMove(fp)) return NULL;
 
 
     if (S->normal_on) return Bam_NormalMotionState(fp, motion);
@@ -263,7 +263,7 @@ MotionState* Bam_AbilityMotionState(Fighter* fp, int motion)
     def = S->active;
     if (!def) return NULL;
     if (!Bam_IsBuildFighter(fp) || motion < def->first_state || motion > def->last_state) {
-        Bam_AbilityCleanup(fp);
+        Bam_BorrowEnd(fp);
         return NULL;
     }
 #if BAM_DEBUG
@@ -304,7 +304,7 @@ static int limb_joint(Fighter* fp, int first, int last, int part)
     return -1;
 }
 #pragma pop
-int Bam_AbilityFallbackJoint(Fighter* fp, int part)
+int Bam_FallbackJoint(Fighter* fp, int part)
 {
     static const int tail[] = { FtPart_BustN, FtPart_HipN, FtPart_TransN };
     int joint = -1, left, right, chest;
@@ -352,16 +352,16 @@ int Bam_AbilityFallbackJoint(Fighter* fp, int part)
     for (i = 0; joint < 0 && i < sizeof(tail) / sizeof(tail[0]); ++i) joint = part_joint(fp, tail[i]);
     return joint >= 0 ? joint : 0;
 }
-int Bam_AbilityMapBone(Fighter* fp, int bone)
+int Bam_DonorBoneJoint(Fighter* fp, int bone)
 {
     int mapped, part = -1;
     unsigned i;
     FighterKind source;
     BamFighterState* S;
     const FighterPartsTable* from;
-    if (!Bam_IsAbilityState(fp)) return bone;
-    source = Bam_AbilitySourceKind(fp);
-    /* A donor bone rebuilt on the recipient (Marth's sword, Kirby's hammer
+    if (!Bam_InBorrowedMove(fp)) return bone;
+    source = Bam_DonorKind(fp);
+    /* A donor bone rebuilt on the borrower (Marth's sword, Kirby's hammer
      * bone): the body part it hangs from; hitboxes on it follow the rebuilt
      * bone (anim/props.c). Checked first: Kirby's hammer bone shares its
      * body-part slot with other fighters' thumbs. */
@@ -370,7 +370,7 @@ int Bam_AbilityMapBone(Fighter* fp, int bone)
     mapped = ftPartsRemap(fp->kind, source, bone);
     if (mapped >= 0 && (unsigned) mapped < ftPartsTable[fp->kind]->parts_num && fp->parts[mapped].joint)
         return mapped;
-    /* The recipient lacks this donor bone. Resolve it once per borrowed move
+    /* The borrower lacks this donor bone. Resolve it once per borrowed move
      * to the nearest body part it does have (never the root at the feet). */
     S = Bam_FighterCtx(fp);
     for (i = 0; i < S->fallback_count; ++i)
@@ -378,9 +378,9 @@ int Bam_AbilityMapBone(Fighter* fp, int bone)
     from = ftPartsTable[source];
     if (bone >= 0 && (unsigned) bone < from->parts_num && from->joint_to_part[bone] != FTPART_INVALID)
         part = from->joint_to_part[bone];
-    mapped = Bam_AbilityFallbackJoint(fp, part);
+    mapped = Bam_FallbackJoint(fp, part);
 #if BAM_DEBUG
-    BAM_LOG("bone_fallback donor=%u bone=%d part=%d recipient=%u joint=%d\n",
+    BAM_LOG("bone_fallback donor=%u bone=%d part=%d borrower=%u joint=%d\n",
         source, bone, part, fp->kind, mapped);
 #endif
     if (S->fallback_count < sizeof(S->fallback_bone) / sizeof(S->fallback_bone[0])) {
@@ -394,7 +394,7 @@ void Bam_BorrowBegin(Fighter* fp, FighterKind donor)
 {
     ftData* source;
     BamFighterState* const S = Bam_FighterCtx(fp);
-    Bam_AbilityCleanup(fp);
+    Bam_BorrowEnd(fp);
     S->native_attrs = fp->dat_attrs;
     S->native_anims = fp->x24;
     S->native_anim_flags = fp->x28;
@@ -411,19 +411,19 @@ void Bam_BorrowBegin(Fighter* fp, FighterKind donor)
     }
     fp->dat_attrs = bam_match->donor_attrs[donor].bytes;
     /* The private table holds the sliced animations when the donor's full
-     * archive is not resident (special_preload.c). */
+     * archive is not resident (donor_load.c). */
     fp->x24 = S->aerial_anims[donor] ? S->aerial_anims[donor] : source->xC;
     fp->x28 = source->x10;
     fp->x58C = ftData_Table_Unk0[donor].count;
 }
 
-static bool install_ability(Fighter* fp, BamAbilitySlot slot)
+static bool install_special(Fighter* fp, BamSpecialSlot slot)
 {
-    const BamAbilityDefinition* def;
+    const BamDonorSpecial* def;
     BamFighterState* const S = Bam_FighterCtx(fp);
-    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_ABILITY_SLOTS) return false;
-    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
-    if (!def) { Bam_AbilityCleanup(fp); return false; }
+    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_SPECIAL_SLOT_COUNT) return false;
+    def = Bam_DonorSpecial(Bam_EquippedSpecial(fp, slot));
+    if (!def) { Bam_BorrowEnd(fp); return false; }
     if (!def->ground_enter || !def->air_enter) return false;
     if (def->native_slot != slot || S->fighter != fp ||
         !S->loaded[def->id]) return false;
@@ -434,19 +434,19 @@ static bool install_ability(Fighter* fp, BamAbilitySlot slot)
     return true;
 }
 
-bool Bam_CanTrySpecial(Fighter* fp, BamAbilitySlot slot)
+bool Bam_CanTrySpecial(Fighter* fp, BamSpecialSlot slot)
 {
-    const BamAbilityDefinition* def;
+    const BamDonorSpecial* def;
     BamFighterState* const S = Bam_FighterCtx(fp);
-    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_ABILITY_SLOTS) return false;
-    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
+    if (!Bam_IsBuildFighter(fp) || slot < 0 || slot >= BAM_SPECIAL_SLOT_COUNT) return false;
+    def = Bam_DonorSpecial(Bam_EquippedSpecial(fp, slot));
     return def && def->ground_enter && def->air_enter && def->native_slot == slot &&
         S->fighter == fp && S->loaded[def->id];
 }
-bool Bam_TrySpecial(Fighter_GObj* gobj, BamAbilitySlot slot, bool airborne)
+bool Bam_TrySpecial(Fighter_GObj* gobj, BamSpecialSlot slot, bool airborne)
 {
     Fighter* fp = GET_FIGHTER(gobj);
-    if (!install_ability(fp, slot)) return false;
+    if (!install_special(fp, slot)) return false;
     {
     BamFighterState* const S = Bam_FighterCtx(fp);
     (airborne ? S->active->air_enter : S->active->ground_enter)(gobj);
@@ -454,32 +454,32 @@ bool Bam_TrySpecial(Fighter_GObj* gobj, BamAbilitySlot slot, bool airborne)
     return true;
 }
 
-bool Bam_AbilityResumeFamily(Fighter* fp, FighterKind family, BamAbilitySlot slot)
+bool Bam_BorrowResumeFamily(Fighter* fp, FighterKind family, BamSpecialSlot slot)
 {
-    const BamAbilityDefinition* def;
+    const BamDonorSpecial* def;
     if (!Bam_IsBuildFighter(fp)) return false;
-    def = Bam_GetAbility(Bam_EquippedSpecial(fp, slot));
-    if (def && abilityFamily(def->internal_kind) == abilityFamily(family))
-        return install_ability(fp, slot);
-    if (abilityFamily(fp->kind) == abilityFamily(family)) {
-        Bam_AbilityCleanup(fp);
+    def = Bam_DonorSpecial(Bam_EquippedSpecial(fp, slot));
+    if (def && borrow_family(def->internal_kind) == borrow_family(family))
+        return install_special(fp, slot);
+    if (borrow_family(fp->kind) == borrow_family(family)) {
+        Bam_BorrowEnd(fp);
         return true;
     }
     return false;
 }
 
-bool Bam_AbilityOwnerResume(Fighter* fp, FighterKind family, BamAbilitySlot slot)
+bool Bam_BorrowOwnerResume(Fighter* fp, FighterKind family, BamSpecialSlot slot)
 {
     if (!fp) return false;
-    if (!Bam_IsBuildFighter(fp)) return abilityFamily(fp->kind) == abilityFamily(family);
-    return Bam_AbilityResumeFamily(fp, family, slot);
+    if (!Bam_IsBuildFighter(fp)) return borrow_family(fp->kind) == borrow_family(family);
+    return Bam_BorrowResumeFamily(fp, family, slot);
 }
 
-int Bam_AbilityPartIndex(Fighter* fp, int part)
+int Bam_PartJoint(Fighter* fp, int part)
 {
     int index = ftParts_GetBoneIndex(fp, part);
     if (Bam_IsBuildFighter(fp) && ((unsigned) index >= ftPartsTable[fp->kind]->parts_num || !fp->parts[index].joint))
-        return Bam_AbilityFallbackJoint(fp, part);
+        return Bam_FallbackJoint(fp, part);
     return index;
 }
 
@@ -493,8 +493,8 @@ HSD_JObj* Bam_EfJointFp(Fighter* fp, HSD_JObj* loaded, int joint)
     unsigned n;
     if (!fp) return loaded;
     n = ftPartsTable[fp->kind]->parts_num;
-    if (!Bam_IsAbilityState(fp) && (unsigned) joint < n) return loaded;
-    if (Bam_IsAbilityState(fp)) joint = Bam_AbilityMapBone(fp, joint);
+    if (!Bam_InBorrowedMove(fp) && (unsigned) joint < n) return loaded;
+    if (Bam_InBorrowedMove(fp)) joint = Bam_DonorBoneJoint(fp, joint);
     if (joint < 0 || (unsigned) joint >= n || !fp->parts[joint].joint) joint = 0;
     return fp->parts[joint].joint;
 }
@@ -516,7 +516,7 @@ void Bam_ChargeFlash(Fighter* fp)
     FighterKind active;
     unsigned i;
     if (!fp || S->fighter != fp) return;
-    active = Bam_IsAbilityState(fp) ? Bam_AbilitySourceKind(fp) : fp->kind;
+    active = Bam_InBorrowedMove(fp) ? Bam_DonorKind(fp) : fp->kind;
     for (i = 0; i < sizeof(kinds); ++i) {
         FighterKind k = (FighterKind) kinds[i];
         if (k == fp->kind || !S->loaded_sources[k] || !ftData_UnkMotionStates4[k])

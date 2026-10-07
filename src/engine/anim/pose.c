@@ -6,10 +6,10 @@
  * of bones. They often do not: Mario has no BustN, Kirby's arm hangs from a
  * bone that is a finger on Marth. After every animation step each body bone
  * the donor also has is turned so its world orientation is the donor's
- * animated one carried over by C (Wr = Wd * C), whatever the recipient's own
- * parents are doing; the recipient's extra bones keep their pose. The
+ * animated one carried over by C (Wr = Wd * C), whatever the borrower's own
+ * parents are doing; the borrower's extra bones keep their pose. The
  * donor's world comes from its local values (as Melee wrote them, or from
- * its captured tracks for parts the recipient lacks) up its own hierarchy
+ * its captured tracks for parts the borrower lacks) up its own hierarchy
  * (bam_part_parent). TopN and TransN (facing, travel) are left alone. */
 static Quat jobj_local(HSD_JObj* jobj)
 {
@@ -101,15 +101,15 @@ static void pose_pass(Fighter* fp)
  *
  * Tables from bone_tables.h: which of the donor's meshes belong to a rebuilt
  * bone chain (Marth's sword, Mewtwo's tail), and in which donor motions each
- * chain shows. The donor's model is posed on the recipient: a rebuilt bone
- * where the rebuilt bone is, a body bone the recipient also has on the
- * recipient's bone (turned back by C so the donor's skin fits it), anything
+ * chain shows. The donor's model is posed on the borrower: a rebuilt bone
+ * where the rebuilt bone is, a body bone the borrower also has on the
+ * borrower's bone (turned back by C so the donor's skin fits it), anything
  * else at its rest pose from its parent. */
 unsigned Bam_DonorMeshShow(Fighter* fp, unsigned char item_of_group[8])
 {
     unsigned source, mask = 0, i;
-    if (!fp || !Bam_IsAbilityState(fp)) return 0;
-    source = Bam_AbilitySourceKind(fp);
+    if (!fp || !Bam_InBorrowedMove(fp)) return 0;
+    source = Bam_DonorKind(fp);
     if (!prop_active(fp, source)) return 0;
     for (i = 0; i < BAM_MESH_SHOW_COUNT; ++i) {
         const BamMeshShow* r = &bam_mesh_show[i];
@@ -223,7 +223,7 @@ void Bam_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* par
 }
 
 AnimState* bam_anim;
-/* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
+/* Called from Bam_MatchBegin / Bam_MatchEnd (fighter.c). */
 void Bam_AnimScaleMatchBegin(void)
 {
     bam_anim = HSD_MemAlloc(sizeof(*bam_anim));

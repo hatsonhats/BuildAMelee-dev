@@ -11,10 +11,10 @@
  * for the forward smash) and the donor's own (Mr. Game & Watch's jab and
  * down tilt, Ness's yo-yo and bat, Peach's club, pan and racket, Link's
  * second forward smash swing, Kirby's dash attack, Donkey Kong's cargo
- * carry). Leaving the family ends the borrowed move (Bam_AbilityMotionState).
+ * carry). Leaving the family ends the borrowed move (Bam_DonorMotionState).
  *
  * The game's checks of the fighter's kind at those points read the move's
- * owner instead (Bam_AbilitySourceKind), so a jab from Pikachu chains into
+ * owner instead (Bam_DonorKind), so a jab from Pikachu chains into
  * his rapid jab and a forward throw from Mewtwo shoots his Shadow Balls.
  *
  * Throws: the grabbed fighter plays its "thrown" animations from the
@@ -25,7 +25,7 @@
  * Memory: a slot loads its donor's data (shared with the donor's specials
  * and aerials) and the animations of its family only. A slot that does not
  * fit keeps the fighter's own move. */
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <melee/ft/kinds/ftGameWatch/forward.h>
 #include <melee/ft/kinds/ftNess/forward.h>
 #include <melee/ft/kinds/ftPeach/forward.h>
@@ -94,10 +94,10 @@ static bool in_family(int slot, unsigned donor, int motion)
 
 static const MotionState* family_state(Fighter* fp, unsigned donor, int motion)
 {
-    const BamAbilityDefinition* def;
+    const BamDonorSpecial* def;
     if (motion < 0) return NULL;
     if (motion < ftCo_MS_Count) return &fp->x1C_actionStateList[motion];
-    def = Bam_GetAbility(1 + donor * 4);
+    def = Bam_DonorSpecial(1 + donor * 4);
     if (!def || motion > def->last_state) return NULL;
     return &def->states[motion - ftCo_MS_Count];
 }
@@ -109,7 +109,7 @@ FighterKind Bam_NormalBegin(Fighter_GObj* gobj, int slot)
     unsigned donor;
     if (S->fighter != fp || slot < 0 || slot >= BAM_NORMAL_SLOTS || !S->normals[slot] || !Bam_IsBuildFighter(fp)) {
         /* The fighter's own move: whatever was borrowed ends here. */
-        Bam_AbilityCleanup(fp);
+        Bam_BorrowEnd(fp);
         return fp->kind;
     }
     donor = S->normals[slot] - 1U;
@@ -126,7 +126,7 @@ FighterKind Bam_NormalBegin(Fighter_GObj* gobj, int slot)
     S->normal_donor = (unsigned char) donor;
     S->normal_fresh = true;
 #if BAM_DEBUG
-    BAM_LOG("normal_enter slot=%d donor=%u recipient=%u match=%u\n", slot, donor, fp->kind,
+    BAM_LOG("normal_enter slot=%d donor=%u borrower=%u match=%u\n", slot, donor, fp->kind,
              S->match_generation);
 #endif
     return (FighterKind) donor;
@@ -148,7 +148,7 @@ MotionState* Bam_NormalMotionState(Fighter* fp, int motion)
         (motion < ftCo_MS_Count || fresh || in_family(slot, donor, fp->motion_id)))
         state = family_state(fp, donor, motion);
     if (!state) {
-        Bam_AbilityCleanup(fp);
+        Bam_BorrowEnd(fp);
         return NULL;
     }
     return (MotionState*) state;
@@ -205,7 +205,7 @@ void Bam_NormalPrepare(Fighter* fp)
         }
         S->normals[slot] = (unsigned char) (donor + 1);
 #if BAM_DEBUG
-        BAM_LOG("normal_ready slot=%d donor=%u recipient=%u\n", slot, donor, fp->kind);
+        BAM_LOG("normal_ready slot=%d donor=%u borrower=%u\n", slot, donor, fp->kind);
 #endif
     }
 }
@@ -239,7 +239,7 @@ int Bam_DonorNeedsArticles(int kind)
         /* Specials: always (most spawn articles). Zelda's and Sheik's are
          * loaded together for the transformation. */
         for (s = 0; s < BAM_SPECIAL_SLOTS; ++s) {
-            const BamAbilityDefinition* d = Bam_GetAbility(l->specials[s]);
+            const BamDonorSpecial* d = Bam_DonorSpecial(l->specials[s]);
             if (!d) continue;
             if (d->internal_kind == kind ||
                 ((kind == Ft_Kind_Zelda || kind == Ft_Kind_Seak) &&

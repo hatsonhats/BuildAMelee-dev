@@ -81,7 +81,7 @@ def special_table():
     """character -> [(slot, name)] as qa_moves.c's special_of picks them."""
     import re
     out = collections.defaultdict(dict)
-    src = (ROOT / 'src/engine/special_catalog_data.c').read_text()
+    src = (ROOT / 'src/engine/catalog_specials_data.c').read_text()
     for m in re.finditer(r'\{ (\d+), (\d+), (\d+), (\d+), "([^"]*)" \}', src):
         i, ch, _, slot, name = int(m.group(1)), int(m.group(2)), m.group(3), int(m.group(4)), m.group(5)
         if i in (17, 32, 80):
@@ -115,7 +115,7 @@ def keep(hs, name):
 
 def region(part):
     """Body parts that stand in for one another when a fighter lacks one
-    (special_runtime.c Bam_AbilityFallbackJoint): a hand and its fingers,
+    (borrow.c Bam_FallbackJoint): a hand and its fingers,
     the hip and waist, the neck and head, a shoulder's bones. Other parts are
     their own."""
     if part is None or part < 0:
@@ -130,7 +130,7 @@ def compare(nat, bor, s, world, body):
     """Problems of a borrowed move's hitboxes against the donor's own, paired
     by motion, animation frame and hitbox slot.
     s: borrow scale (skeleton units); world: s times the model scale ratio;
-    body: the recipient's height in world units."""
+    body: the borrower's height in world units."""
     def index(hs):
         d = {}
         for h in hs:
@@ -192,7 +192,7 @@ def compare(nat, bor, s, world, body):
 
 
 def analyze(logdir):
-    """[(match, step, recipient, donor, move, result, note)], Counter of results."""
+    """[(match, step, borrower, donor, move, result, note)], Counter of results."""
     matches, res, hits, scale, crashes, mscale, reach = load(logdir)
     counts = collections.Counter()
     rows = []
@@ -259,7 +259,7 @@ def main():
         import csv
         with open(a.csv, 'w', newline='') as f:
             w = csv.writer(f)
-            w.writerow(['match', 'step', 'recipient', 'donor', 'move', 'result', 'note'])
+            w.writerow(['match', 'step', 'borrower', 'donor', 'move', 'result', 'note'])
             w.writerows(rows)
 
 

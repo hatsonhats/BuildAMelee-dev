@@ -10,7 +10,7 @@ id = "aerial-header-ftCo_AttackAir"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_AttackAir.c"
 anchor = "#include \"ftCo_AttackAir.h\""
-replacement = "#include \"ftCo_AttackAir.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftCo_AttackAir.h\"\n#include <engine/engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -19,7 +19,7 @@ id = "aerial-header-ftCo_LandingAir"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftCommon/ftCo_LandingAir.c"
 anchor = "#include \"ftCo_LandingAir.h\""
-replacement = "#include \"ftCo_LandingAir.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftCo_LandingAir.h\"\n#include <engine/engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -28,7 +28,7 @@ id = "aerial-header-ftgamewatchattackair"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "#include \"ftgamewatchattackair.h\""
-replacement = "#include \"ftgamewatchattackair.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftgamewatchattackair.h\"\n#include <engine/engine.h>"
 occurrences = 1
 reason = "Declare the match-owned aerial facade."
 
@@ -39,7 +39,7 @@ file = "src/melee/ft/kinds/ftCommon/ftCo_AttackAir.c"
 anchor = "static void decideFighter(Fighter_GObj* gobj)\n{"
 replacement = "static void decideFighter(Fighter_GObj* gobj)\n{\n    if (Bam_AerialTryEnter(gobj, ftCo_AttackAir_GetMsidFromCStick(GET_FIGHTER(gobj)))) return;"
 occurrences = 1
-reason = "Dispatch purchased aerials before recipient-specific native aerial logic."
+reason = "Dispatch purchased aerials before borrower-specific native aerial logic."
 
 [[fix]]
 id = "aerial-landing-before-lcancel"
@@ -55,7 +55,7 @@ id = "aerial-gamewatch-vars"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "fp->u.gw"
-replacement = "Bam_AbilityVars(fp, Ft_Kind_GameWatch)->gw"
+replacement = "Bam_DonorVars(fp, Ft_Kind_GameWatch)->gw"
 occurrences = 54
 reason = "Article callbacks can outlive their animation and must use their source variable bank."
 
@@ -64,27 +64,27 @@ id = "aerial-gamewatch-bone-TransN"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "FtPart_TransN"
-replacement = "Bam_AbilityMapBone(fp, FtPart_TransN)"
+replacement = "Bam_DonorBoneJoint(fp, FtPart_TransN)"
 occurrences = 2
-reason = "Retarget article spawn and attachment joints to the recipient skeleton."
+reason = "Retarget article spawn and attachment joints to the borrower skeleton."
 
 [[fix]]
 id = "aerial-gamewatch-bone-LShoulderN"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "FtPart_LShoulderN"
-replacement = "Bam_AbilityMapBone(fp, FtPart_LShoulderN)"
+replacement = "Bam_DonorBoneJoint(fp, FtPart_LShoulderN)"
 occurrences = 2
-reason = "Retarget article spawn and attachment joints to the recipient skeleton."
+reason = "Retarget article spawn and attachment joints to the borrower skeleton."
 
 [[fix]]
 id = "aerial-gamewatch-bone-LHandN"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattackair.c"
 anchor = "FtPart_LHandN"
-replacement = "Bam_AbilityMapBone(fp, FtPart_LHandN)"
+replacement = "Bam_DonorBoneJoint(fp, FtPart_LHandN)"
 occurrences = 2
-reason = "Retarget article spawn and attachment joints to the recipient skeleton."
+reason = "Retarget article spawn and attachment joints to the borrower skeleton."
 
 [[fix]]
 id = "aerial-gamewatch-landing-n"
@@ -110,68 +110,68 @@ owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftLink/ftlinkattackair.c"
 anchor = "static void lwOnHit(HSD_GObj* gobj)\n{"
 replacement = "void Bam_LinkAerialDownEnter(Fighter_GObj* gobj)\n{\n    Fighter* fp = GET_FIGHTER(gobj);\n    ftCo_AttackAir_EnterFromMsid(gobj, ftCo_MS_AttackAirLw);\n    fp->deal_dmg_cb = lwOnHit;\n    fp->anim_cb = lwOnAnim;\n    fp->mv.lk.attackair.lw_frame_start = 0;\n}\n\nstatic void lwOnHit(HSD_GObj* gobj)\n{"
-reason = "Reuse Link and Young Link's actual down-air bounce callbacks and attributes without consulting recipient input or replacing the special state machine."
+reason = "Reuse Link and Young Link's actual down-air bounce callbacks and attributes without consulting borrower input or replacing the special state machine."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattack11-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattack11.c"
 anchor = "#include \"ftgamewatchattack11.h\""
-replacement = "#include \"ftgamewatchattack11.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftgamewatchattack11.h\"\n#include <engine/engine.h>"
 occurrences = 1
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattack11-vars"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattack11.c"
 anchor = "fp->u.gw"
-replacement = "Bam_AbilityVars(fp, Ft_Kind_GameWatch)->gw"
+replacement = "Bam_DonorVars(fp, Ft_Kind_GameWatch)->gw"
 occurrences = 15
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattacklw3-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacklw3.c"
 anchor = "#include \"ftgamewatchattacklw3.h\""
-replacement = "#include \"ftgamewatchattacklw3.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftgamewatchattacklw3.h\"\n#include <engine/engine.h>"
 occurrences = 1
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattacklw3-vars"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacklw3.c"
 anchor = "fp->u.gw"
-replacement = "Bam_AbilityVars(fp, Ft_Kind_GameWatch)->gw"
+replacement = "Bam_DonorVars(fp, Ft_Kind_GameWatch)->gw"
 occurrences = 13
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattacks4-header"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacks4.c"
 anchor = "#include \"ftgamewatchattacks4.h\""
-replacement = "#include \"ftgamewatchattacks4.h\"\n#include <engine/special_engine.h>"
+replacement = "#include \"ftgamewatchattacks4.h\"\n#include <engine/engine.h>"
 occurrences = 1
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "aerial-gw-cleanup-ftgamewatchattacks4-vars"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftGameWatch/ftgamewatchattacks4.c"
 anchor = "fp->u.gw"
-replacement = "Bam_AbilityVars(fp, Ft_Kind_GameWatch)->gw"
+replacement = "Bam_DonorVars(fp, Ft_Kind_GameWatch)->gw"
 occurrences = 9
-reason = "Game and Watch landing may call OnDamage after shared ownership has restored the recipient. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
+reason = "Game and Watch landing may call OnDamage after shared ownership has restored the borrower. Every article cleanup helper must read its persistent source bank, including grounded article removers invoked by OnDamage."
 
 [[fix]]
 id = "borrowed-link-dair-hit-no-reentry"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftLink/ftlinkattackair.c"
 anchor = "    if (fp->cur_anim_frame > frame_len) {\n        Fighter_ChangeMotionState(gobj, ftCo_MS_AttackAirLw, Ft_MF_None,"
-replacement = "    if (fp->cur_anim_frame > frame_len && !Bam_IsAbilityState(fp)) {\n        Fighter_ChangeMotionState(gobj, ftCo_MS_AttackAirLw, Ft_MF_None,"
+replacement = "    if (fp->cur_anim_frame > frame_len && !Bam_InBorrowedMove(fp)) {\n        Fighter_ChangeMotionState(gobj, ftCo_MS_AttackAirLw, Ft_MF_None,"
 reason = "Borrowed Link/Young Link down air: on hit, keep the bounce but do not restart the attack's motion from inside the hit callback (on another fighter that left the model in its bind pose). Link and Young Link are unchanged."
 
 [[fix]]
@@ -179,5 +179,5 @@ id = "borrowed-link-dair-hit-declare"
 owner = "platform/aerials"
 file = "src/melee/ft/kinds/ftLink/ftlinkattackair.c"
 anchor = "#include \"ftlinkattackair.h\""
-replacement = "#include \"ftlinkattackair.h\"\nextern bool Bam_IsAbilityState(const struct Fighter* fp);"
+replacement = "#include \"ftlinkattackair.h\"\nextern bool Bam_InBorrowedMove(const struct Fighter* fp);"
 reason = "Declare the borrowed-move check used by the down-air hit callback."

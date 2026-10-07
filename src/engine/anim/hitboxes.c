@@ -70,15 +70,15 @@ int Bam_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
 #endif
 /* A move script just made a hitbox (ftAction_8007121C); `bone` is the
  * script's joint, or -1 for a common body part. Offsets of a borrowed move
- * are carried into the recipient's frame. */
+ * are carried into the borrower's frame. */
 void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
 {
     PropHit* h = hit_record(hit);
     unsigned source, i;
     int prop, root;
     if (h) h->hit = NULL;
-    if (!fp || !hit || !Bam_IsAbilityState(fp)) return;
-    source = Bam_AbilitySourceKind(fp);
+    if (!fp || !hit || !Bam_InBorrowedMove(fp)) return;
+    source = Bam_DonorKind(fp);
     /* Offsets and radii fit this fighter's body (Bam_BorrowScale), as
      * the move's weapons and props are drawn: a hitbox stays on the part it
      * belongs to, and keeps its size relative to it (the hitbox size
@@ -152,8 +152,8 @@ void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
             }
         }
         if (own_joint(fp, part) < 0) {
-            /* The recipient lacks the bone (most have no waist): the hitbox
-             * rides the bone Bam_AbilityMapBone chose instead, so carry
+            /* The borrower lacks the bone (most have no waist): the hitbox
+             * rides the bone Bam_DonorBoneJoint chose instead, so carry
              * the offset from the donor's bone frame into that one's (an
              * offset in Jigglypuff's waist frame pointed up a tall
              * fighter's hip, over its head). */

@@ -22,7 +22,7 @@
  * each file). When anything here is unavailable, callers use the match heap
  * as before.
  */
-#include <engine/special_internal.h>
+#include <engine/internal.h>
 #include <bam/retail.h>
 #include <dolphin/os.h>
 #include <string.h>

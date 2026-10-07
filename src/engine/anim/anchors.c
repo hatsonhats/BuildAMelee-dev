@@ -15,7 +15,7 @@
 static void anchor_place(Fighter* fp, PropAnchor* a)
 {
     Mtx rel, world, grow;
-    unsigned source = Bam_AbilitySourceKind(fp);
+    unsigned source = Bam_DonorKind(fp);
     float bs = Bam_BorrowScale(fp);
     HSD_JObj* base;
     if (a->root < 0 || (unsigned) a->root >= ftPartsTable[fp->kind]->parts_num || !fp->parts[a->root].joint) return;
@@ -102,7 +102,7 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
     unsigned n = ftPartsTable[fp->kind]->parts_num;
     int j;
     if (part >= 0 && (unsigned) part < n && fp->parts[part].joint) return fp->parts[part].joint;
-    j = Bam_AbilityFallbackJoint(fp, part);
+    j = Bam_FallbackJoint(fp, part);
     if (j >= 0 && (unsigned) j < n && fp->parts[j].joint) return fp->parts[j].joint;
     return fp->parts[0].joint;
 }
@@ -124,7 +124,7 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
     int slot = slot_of_fighter(fp), prop = -1;
     unsigned i;
     if (slot < 0 || part < 0 || (unsigned) part >= ftPartsTable[fp->kind]->parts_num ||
-        !prop_active(fp, Bam_AbilitySourceKind(fp)))
+        !prop_active(fp, Bam_DonorKind(fp)))
         return part_joint(fp, part);
     if (bam_anim->last_root[slot] == part && bam_anim->last_prop[slot] > 0 && bam_anim->last_prop[slot] <= BAM_PROP_COUNT)
         prop = bam_anim->last_prop[slot] - 1;
@@ -135,7 +135,7 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
          * own skeleton (Mr. Game & Watch's hand: his Judge sign, turtle,
          * torch): it rides on that pose, as his props do. On the
          * borrower's own hand it faced along the wrong axis (seen edge-on). */
-        unsigned source = Bam_AbilitySourceKind(fp);
+        unsigned source = Bam_DonorKind(fp);
         int ftpart = ftPartsTable[fp->kind]->joint_to_part[part], row;
         if (bam_anim->held_joint[slot] == part + 1) {
             ftpart = bam_anim->held_part[slot];
@@ -154,7 +154,7 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
         if (!bam_anim->anchors[slot][i].jobj) return part_joint(fp, part);
         bam_anim->anchors[slot][i].prop = (short) prop;
         bam_anim->anchors[slot][i].root = (short) part;
-        BAM_LOG("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_AbilitySourceKind(fp), part,
+        BAM_LOG("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_DonorKind(fp), part,
                 (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
     }
     anchor_place(fp, &bam_anim->anchors[slot][i]);
@@ -170,9 +170,9 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
 HSD_JObj* Bam_DonorBoneJObj(Fighter* fp, int bone)
 {
     int joint;
-    if (!Bam_IsAbilityState(fp) || Bam_AbilitySourceKind(fp) == fp->kind)
+    if (!Bam_InBorrowedMove(fp) || Bam_DonorKind(fp) == fp->kind)
         return fp->parts[bone].joint;
-    joint = Bam_AbilityMapBone(fp, bone);
+    joint = Bam_DonorBoneJoint(fp, bone);
     if (joint < 0 || (unsigned) joint >= ftPartsTable[fp->kind]->parts_num || !fp->parts[joint].joint) joint = 0;
     return Bam_ItemAnchor(fp->gobj, joint);
 }

@@ -1,4 +1,4 @@
-#include <engine/aerial_catalog.h>
+#include <engine/catalog.h>
 const BamAerialDef* BamAerial_Find(unsigned id)
 {
     unsigned i;
