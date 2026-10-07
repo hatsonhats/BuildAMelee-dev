@@ -1,3 +1,8 @@
+/* Looking up an aerial in the catalog (catalog.h).
+ *
+ * Called from: aerials.c, normals.c and the CSS panel.
+ * State: none.
+ */
 #include <engine/catalog.h>
 const BamAerialDef* BamAerial_Find(unsigned id)
 {

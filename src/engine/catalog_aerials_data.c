@@ -1,3 +1,8 @@
+/* The aerial catalog: every aerial a build can borrow (id, character, slot).
+ *
+ * Called from: never; read through catalog_aerials.c.
+ * State: none (constant table).
+ */
 #include <engine/catalog.h>
 const BamAerialDef bam_aerials[BAM_AERIALS] = {
     { 1, 0, 2, 0 }, /* Captain Falcon Neutral Air */

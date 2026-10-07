@@ -7,6 +7,9 @@
  * (read, once per boot) and when a slot is saved or deleted (write), with a
  * 48 KB work area borrowed from the scene heap for the operation only; if
  * the heap cannot spare it, the slots stay in memory and the player is told.
+ *
+ * Called from: the CSS panel.
+ * State: the memory card file (outside the match).
  */
 /* Menu code: smaller beats faster (the overlay has a fixed size). */
 #pragma optimize_for_size on

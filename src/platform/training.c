@@ -10,7 +10,11 @@
  * scene loop skips the frame (the game stands still, still drawn), and bit 0
  * of gm_80479D58.x2 lets exactly one frame through, as the debug ROM's frame
  * advance does. BAM_TrainingLoop runs every loop iteration before that
- * check (gm_801A4D34+0xCC), so a press acts on the same iteration. */
+ * check (gm_801A4D34+0xCC), so a press acts on the same iteration.
+ *
+ * Called from: the training hooks (project.toml, overrides/fixes/60-training.toml), hooks.c.
+ * State: training options and the saved loadouts (Training Mode only, not netplay).
+ */
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include <bam/bam.h>

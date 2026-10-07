@@ -21,6 +21,9 @@
  * Hooks: BAM_CssFrame at mnCharSel_Scene_OnFrame entry (after the pads are
  * read, before the CSS and its GObj procs run), BAM_CssExit at
  * mnCharSel_Scene_OnExit entry.
+ *
+ * Called from: hooks on the CSS frame and exit (project.toml), training.c (the in-match menu).
+ * State: css, bam_loadouts (before the match).
  */
 /* Menu code: smaller beats faster (the overlay has a fixed size). */
 #pragma optimize_for_size on

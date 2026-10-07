@@ -1,11 +1,14 @@
-#include <engine/visual/internal.h>
-
 /* Peach's up special ends with her parasol open: holding it, she floats
  * down (the common parasol fall). A borrower holds no parasol item, so the
  * float is kept here: set while the borrowed up special shows the parasol,
  * it lasts through the special fall that follows until the fighter lands,
  * leaves that state or closes it (stick down). The parasol stays drawn in
- * the hand meanwhile. */
+ * the hand meanwhile.
+ *
+ * Called from: hooks.c (Bam_ParasolTrack every frame), 10-core.toml (open, float), weapons.c.
+ * State: bam_visual (match block, visual/internal.h).
+ */
+#include <engine/visual/internal.h>
 
 /* The float keeps the parasol where the borrowed up special left it on the
  * body (the root), not in the hand: the special fall's own pose has the

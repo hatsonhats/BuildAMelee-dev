@@ -1,3 +1,8 @@
+/* Typing a share code on the CSS (the retail name-entry keyboard).
+ *
+ * Called from: css_menu.c; BAM_NameEntryProc hook (project.toml).
+ * State: the keyboard's entry (CSS only).
+ */
 #include "css_panel.h"
 #include <bam/retail.h>
 /* Menu code: smaller beats faster (the overlay has a fixed size). */

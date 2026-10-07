@@ -1,3 +1,10 @@
+/* Loading what a donor's moves need before the match: its fighter data,
+ * effects, model, articles, variables and the borrowed moves' animations.
+ *
+ * Called from: fighter.c (Bam_BorrowFighterCreated, when a build fighter is created),
+ * aerials.c and normals.c.
+ * State: the fighter's BamFighterState and bam_match->donor_attrs (match block, state.h).
+ */
 #include <engine/internal.h>
 #include <melee/ft/kinds/ftKoopa/types.h>
 #include <melee/lb/lbfile.h>

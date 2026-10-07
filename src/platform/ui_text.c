@@ -1,3 +1,9 @@
+/* Text drawn by the menus: one HSD text object per panel, lines and
+ * boxes in screen units.
+ *
+ * Called from: css_codes.c, css_draw.c, training.c.
+ * State: none.
+ */
 #include "ui_text.h"
 #include <stdarg.h>
 #include <stdio.h>

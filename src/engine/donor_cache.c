@@ -21,6 +21,9 @@
  * block also keeps temporary space at its top for loading (reset after
  * each file). When anything here is unavailable, callers use the match heap
  * as before.
+ *
+ * Called from: donor_load.c, donor_trim.c, visual/donor_model.c; scene enter/exit from fighter.c.
+ * State: arenas and their bookkeeping (loading cache, outside the match; project.toml [state]).
  */
 #include <engine/internal.h>
 #include <bam/retail.h>

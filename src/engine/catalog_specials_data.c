@@ -1,3 +1,8 @@
+/* The special catalog: every special a build can borrow, with its name.
+ *
+ * Called from: never; read through catalog_specials.c.
+ * State: none (constant table).
+ */
 #include <engine/catalog.h>
 const BamSpecialDef bam_specials[BAM_SPECIALS] = {
     { 1, 8, 0, 0, "Fireball" },

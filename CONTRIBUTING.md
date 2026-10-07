@@ -91,6 +91,9 @@ edit's text. GitHub runs the host tests on every push
 
 - C99 for the Wii 1.7 compiler; four-space indents; names start `Bam_`
   (functions), `bam_` (globals and tables) or `BAM_` (macros).
+- Every `.c` file opens with what it does, then `Called from:` (the hooks,
+  fixes or files that reach it) and `State:` (what it owns, and whether that
+  is in a match block).
 - A decomp field still named by its offset (`fp->x24`) gets a name in
   `src/bam/fields.h` the first time our code uses it.
 - Comments say what the code does and why, including what would go wrong

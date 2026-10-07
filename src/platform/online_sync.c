@@ -23,6 +23,9 @@
  * characters' own moves; the cases are symmetric so both agree.
  *
  * Only Slippi Direct 1v1 exchanges. Other online modes play retail moves.
+ *
+ * Called from: hooks.c (scene enter, ready, exit).
+ * State: the exchange in progress (scene setup, before the match).
  */
 #include <bam/bam.h>
 #include <bam/retail.h>

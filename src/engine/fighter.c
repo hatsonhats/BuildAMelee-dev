@@ -1,3 +1,9 @@
+/* Build fighters: which fighters have a build, the loadouts, the per-fighter
+ * engine block, and the match blocks' start and end.
+ *
+ * Called from: hooks.c (fighter created, scene enter/exit), line edits, the other engine files.
+ * State: bam_loadouts (chosen before the match), bam_match (allocates the match block).
+ */
 #include <engine/internal.h>
 #include <melee/ft/fighter.h>
 #include <melee/pl/player.h>

@@ -1,3 +1,10 @@
+/* Donor bones that are not body parts (props: swords, tails), and the bone
+ * table lookups the other anim/ files share.
+ *
+ * Called from: the other anim/ files; Bam_PropTrack from overrides/fixes/10-core.toml;
+ * Bam_PropJoint from borrow.c; Bam_PropWeaponMtx from visual/.
+ * State: bam_anim (match block, anim/internal.h).
+ */
 #include <engine/anim/internal.h>
 
 /* ---- Body-less bones (Marth's sword, Pikachu's tail...) ----

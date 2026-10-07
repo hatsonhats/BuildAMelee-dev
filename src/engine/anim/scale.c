@@ -1,12 +1,20 @@
-#include <engine/anim/internal.h>
-
-/* Body size per fighter kind: the standing height to the top of the
+/* How much a borrowed move is scaled to fit the borrower (Bam_BorrowScale),
+ * and its hitboxes and effects with it.
+ *
+ * Body size per fighter kind: the standing height to the top of the
  * hurtboxes, measured in game (QA "SIZE" lines, tools/qa: bam.py build --qa
  * size), divided by the fighter's model scale so it is in skeleton units.
  * The old table (head bone height) made Bowser 2.1x Marth and Jigglypuff
  * 0.43x; by the body they are 1.17x and 0.65x. Pichu's head hurtbox is
  * oversized (radius 5.1), which made it measure taller than Pikachu; it is
- * Pikachu's height scaled by their standing ECB tops (5.71 / 6.98). */
+ * Pikachu's height scaled by their standing ECB tops (5.71 / 6.98).
+ *
+ * Called from: anim/ files, 10-core.toml (effects), 20-characters.toml (projectiles),
+ * 30-normals.toml (hitbox size command).
+ * State: none (constant tables).
+ */
+#include <engine/anim/internal.h>
+
 static const float body_size[] = {
     13.23f, /* Mario */ 16.46f, /* Fox */ 19.19f, /* Captain Falcon */
     17.09f, /* Donkey Kong */ 10.57f, /* Kirby */ 32.59f, /* Bowser */

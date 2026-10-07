@@ -1,3 +1,10 @@
+/* Borrowed aerials: entering one (the aerial slot's donor motion), its animations
+ * and landing lag, and releasing it.
+ *
+ * Called from: fixes in overrides/fixes/40-aerials.toml (entering, landing lag), hooks.c,
+ * donor_load.c (preparing a match) and borrow.c (ending one).
+ * State: the fighter's BamFighterState (match block, state.h).
+ */
 #include <engine/internal.h>
 #include <melee/lb/lbfile.h>
 #include <dolphin/dvd.h>

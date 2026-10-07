@@ -1,3 +1,9 @@
+/* Each character's four specials as a donor: entry functions and motion
+ * state tables read from the retail tables.
+ *
+ * Called from: borrow.c, donor_load.c, aerials.c, normals.c, transform.c, the CSS panel.
+ * State: abilities (filled once from retail tables, the same every time; project.toml [state]).
+ */
 #include <engine/engine.h>
 #include <melee/ft/ftdata.h>
 #include <melee/ft/kinds/ftCommon/ftCo_Fall.h>

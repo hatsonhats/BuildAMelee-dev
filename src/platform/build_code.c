@@ -6,7 +6,11 @@
  * throws are the donor's CharacterKind + 1. The check symbol hashes the
  * moves together with a fingerprint of the move catalogs, so a typo or a
  * code from a version whose catalogs differ is refused instead of loading
- * different moves. */
+ * different moves.
+ *
+ * Called from: the CSS panel, online_sync.c, replay_builds.c.
+ * State: none.
+ */
 /* Menu code: smaller beats faster (the overlay has a fixed size). */
 #pragma optimize_for_size on
 #pragma auto_inline off

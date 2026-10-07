@@ -1,4 +1,8 @@
-/* Drawing the move-select panel (css_panel.h). */
+/* Drawing the move-select panel (css_panel.h).
+ *
+ * Called from: css_menu.c, css_codes.c, training.c.
+ * State: none of its own (css, css_menu.c).
+ */
 #include "css_panel.h"
 /* Menu code: smaller beats faster (the overlay has a fixed size). */
 #pragma optimize_for_size on

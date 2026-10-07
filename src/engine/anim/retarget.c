@@ -1,3 +1,10 @@
+/* Retargeting: a donor animation played on the borrower's skeleton, each
+ * body part turned by the difference of the two rest poses.
+ *
+ * Called from: the animation fixes in overrides/fixes/10-core.toml (rotation, translation),
+ * borrow.c (starting a borrowed move).
+ * State: bam_anim (match block, anim/internal.h).
+ */
 #include <engine/anim/internal.h>
 
 /* Borrowed-move body scaling.

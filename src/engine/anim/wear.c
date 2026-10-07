@@ -1,5 +1,3 @@
-#include <engine/anim/internal.h>
-
 /* Clothing the borrower wears instead of carries: Peach's dress (her skirt
  * bones under joint 17, mesh group 2) on her down smash. A carried part
  * keeps the move's size and hangs where the donor's body would be; a dress
@@ -12,7 +10,13 @@
  *   - centred between their legs (Donkey Kong's hip joint is at his back).
  * Girth and torso top: the torso hurtboxes (TransN..WaistN, BustN) in the
  * rest pose, distance from the body's vertical axis plus radius, and their
- * highest point; skeleton units, from each fighter's data (0: none listed). */
+ * highest point; skeleton units, from each fighter's data (0: none listed).
+ *
+ * Called from: pose.c every frame.
+ * State: none (constant tables).
+ */
+#include <engine/anim/internal.h>
+
 static const float wear_girth[] = {
     2.23f, 3.04f, 2.92f, 5.46f, 5.60f, 11.03f, 2.25f, 1.81f, 3.10f, 2.74f, 4.00f, 4.00f, 4.75f, 2.77f,
     4.60f, 5.60f, 0.00f, 2.43f, 2.37f, 1.70f, 2.40f, 2.63f, 2.14f, 4.50f, 0.00f, 3.16f, 2.37f,

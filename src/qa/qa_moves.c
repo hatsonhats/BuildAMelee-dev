@@ -28,6 +28,9 @@
  *   [qa] E m                      match done
  * The sweep starts at qa_resume (match * 32 + step), patched into the ISO by
  * the runner after a crash or freeze.
+ *
+ * Called from: its hooks and css_menu.c (QA builds only).
+ * State: the sweep's progress (QA only).
  */
 #include "../bam/bam.h"
 #include <engine/internal.h>

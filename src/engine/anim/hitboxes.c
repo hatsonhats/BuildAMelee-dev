@@ -1,3 +1,10 @@
+/* Hitboxes of a borrowed move: sized for the borrower and kept on the donor
+ * bone they belong to.
+ *
+ * Called from: fixes in overrides/fixes/10-core.toml and 30-normals.toml (hitbox created,
+ * every frame before its position is taken).
+ * State: bam_anim->prop_hits (match block, anim/internal.h).
+ */
 #include <engine/anim/internal.h>
 
 static PropHit* hit_record(const HitCapsule* hit)

@@ -1,4 +1,8 @@
-/* Retail hook entry points (see project.toml [[hook]]). */
+/* Retail hook entry points (see project.toml [[hook]]).
+ *
+ * Called from: retail, through the hooks in project.toml.
+ * State: none.
+ */
 #include <bam/bam.h>
 #include <bam/retail.h>
 #include <engine/internal.h>

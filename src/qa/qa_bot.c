@@ -8,6 +8,9 @@
  *
  * It also logs every scene change, so a headless run's log shows where the
  * game is ("[bam-qa] scene major=2 minor=2 frame=...").
+ *
+ * Called from: its hook (QA builds only).
+ * State: the bot's frame and scene (QA only).
  */
 #include "../bam/bam.h"
 #include <bam/retail.h>

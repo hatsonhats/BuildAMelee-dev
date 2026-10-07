@@ -1,3 +1,9 @@
+/* A borrowed Transform (Zelda/Sheik): switches the borrowed form, not the
+ * fighter's own character.
+ *
+ * Called from: the line edits of Zelda's and Sheik's down special (overrides/line_edits.json).
+ * State: the fighter's BamFighterState (match block, state.h).
+ */
 #include <engine/internal.h>
 #include <dolphin/os.h>
 bool Bam_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)

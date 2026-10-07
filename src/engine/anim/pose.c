@@ -1,3 +1,11 @@
+/* The per-frame pass after the borrower is animated: rebuilt donor bones,
+ * joints posed from the donor's root, the donor model's pose, and the
+ * anim match block.
+ *
+ * Called from: Bam_AnimPostStep from the animation fix in overrides/fixes/10-core.toml;
+ * Bam_AnimScaleMatchBegin/End from fighter.c.
+ * State: allocates and frees bam_anim (match block, anim/internal.h).
+ */
 #include <engine/anim/internal.h>
 
 /* ---- Per-frame world-space pass ----

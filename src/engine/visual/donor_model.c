@@ -1,3 +1,9 @@
+/* The donor's model drawn on a borrower for parts the borrower lacks (a
+ * sword, a tail, a dress), posed by anim/pose.c.
+ *
+ * Called from: hooks.c and fighter.c (loading), 10-core.toml (drawing, item colors), weapons.c.
+ * State: bam_visual (match block, visual/internal.h); model_wanted (scene setup).
+ */
 #include <engine/visual/internal.h>
 #include <melee/ft/kinds/ftGameWatch/types.h>
 

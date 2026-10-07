@@ -1,3 +1,8 @@
+/* Looking up a special in the catalog (catalog.h).
+ *
+ * Called from: the CSS panel, training.c, qa_moves.c.
+ * State: none.
+ */
 #include <engine/catalog.h>
 #include <string.h>
 const BamSpecialDef* BamSpecial_Find(unsigned id)

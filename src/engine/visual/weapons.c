@@ -1,5 +1,3 @@
-#include <engine/visual/internal.h>
-
 /* Borrowed weapon moves show the weapon.
  *
  * Marth's, Roy's, Link's and Young Link's moves swing a sword, Kirby's Hammer
@@ -29,7 +27,12 @@
  * Peach's crown in her hand, Kirby's stone, Yoshi's Egg Roll egg. Those switches are aimed at the
  * donor's groups, so a borrower's own meshes were toggled instead; they are
  * kept per borrower here (Bam_VisSet) and the donor's meshes drawn. While
- * Kirby's stone shows, the borrower's own body is hidden (Bam_BodyHidden). */
+ * Kirby's stone shows, the borrower's own body is hidden (Bam_BodyHidden).
+ *
+ * Called from: 10-core.toml (sword display), borrow.c, donor_model.c; match begin/end from fighter.c.
+ * State: allocates and frees bam_visual (match block, visual/internal.h).
+ */
+#include <engine/visual/internal.h>
 
 /* 0 Beam Sword, 1 Hammer (common items), 2 Peach's parasol (her article). */
 

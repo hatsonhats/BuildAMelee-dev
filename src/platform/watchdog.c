@@ -3,7 +3,11 @@
  * whatever the game thread is doing, writes where it is to dolphin.log:
  * the interrupted PC, LR and the return addresses up the stack. Those map
  * to retail functions (symbols.txt) or overlay ones (build/overlay map).
- * One report per freeze. */
+ * One report per freeze.
+ *
+ * Called from: hooks.c every frame (Bam_WatchdogFrame).
+ * State: the alarm and frame counter (debugging, outside the simulation).
+ */
 #include <bam/bam.h>
 #include <dolphin/os.h>
 #include <dolphin/os/OSAlarm.h>

@@ -1,3 +1,9 @@
+/* Rest's sleep on a borrower: the sleep a borrowed Rest puts the user in,
+ * played as the common sleep (DamageSong) state.
+ *
+ * Called from: fixes in overrides/fixes/10-core.toml; match begin/end from fighter.c.
+ * State: allocates and frees bam_rest_sleep (match block).
+ */
 #include <engine/internal.h>
 #include <melee/ft/fighter.h>
 #include <melee/ft/ftanim.h>

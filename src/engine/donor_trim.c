@@ -25,6 +25,9 @@
  * donor's data is shared by every borrower), and the complete file is loaded
  * when the character is also playing (its own fighter uses this data) or is
  * already in Melee's preload cache.
+ *
+ * Called from: donor_load.c.
+ * State: temps (scratch while trimming, scene setup; project.toml [state]).
  */
 #include <engine/internal.h>
 #include <bam/retail.h>

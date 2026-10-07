@@ -1,3 +1,9 @@
+/* Articles and effects a borrowed move attaches to a donor bone: which
+ * borrower joint holds them, and where.
+ *
+ * Called from: fixes in overrides/fixes/10-core.toml; anchors_follow from pose.c every frame.
+ * State: bam_anim (match block, anim/internal.h).
+ */
 #include <engine/anim/internal.h>
 
 /* ---- Articles a borrowed move attaches ----

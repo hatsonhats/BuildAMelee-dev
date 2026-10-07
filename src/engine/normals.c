@@ -24,7 +24,11 @@
  *
  * Memory: a slot loads its donor's data (shared with the donor's specials
  * and aerials) and the animations of its family only. A slot that does not
- * fit keeps the fighter's own move. */
+ * fit keeps the fighter's own move.
+ *
+ * Called from: fixes in overrides/fixes/30-normals.toml; borrow.c, donor_load.c, donor_trim.c.
+ * State: the fighter's BamFighterState (match block, state.h).
+ */
 #include <engine/internal.h>
 #include <melee/ft/kinds/ftGameWatch/forward.h>
 #include <melee/ft/kinds/ftNess/forward.h>

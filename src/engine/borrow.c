@@ -1,3 +1,11 @@
+/* Starting and ending a borrowed move, and what it reads instead of the
+ * borrower's own data: the donor's kind, variables, bones and motion states.
+ * The core of the borrowed-move engine.
+ *
+ * Called from: the line edits (overrides/line_edits.json) and fixes throughout fighter code,
+ * hooks.c (every fighter frame), aerials.c, normals.c, donor_load.c.
+ * State: each fighter's BamFighterState (bam_match, match block, state.h).
+ */
 #include <engine/internal.h>
 #include <stddef.h>
 #include <melee/ft/fighter.h>

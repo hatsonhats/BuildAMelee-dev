@@ -27,6 +27,9 @@
  *
  * The share code's check symbol covers the move catalogs, so a replay from a
  * build with different catalogs plays native moves rather than wrong ones.
+ *
+ * Called from: hooks in project.toml (writing and reading the match setup), hooks.c.
+ * State: the replay's builds (scene setup, before the match).
  */
 #pragma optimize_for_size on
 #pragma auto_inline off
