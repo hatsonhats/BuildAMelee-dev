@@ -72,9 +72,9 @@ bool Bam_VisSet(HSD_GObj* gobj, int group, int val)
 static const FtPartsVisLookup* vis_lookup(unsigned kind, int group)
 {
     const FtPartsVisLookup* lookup;
-    if (kind >= Ft_Kind_Max || !gFtDataList[kind] || !gFtDataList[kind]->x8) return NULL;
-    if ((unsigned) group >= gFtDataList[kind]->x8->x0.model_num || !gFtDataList[kind]->x8->x0.vis_table) return NULL;
-    lookup = (const FtPartsVisLookup*) gFtDataList[kind]->x8->x0.vis_table[0][1];
+    if (kind >= Ft_Kind_Max || !gFtDataList[kind] || !FTDATA_PARTS(gFtDataList[kind])) return NULL;
+    if ((unsigned) group >= FTDATA_PARTS(gFtDataList[kind])->x0.model_num || !FTDATA_PARTS(gFtDataList[kind])->x0.vis_table) return NULL;
+    lookup = (const FtPartsVisLookup*) FTDATA_PARTS(gFtDataList[kind])->x0.vis_table[0][1];
     return lookup ? &lookup[group] : NULL;
 }
 

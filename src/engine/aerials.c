@@ -85,7 +85,7 @@ bool Bam_AerialTryEnter(Fighter_GObj* gobj, int motion)
         OSPanic(__FILE__, __LINE__, "equipped aerial has no match-owned donor");
     Bam_BorrowBegin(fp, def->donor);
     S->aerial = def;
-    if(S->aerial_anims[def->donor]) fp->x24=S->aerial_anims[def->donor];
+    if(S->aerial_anims[def->donor]) FT_ANIMS(fp)=S->aerial_anims[def->donor];
     if ((def->donor == Ft_Kind_Link || def->donor == Ft_Kind_CLink) && slot == 4)
         Bam_LinkAerialDownEnter(gobj);
     else ftCo_AttackAir_EnterFromMsid(gobj, aerial_motion(def, false));
@@ -119,7 +119,7 @@ float Bam_AerialLandingLag(Fighter* fp, int motion, float native_lag)
     BamFighterState* const S = Bam_FighterCtx(fp);
     const BamAerialDef* def = S->aerial;
     if (!Bam_InBorrowedMove(fp) || !def || motion != aerial_motion(def, false)) return native_lag;
-    attrs = gFtDataList[def->donor]->x0;
+    attrs = FTDATA_COMMON_ATTRS(gFtDataList[def->donor]);
     switch (def->slot) {
     case 0: lag = attrs->landingairn_lag; break;
     case 1: lag = attrs->landingairf_lag; break;

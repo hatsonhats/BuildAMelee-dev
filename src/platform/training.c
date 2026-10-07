@@ -14,6 +14,7 @@
 #pragma optimize_for_size on
 #pragma auto_inline off
 #include <bam/bam.h>
+#include <bam/fields.h>
 #include <bam/retail.h>
 #include <engine/internal.h>
 #include <engine/catalog.h>
@@ -300,7 +301,7 @@ static void apply_bubbles(void)
  * change has reset the colour animation by now, so this one stays. */
 static void flash(Fighter* fp)
 {
-    ColorOverlay* co = &fp->x488;
+    ColorOverlay* co = &FT_COLOR_OVERLAY(fp);
     co->x28_colanim.ptr = NULL;
     co->x0_timer = 0;
     co->x4_pri = 20;
@@ -318,7 +319,7 @@ void Bam_TrainingLanding(Fighter* fp, int msid)
 {
     if (!session || !opt[BAM_OPT_LCANCEL] || msid == -1 || !fp || fp->player_id != 0 || fp->is_sub_fighter)
         return;
-    if (fp->x67F >= p_ftCommonData->xE4) lcancel_pending = fp; /* L/R pressed too early (or not at all) */
+    if (FT_SHIELD_PRESS_FRAMES(fp) >= FTCOMMON_LCANCEL_FRAMES(p_ftCommonData)) lcancel_pending = fp; /* L/R pressed too early (or not at all) */
 }
 
 void Bam_TrainingFrame(void)

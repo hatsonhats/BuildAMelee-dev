@@ -258,24 +258,24 @@ static int load_special_slices(BamFighterState* S, const BamDonorSpecial* def)
             st = &def->states[m - ftCo_MS_Count];
             if (st->anim_id < 0 || st->anim_id >= count) continue;
             anim = &table[st->anim_id];
-            if (!anim->x8 || anim->x14) continue;
-            if (anim->x8 < 0 || anim->x8 > 0x8000 || anim->x4 < 0) continue;
+            if (!ANIM_SIZE(anim) || ANIM_LOADED(anim)) continue;
+            if (ANIM_SIZE(anim) < 0 || ANIM_SIZE(anim) > 0x8000 || ANIM_FILE_OFFSET(anim) < 0) continue;
             /* The donor's state range spans all four of its specials; read
              * only this move's animations (a different slot's are skipped). */
-            { int a = anim_slot(anim->x0); if (a >= 0 && a != (int) def->native_slot) continue; }
+            { int a = anim_slot(ANIM_NAME(anim)); if (a >= 0 && a != (int) def->native_slot) continue; }
             /* States sharing one animation: size it once. */
             for (k = (unsigned) def->first_state; k < (unsigned) m; ++k)
                 if (k >= ftCo_MS_Count && def->states[k - ftCo_MS_Count].anim_id == st->anim_id) dup = true;
             if (dup) continue;
-            offset = (unsigned) anim->x4 & ~31U;
-            skip = (unsigned) anim->x4 - offset;
-            bytes = ((unsigned) anim->x8 + skip + 31U) & ~31U;
+            offset = (unsigned) ANIM_FILE_OFFSET(anim) & ~31U;
+            skip = (unsigned) ANIM_FILE_OFFSET(anim) - offset;
+            bytes = ((unsigned) ANIM_SIZE(anim) + skip + 31U) & ~31U;
             if (pass == 0) { total += bytes; continue; }
             /* ARAM reads need 32-byte alignment (every PlXxAJ.dat
              * animation starts on one; checked on the disc). */
             if (skip && (u32) buf < 0x80000000U) OSPanic(__FILE__, __LINE__, "unaligned ARAM animation");
             Bam_SliceRead(file, offset, buf + at, bytes);
-            anim->x14 = (u32) (buf + at) + skip;
+            ANIM_LOADED(anim) = (u32) (buf + at) + skip;
             at += bytes;
             ++loaded;
         }
@@ -339,8 +339,8 @@ Fighter_WaitAnimData* Bam_DonorAnimTable(BamFighterState* S, int source)
         t = HSD_MemAlloc(bytes);
         if (!t) return NULL;
     }
-    memcpy(t, gFtDataList[source]->xC, bytes);
-    for (i = 0; i < ftData_Table_Unk0[source].count; ++i) t[i].x14 = 0;
+    memcpy(t, FTDATA_ANIMS(gFtDataList[source]), bytes);
+    for (i = 0; i < ftData_Table_Unk0[source].count; ++i) ANIM_LOADED(&t[i]) = 0;
     S->aerial_anims[source] = t;
     return t;
 }
@@ -379,15 +379,15 @@ int Bam_DonorReadAnims(BamFighterState* S, int source, const short* anims, unsig
             for (k = 0; k < i; ++k) if (anims[k] == anims[i]) dup = true;
             if (dup) continue;
             anim = &table[anims[i]];
-            if (!anim->x8 || anim->x14) continue;
-            if (anim->x8 < 0 || anim->x8 > 0x8000 || anim->x4 < 0) continue;
-            offset = (unsigned) anim->x4 & ~31U;
-            skip = (unsigned) anim->x4 - offset;
-            bytes = ((unsigned) anim->x8 + skip + 31U) & ~31U;
+            if (!ANIM_SIZE(anim) || ANIM_LOADED(anim)) continue;
+            if (ANIM_SIZE(anim) < 0 || ANIM_SIZE(anim) > 0x8000 || ANIM_FILE_OFFSET(anim) < 0) continue;
+            offset = (unsigned) ANIM_FILE_OFFSET(anim) & ~31U;
+            skip = (unsigned) ANIM_FILE_OFFSET(anim) - offset;
+            bytes = ((unsigned) ANIM_SIZE(anim) + skip + 31U) & ~31U;
             if (pass == 0) { total += bytes; continue; }
             if (skip && (u32) buf < 0x80000000U) return 0; /* ARAM reads are 32-byte aligned */
             Bam_SliceRead(file, offset, buf + at, bytes);
-            anim->x14 = (u32) (buf + at) + skip;
+            ANIM_LOADED(anim) = (u32) (buf + at) + skip;
             at += bytes;
             ++loaded;
         }

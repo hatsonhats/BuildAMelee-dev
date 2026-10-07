@@ -23,9 +23,9 @@ bool Bam_BorrowedTransform(Fighter_GObj* gobj, HSD_GObjEvent finish)
     fp->u = S->source_vars[next_kind];
     S->active = next;
     fp->dat_attrs = bam_match->donor_attrs[next_kind].bytes;
-    fp->x24 = gFtDataList[next_kind]->xC;
-    fp->x28 = gFtDataList[next_kind]->x10;
-    fp->x58C = ftData_Table_Unk0[next_kind].count;
+    FT_ANIMS(fp) = FTDATA_ANIMS(gFtDataList[next_kind]);
+    FT_ANIM_FLAGS(fp) = FTDATA_ANIM_FLAGS(gFtDataList[next_kind]);
+    FT_ANIM_COUNT(fp) = ftData_Table_Unk0[next_kind].count;
     finish(gobj);
 #if BAM_DEBUG
     BAM_LOG("borrowed_transform from=%u to=%u borrower=%u match=%u\n",old_kind,next_kind,fp->kind,S->match_generation);

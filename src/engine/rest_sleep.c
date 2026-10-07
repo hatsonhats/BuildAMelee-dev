@@ -37,7 +37,7 @@ bool Bam_RestSleep(Fighter_GObj* gobj)
     /* Leaving Rest's own states ends the borrow, so the sleep plays the
      * borrower's animations. */
     Fighter_ChangeMotionState(gobj, ftCo_MS_DamageSong, Ft_MF_None, 0, 1, 0, NULL);
-    ftCommon_InitGrab(fp, 0, remaining * p_ftCommonData->x63C);
+    ftCommon_InitGrab(fp, 0, remaining * FTCOMMON_SLEEP_TICK(p_ftCommonData));
     for (i = 0; i < BAM_FIGHTERS; ++i) if (bam_rest_sleep->sleepers[i] == fp) return true;
     for (i = 0; i < BAM_FIGHTERS; ++i) if (!bam_rest_sleep->sleepers[i]) { bam_rest_sleep->sleepers[i] = fp; break; }
     return true;

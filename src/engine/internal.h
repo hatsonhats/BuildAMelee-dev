@@ -4,6 +4,7 @@
 #define BAM_ENGINE_INTERNAL_H
 #include <engine/engine.h>
 #include <engine/state.h>
+#include <bam/fields.h>
 #include <melee/ef/efasync.h>
 #include <melee/ef/eflib.h>
 #include <melee/ft/ftdata.h>

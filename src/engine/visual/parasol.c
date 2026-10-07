@@ -29,10 +29,10 @@ static union CmdUnion* parasol_hit_cmd(void)
     int anim;
     u32* p;
     unsigned i;
-    if (!d || !d->xC) return NULL;
+    if (!d || !FTDATA_ANIMS(d)) return NULL;
     anim = ftPe_Init_MotionStateTable[ftPe_MS_ItemParasolOpen - ftCo_MS_Count].anim_id;
     if (anim < 0) return NULL;
-    p = (u32*) ((Fighter_WaitAnimData*) d->xC)[anim].xC;
+    p = (u32*) ANIM_SCRIPT(&FTDATA_ANIMS(d)[anim]);
     for (i = 0; p && i < 32; ++i) {
         unsigned op = *p >> 26;
         if (op == 0x0B) return (union CmdUnion*) p;
@@ -60,7 +60,7 @@ static void parasol_hit_off_set(Fighter* fp, int slot, int hand, Mtx parasol)
 static void parasol_hit_off_clear(Fighter* fp, int slot, int disable)
 {
     if (bam_visual->parasol_hit[slot] && disable) {
-        HitCapsule* h = &fp->x914[bam_visual->parasol_hit[slot] - 1];
+        HitCapsule* h = &FT_HITBOXES(fp)[bam_visual->parasol_hit[slot] - 1];
         int hand = parasol_base(fp);
         if (hand >= 0 && h->jobj == fp->parts[hand].joint) h->state = HitCapsule_Disabled;
     }
@@ -116,7 +116,7 @@ bool Bam_ParasolFloat(HSD_GObj* gobj)
         parasol_hit_off_clear(fp, slot, fp->motion_id == ftCo_MS_FallSpecial);
         bam_visual->parasol_float[slot] = 0;
         if (fp->motion_id == ftCo_MS_FallSpecial && fp->ground_or_air == GA_Air &&
-            fp->input.lstick[0].y <= -p_ftCommonData->x88 && !fp->fall_fast) {
+            fp->input.lstick[0].y <= -FTCOMMON_FASTFALL_STICK(p_ftCommonData) && !fp->fall_fast) {
             /* Closing it with a tap down drops into a fast fall at once
              * (the float's slow fall, or its rise, kept the special fall's
              * fast fall check from ever passing). */
@@ -134,7 +134,7 @@ bool Bam_ParasolFloat(HSD_GObj* gobj)
             memset(&ci, 0, sizeof(ci));
             ci.u = cmd;
             ftAction_8007121C(gobj, &ci);
-            h = &fp->x914[cmd->create_hitbox_0.id];
+            h = &FT_HITBOXES(fp)[cmd->create_hitbox_0.id];
             h->jobj = fp->parts[hand].joint;
             h->b_offset = bam_visual->parasol_hit_off[slot];
             bam_visual->parasol_hit[slot] = (unsigned char) (cmd->create_hitbox_0.id + 1);

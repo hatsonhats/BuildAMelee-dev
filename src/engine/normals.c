@@ -119,8 +119,8 @@ FighterKind Bam_NormalBegin(Fighter_GObj* gobj, int slot)
         return (FighterKind) donor;
     }
     Bam_BorrowBegin(fp, (FighterKind) donor);
-    S->native_cargo = fp->x2CC;
-    if (donor == Ft_Kind_Donkey) fp->x2CC = (ftDonkeyAttributes*) bam_match->donor_attrs[Ft_Kind_Donkey].bytes;
+    S->native_cargo = FT_CARGO_ATTRS(fp);
+    if (donor == Ft_Kind_Donkey) FT_CARGO_ATTRS(fp) = (ftDonkeyAttributes*) bam_match->donor_attrs[Ft_Kind_Donkey].bytes;
     S->normal_on = true;
     S->normal_slot = (signed char) slot;
     S->normal_donor = (unsigned char) donor;
@@ -157,8 +157,8 @@ MotionState* Bam_NormalMotionState(Fighter* fp, int motion)
 struct ftCo_DatAttrs* Bam_NormalCoAttrs(Fighter* fp)
 {
     BamFighterState* const S = Bam_FighterCtx(fp);
-    if (S->fighter == fp && S->normal_on && gFtDataList[S->normal_donor] && gFtDataList[S->normal_donor]->x0)
-        return gFtDataList[S->normal_donor]->x0;
+    if (S->fighter == fp && S->normal_on && gFtDataList[S->normal_donor] && FTDATA_COMMON_ATTRS(gFtDataList[S->normal_donor]))
+        return FTDATA_COMMON_ATTRS(gFtDataList[S->normal_donor]);
     return &fp->co_attrs;
 }
 

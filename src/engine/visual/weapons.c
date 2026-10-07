@@ -136,8 +136,8 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     if (item < 0) {
         /* No weapon bone for this move: a sword donor's sword still goes in
          * the item hand. */
-        if (!sword_kind(source) || !fp->ft_data || !fp->ft_data->x8) return;
-        hand = fp->ft_data->x8->x10;
+        if (!sword_kind(source) || !fp->ft_data || !FTDATA_PARTS(fp->ft_data)) return;
+        hand = FTDATA_PARTS(fp->ft_data)->x10;
         if (hand < 0 || (unsigned) hand >= ftPartsTable[fp->kind]->parts_num || !fp->parts[hand].joint) return;
         item = 0;
         PSMTXCopy(HSD_JObjGetMtxPtr(fp->parts[hand].joint), place);

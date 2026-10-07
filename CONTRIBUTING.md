@@ -88,6 +88,8 @@ Run the host tests too: `python -m unittest discover -s tests`.
 
 - C99 for the Wii 1.7 compiler; four-space indents; names start `Bam_`
   (functions), `bam_` (globals and tables) or `BAM_` (macros).
+- A decomp field still named by its offset (`fp->x24`) gets a name in
+  `src/bam/fields.h` the first time our code uses it.
 - Comments say what the code does and why, including what would go wrong
   without it. The history of a fix belongs in the commit message.
 - Logging: `BAM_NOTE` reaches every player's log, so keep it for crashes,

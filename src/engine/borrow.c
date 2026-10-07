@@ -109,16 +109,16 @@ void Bam_BorrowEnd(Fighter* fp)
         (slot == BAM_SPECIAL_NEUTRAL || S->normal_on))
         ftFx_SpecialN_RemoveBlaster(fp->gobj);
     /* Donkey Kong's cargo throw reads his attributes through x2CC. */
-    if (S->normal_on) fp->x2CC = S->native_cargo;
+    if (S->normal_on) FT_CARGO_ATTRS(fp) = S->native_cargo;
 
     S->source_vars[source] = fp->u;
     fp->u = S->native_vars;
     memcpy(&fp->grab_cb, S->native_callbacks,
            sizeof(S->native_callbacks));
     fp->dat_attrs = S->native_attrs;
-    fp->x24 = S->native_anims;
-    fp->x28 = S->native_anim_flags;
-    fp->x58C = S->native_anim_count;
+    FT_ANIMS(fp) = S->native_anims;
+    FT_ANIM_FLAGS(fp) = S->native_anim_flags;
+    FT_ANIM_COUNT(fp) = S->native_anim_count;
     fp->reflecting = false;
     S->active = NULL;
     S->aerial = NULL;
@@ -396,9 +396,9 @@ void Bam_BorrowBegin(Fighter* fp, FighterKind donor)
     BamFighterState* const S = Bam_FighterCtx(fp);
     Bam_BorrowEnd(fp);
     S->native_attrs = fp->dat_attrs;
-    S->native_anims = fp->x24;
-    S->native_anim_flags = fp->x28;
-    S->native_anim_count = fp->x58C;
+    S->native_anims = FT_ANIMS(fp);
+    S->native_anim_flags = FT_ANIM_FLAGS(fp);
+    S->native_anim_count = FT_ANIM_COUNT(fp);
     S->native_vars = fp->u;
     memcpy(S->native_callbacks, &fp->grab_cb,
            sizeof(S->native_callbacks));
@@ -412,9 +412,9 @@ void Bam_BorrowBegin(Fighter* fp, FighterKind donor)
     fp->dat_attrs = bam_match->donor_attrs[donor].bytes;
     /* The private table holds the sliced animations when the donor's full
      * archive is not resident (donor_load.c). */
-    fp->x24 = S->aerial_anims[donor] ? S->aerial_anims[donor] : source->xC;
-    fp->x28 = source->x10;
-    fp->x58C = ftData_Table_Unk0[donor].count;
+    FT_ANIMS(fp) = S->aerial_anims[donor] ? S->aerial_anims[donor] : FTDATA_ANIMS(source);
+    FT_ANIM_FLAGS(fp) = FTDATA_ANIM_FLAGS(source);
+    FT_ANIM_COUNT(fp) = ftData_Table_Unk0[donor].count;
 }
 
 static bool install_special(Fighter* fp, BamSpecialSlot slot)
