@@ -687,9 +687,12 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
               'typedef struct BamProp { unsigned char kind, joint, parent, part; short rot[3], pos[3], scale[3]; } BamProp;']
     rows, arms = [], []
     meshes, shows, hides, chains = [], [], [], []
+    prop_first, chain_first = [0] * (KIND_COUNT + 1), [0] * (KIND_COUNT + 1)
     for kind in sorted(prop_data or {}):
         entries, kit, (mesh, show, hide), chain = prop_data[kind]
         at = {}
+        for k in range(kind, KIND_COUNT + 1):
+            prop_first[k], chain_first[k] = len(rows), len(chains)
         for joint, parent, rot, pos, scl in chain:
             if joint > 255:
                 continue
@@ -710,6 +713,8 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
                 kind, joint, index.get(parent, 255) if parent is not None else 255, part,
                 ', '.join(str(_s16(v, 4096)) for v in rot), ', '.join(str(_s16(v, 256)) for v in pos),
                 ', '.join(str(_s16(v, 4096)) for v in scl)))
+        for k in range(kind + 1, KIND_COUNT + 1):
+            prop_first[k], chain_first[k] = len(rows), len(chains)
         for joint, item, lo, hi, grip, axis, reach in kit or ():
             if joint not in index:
                 continue
@@ -724,6 +729,8 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
                 ', '.join(str(_s16(v / n, 32767)) for v in (x, y, z, w)), _s16(reach, 256)))
     lines += [f'#define BAM_PROP_COUNT {len(rows)}',
               'static const BamProp bam_prop[BAM_PROP_COUNT + 1] = {'] + rows + ['    { 255, 0, 255, 255, { 0 }, { 0 }, { 0 } },', '};']
+    lines += ['/* Each kind\'s rows: bam_prop[bam_prop_first[k]] up to bam_prop_first[k + 1] (rows are by kind). */',
+              'static const unsigned char bam_prop_first[BAM_REST_KINDS + 1] = { %s };' % ', '.join(map(str, prop_first))]
     lines += ['/* Borrowed weapons: donor kind, prop entry the weapon lies along, item (0 Beam Sword, 1 Hammer, 2 parasol),',
               ' * donor motions it shows in (first..last), grip point on the prop (x 256), turn (x 32767) from the',
               ' * item model\'s long axis (+Y) onto the weapon, and grip-to-farthest-hitbox reach (x 256). */',
@@ -752,7 +759,9 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
               'typedef struct BamChain { unsigned char kind, joint, parent, pad; short rot[3], pos[3], scale[3]; } BamChain;',
               f'#define BAM_CHAIN_COUNT {len(chains)}',
               'static const BamChain bam_chain[BAM_CHAIN_COUNT + 1] = {'] + chains + [
-              '    { 255, 0, 255, 0, { 0 }, { 0 }, { 0 } },', '};', '']
+              '    { 255, 0, 255, 0, { 0 }, { 0 }, { 0 } },', '};',
+              'static const unsigned char bam_chain_first[BAM_REST_KINDS + 1] = { %s };' % ', '.join(map(str, chain_first)),
+              '']
     split_include(lines, destination)
 
 

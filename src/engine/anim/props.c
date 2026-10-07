@@ -14,23 +14,23 @@
  * their offset carried through the rebuilt bone each frame, and a borrowed
  * sword is drawn along it (visual/weapons.c). Rest data: bone_tables.h. */
 
-
-
-
-
-
+/* The prop entry for donor `kind`'s joint, or -1 (only that kind's rows
+ * are looked at: bam_prop_first). */
 int prop_find(unsigned kind, int joint)
 {
     int i;
-    for (i = 0; i < BAM_PROP_COUNT; ++i)
-        if (bam_prop[i].kind == kind && bam_prop[i].joint == joint) return i;
+    if (kind >= BAM_REST_KINDS) return -1;
+    for (i = bam_prop_first[kind]; i < bam_prop_first[kind + 1]; ++i)
+        if (bam_prop[i].joint == joint) return i;
     return -1;
 }
+/* The chain row for donor `kind`'s joint, or -1. */
 int chain_find(unsigned kind, int joint)
 {
     int i;
-    for (i = 0; i < BAM_CHAIN_COUNT; ++i)
-        if (bam_chain[i].kind == kind && bam_chain[i].joint == joint) return i;
+    if (kind >= BAM_REST_KINDS) return -1;
+    for (i = bam_chain_first[kind]; i < bam_chain_first[kind + 1]; ++i)
+        if (bam_chain[i].joint == joint) return i;
     return -1;
 }
 int slot_of_fighter(const Fighter* fp)

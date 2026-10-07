@@ -601,146 +601,163 @@ static void finish_step(Fighter* p1, Fighter* p2, int res)
     phase = PH_PREP; pf = 0;
 }
 
+/* QA: the body's size, logged once per native match (tools/qa reads it). */
+static void log_body_size(Fighter* p1)
+{
+    unsigned i;
+    float top = -1e9f, bot = 1e9f;
+    for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
+        HurtCapsule* c = &p1->hurt_capsules[i].capsule;
+        float hi = (c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y) + c->scale;
+        float lo = (c->a_pos.y < c->b_pos.y ? c->a_pos.y : c->b_pos.y) - c->scale;
+        if (hi > top) top = hi;
+        if (lo < bot) bot = lo;
+    }
+    {
+        float ctop = -1e9f, rmax = 0;
+        for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
+            HurtCapsule* c = &p1->hurt_capsules[i].capsule;
+            float hi = c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y;
+            if (hi > ctop) ctop = hi;
+            if (c->scale > rmax) rmax = c->scale;
+        }
+        OSReport("[qa] SIZE %d %.3f %.3f %.3f %.3f %.3f %.3f\n", cur_R, p1->co_attrs.model_scaling,
+                 p1->coll_data.ecb.top.y, top - p1->cur_pos.y, bot - p1->cur_pos.y,
+                 ctop - p1->cur_pos.y, rmax);
+    }
+}
+
+/* Both fighters back to idle on the ground, then PH_PLACE. */
+static void phase_prep(Fighter* p1, Fighter* p2)
+{
+    input_clear();
+    if (pf == 1) idle_frames = 0;
+    /* Both idle on the ground (the dummy forced after a while). */
+    if (pf > 240 && !idle(p2) && p2->ground_or_air == GA_Ground && p2->motion_id != ftCo_MS_RebirthWait)
+        ft_8008A2BC(p2->gobj);
+    if (pf > 900 && !idle(p1) && p1->ground_or_air == GA_Ground) ft_8008A2BC(p1->gobj);
+    /* The dummy can end up hanging on a ledge (it never lets go):
+     * drop it back over the stage. */
+    if ((pf == 300 || pf == 700) && !idle(p2) && p2->motion_id != ftCo_MS_RebirthWait) {
+        p2->cur_pos.y = 15.0f;
+        place(p2, 0.0f);
+        p2->coll_data.cur_pos.y = p2->coll_data.prev_pos.y = p2->coll_data.last_pos.y = 15.0f;
+        if (p2->ground_or_air == GA_Air) ftCommon_8007D92C(p2->gobj);
+    }
+    if ((pf == 300 || pf == 700) && p1->motion_id >= 252 && p1->motion_id <= 263) {
+        p1->cur_pos.y = 15.0f;
+        place(p1, -30.0f * face);
+        p1->coll_data.cur_pos.y = p1->coll_data.prev_pos.y = p1->coll_data.last_pos.y = 15.0f;
+        ftCommon_8007D92C(p1->gobj);
+    }
+    /* Still held, or stuck in the air: make both idle (or falling). */
+    if (pf == 600 || pf == 1000) {
+        if (!idle(p2) && p2->motion_id != ftCo_MS_RebirthWait) ftCommon_8007D92C(p2->gobj);
+        if (!idle(p1) && p1->motion_id != ftCo_MS_RebirthWait) ftCommon_8007D92C(p1->gobj);
+    }
+    if (idle(p1) && idle(p2)) {
+        /* Body size (native matches): standing ECB top and the top of
+         * the hurtboxes, over the ground, in world units. */
+        if (idle_frames == 8 && cur_step == 0 && cur_D < 0) {
+            extern int qa_ui_mode;
+            log_body_size(p1);
+            if (qa_ui_mode == 4) { cur_step = nsteps; return; }
+        }
+        if (++idle_frames >= 10) { phase = PH_PLACE; pf = 0; }
+    } else {
+        idle_frames = 0;
+    }
+    if (pf > 1500) {
+        OSReport("[qa] R %u %u PREPSTUCK 0 0 0 %d %d -1 -1\n", cur_match, cur_step, (int) p1->motion_id,
+                 (int) p2->motion_id);
+        ++cur_step; pf = 0;
+    }
+}
+
+/* The fighters a step's distance apart, then the move starts (PH_RUN). */
+static void phase_place(const Step* s, Fighter* p1, Fighter* p2)
+{
+    if (pf == 1) face = p1->facing_dir < 0 ? -1.0f : 1.0f;
+    /* Draw hitboxes (only seen in video runs: tools/qa/sweep.py --video). */
+    p1->x21FC_flag.b6 = 1;
+    if (pf == 1 && cur_D < 0 && cur_step == 0) QA_DumpRest(p1);
+    /* Not across the middle of Final Destination: its floor is two
+     * lines there, and moves that measure along the floor (Donkey
+     * Kong's hand slap) stop at a line's end. */
+    place(p1, -30.0f * face);
+    gap_fp = p1;
+    place(p2, -30.0f * face + gap_for(s) * face + retry_shift);
+    p1->dmg.x1830_percent = 0;
+    p2->dmg.x1830_percent = 0;
+    if (pf >= 3) {
+        phase = PH_RUN; rf = 0;
+        grab_at = air_at = -1; idle_frames = 0; z_at = 0; grab_tries = 0; saw_borrow = 0; logged_scale = 0;
+        ms_count = 0; p2_start = p2->dmg.x1830_percent;
+        memset(hit_sig, 0, sizeof(hit_sig));
+        reach_gap = NO_REACH;
+        stocks_at_start = Player_GetStocks(0);
+        OSReport("[qa] S %u %u %d %.1f %.1f %.4f\n", cur_match, cur_step, (int) p2->motion_id,
+                 p2->cur_pos.x - p1->cur_pos.x, p2->cur_pos.y - p1->cur_pos.y, p1->co_attrs.model_scaling);
+        drive(s, p1);
+    }
+}
+
+/* The move plays and is logged until the fighter is idle again. */
+static void phase_run(const Step* s, Fighter* p1, Fighter* p2)
+{
+    log_hitboxes(p1);
+    track_reach(p1, p2);
+    if (p1->unk_gobj || p1->dmg.x1914 || p1->dmg.x1924)
+        /* What a hit or a command grab's detection saw this frame. */
+        OSReport("[qa] D %u %u %u %d %d %d %d %d %d\n", cur_match, cur_step, rf, (int) p1->motion_id,
+                 p1->unk_gobj == p2->gobj ? 2 : p1->unk_gobj ? 1 : 0, p1->dmg.x1914, p1->dmg.x1924,
+                 p1->hurtbox_detect_cb != NULL, (int) p1->cmd_vars[0]);
+    if (Bam_InBorrowedMove(p1)) {
+        saw_borrow = 1;
+        if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Bam_BorrowScale(p1)); }
+    }
+    if (ms_count < 4 && (ms_count == 0 || ms_seen[ms_count - 1] != (s16) p1->motion_id) &&
+        p1->motion_id != ftCo_MS_Wait)
+        ms_seen[ms_count++] = (s16) p1->motion_id;
+    ++rf;
+    if (Player_GetStocks(0) < stocks_at_start) { finish_step(p1, p2, 2); return; }
+    if (idle(p1) && rf > 12) {
+        /* A missed grab (the dummy can be briefly ungrabbable after a
+         * throw): try again a few times. */
+        if (s->kind == K_NORMAL && s->slot >= BAM_NORMAL_FTHROW && grab_at < 0 && grab_tries < 6 &&
+            (int) rf > z_at + 12) {
+            ++grab_tries;
+            z_at = (int) rf + 15;
+            place(p2, p1->cur_pos.x + gap_for(s) * face);
+        }
+        if (++idle_frames >= 3 && (int) rf > z_at + 12) { finish_step(p1, p2, 0); return; }
+    } else {
+        idle_frames = 0;
+    }
+    if (rf > 1200) {
+        finish_step(p1, p2, 1);
+        ftCommon_8007D92C(p1->gobj);
+        if (!idle(p2)) ftCommon_8007D92C(p2->gobj);
+        return;
+    }
+    drive(s, p1);
+}
+
 static void qa_frame(void)
 {
     Fighter* p1 = fighter(0);
     Fighter* p2 = fighter(1);
-    const Step* s;
     qa_drive_on = 1;
     if (!p1 || !p2 || finished) return;
     if (cur_step >= nsteps) {
         if (!finished) { finished = 1; input_clear(); gm_801A4B60(); }
         return;
     }
-    s = &steps[cur_step];
     ++pf;
     switch (phase) {
-    case PH_PREP:
-        input_clear();
-        if (pf == 1) idle_frames = 0;
-        /* Both idle on the ground (the dummy forced after a while). */
-        if (pf > 240 && !idle(p2) && p2->ground_or_air == GA_Ground && p2->motion_id != ftCo_MS_RebirthWait)
-            ft_8008A2BC(p2->gobj);
-        if (pf > 900 && !idle(p1) && p1->ground_or_air == GA_Ground) ft_8008A2BC(p1->gobj);
-        /* The dummy can end up hanging on a ledge (it never lets go):
-         * drop it back over the stage. */
-        if ((pf == 300 || pf == 700) && !idle(p2) && p2->motion_id != ftCo_MS_RebirthWait) {
-            p2->cur_pos.y = 15.0f;
-            place(p2, 0.0f);
-            p2->coll_data.cur_pos.y = p2->coll_data.prev_pos.y = p2->coll_data.last_pos.y = 15.0f;
-            if (p2->ground_or_air == GA_Air) ftCommon_8007D92C(p2->gobj);
-        }
-        if ((pf == 300 || pf == 700) && p1->motion_id >= 252 && p1->motion_id <= 263) {
-            p1->cur_pos.y = 15.0f;
-            place(p1, -30.0f * face);
-            p1->coll_data.cur_pos.y = p1->coll_data.prev_pos.y = p1->coll_data.last_pos.y = 15.0f;
-            ftCommon_8007D92C(p1->gobj);
-        }
-        /* Still held, or stuck in the air: make both idle (or falling). */
-        if (pf == 600 || pf == 1000) {
-            if (!idle(p2) && p2->motion_id != ftCo_MS_RebirthWait) ftCommon_8007D92C(p2->gobj);
-            if (!idle(p1) && p1->motion_id != ftCo_MS_RebirthWait) ftCommon_8007D92C(p1->gobj);
-        }
-        if (idle(p1) && idle(p2)) {
-            /* Body size (native matches): standing ECB top and the top of
-             * the hurtboxes, over the ground, in world units. */
-            if (idle_frames == 8 && cur_step == 0 && cur_D < 0) {
-                unsigned i;
-                float top = -1e9f, bot = 1e9f;
-                for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
-                    HurtCapsule* c = &p1->hurt_capsules[i].capsule;
-                    float hi = (c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y) + c->scale;
-                    float lo = (c->a_pos.y < c->b_pos.y ? c->a_pos.y : c->b_pos.y) - c->scale;
-                    if (hi > top) top = hi;
-                    if (lo < bot) bot = lo;
-                }
-                {
-                    float ctop = -1e9f, rmax = 0;
-                    for (i = 0; i < p1->hurt_capsules_len && i < 15; ++i) {
-                        HurtCapsule* c = &p1->hurt_capsules[i].capsule;
-                        float hi = c->a_pos.y > c->b_pos.y ? c->a_pos.y : c->b_pos.y;
-                        if (hi > ctop) ctop = hi;
-                        if (c->scale > rmax) rmax = c->scale;
-                    }
-                    OSReport("[qa] SIZE %d %.3f %.3f %.3f %.3f %.3f %.3f\n", cur_R, p1->co_attrs.model_scaling,
-                             p1->coll_data.ecb.top.y, top - p1->cur_pos.y, bot - p1->cur_pos.y,
-                             ctop - p1->cur_pos.y, rmax);
-                }
-                { extern int qa_ui_mode; if (qa_ui_mode == 4) { cur_step = nsteps; return; } }
-            }
-            if (++idle_frames >= 10) { phase = PH_PLACE; pf = 0; }
-        } else {
-            idle_frames = 0;
-        }
-        if (pf > 1500) {
-            OSReport("[qa] R %u %u PREPSTUCK 0 0 0 %d %d -1 -1\n", cur_match, cur_step, (int) p1->motion_id,
-                     (int) p2->motion_id);
-            ++cur_step; pf = 0;
-        }
-        break;
-    case PH_PLACE:
-        if (pf == 1) face = p1->facing_dir < 0 ? -1.0f : 1.0f;
-        /* Draw hitboxes (only seen in video runs: tools/qa/sweep.py --video). */
-        p1->x21FC_flag.b6 = 1;
-        if (pf == 1 && cur_D < 0 && cur_step == 0) QA_DumpRest(p1);
-        /* Not across the middle of Final Destination: its floor is two
-         * lines there, and moves that measure along the floor (Donkey
-         * Kong's hand slap) stop at a line's end. */
-        place(p1, -30.0f * face);
-        gap_fp = p1;
-        place(p2, -30.0f * face + gap_for(s) * face + retry_shift);
-        p1->dmg.x1830_percent = 0;
-        p2->dmg.x1830_percent = 0;
-        if (pf >= 3) {
-            phase = PH_RUN; rf = 0;
-            grab_at = air_at = -1; idle_frames = 0; z_at = 0; grab_tries = 0; saw_borrow = 0; logged_scale = 0;
-            ms_count = 0; p2_start = p2->dmg.x1830_percent;
-            memset(hit_sig, 0, sizeof(hit_sig));
-            reach_gap = NO_REACH;
-            stocks_at_start = Player_GetStocks(0);
-            OSReport("[qa] S %u %u %d %.1f %.1f %.4f\n", cur_match, cur_step, (int) p2->motion_id,
-                     p2->cur_pos.x - p1->cur_pos.x, p2->cur_pos.y - p1->cur_pos.y, p1->co_attrs.model_scaling);
-            drive(s, p1);
-        }
-        break;
-    case PH_RUN:
-        log_hitboxes(p1);
-        track_reach(p1, p2);
-        if (p1->unk_gobj || p1->dmg.x1914 || p1->dmg.x1924)
-            /* What a hit or a command grab's detection saw this frame. */
-            OSReport("[qa] D %u %u %u %d %d %d %d %d %d\n", cur_match, cur_step, rf, (int) p1->motion_id,
-                     p1->unk_gobj == p2->gobj ? 2 : p1->unk_gobj ? 1 : 0, p1->dmg.x1914, p1->dmg.x1924,
-                     p1->hurtbox_detect_cb != NULL, (int) p1->cmd_vars[0]);
-        if (Bam_InBorrowedMove(p1)) {
-            saw_borrow = 1;
-            if (!logged_scale) { logged_scale = 1; OSReport("[qa] B %u %u %.4f\n", cur_match, cur_step, Bam_BorrowScale(p1)); }
-        }
-        if (ms_count < 4 && (ms_count == 0 || ms_seen[ms_count - 1] != (s16) p1->motion_id) &&
-            p1->motion_id != ftCo_MS_Wait)
-            ms_seen[ms_count++] = (s16) p1->motion_id;
-        ++rf;
-        if (Player_GetStocks(0) < stocks_at_start) { finish_step(p1, p2, 2); break; }
-        if (idle(p1) && rf > 12) {
-            /* A missed grab (the dummy can be briefly ungrabbable after a
-             * throw): try again a few times. */
-            if (s->kind == K_NORMAL && s->slot >= BAM_NORMAL_FTHROW && grab_at < 0 && grab_tries < 6 &&
-                (int) rf > z_at + 12) {
-                ++grab_tries;
-                z_at = (int) rf + 15;
-                place(p2, p1->cur_pos.x + gap_for(s) * face);
-            }
-            if (++idle_frames >= 3 && (int) rf > z_at + 12) { finish_step(p1, p2, 0); break; }
-        } else {
-            idle_frames = 0;
-        }
-        if (rf > 1200) {
-            finish_step(p1, p2, 1);
-            ftCommon_8007D92C(p1->gobj);
-            if (!idle(p2)) ftCommon_8007D92C(p2->gobj);
-            break;
-        }
-        drive(s, p1);
-        break;
+    case PH_PREP: phase_prep(p1, p2); break;
+    case PH_PLACE: phase_place(&steps[cur_step], p1, p2); break;
+    case PH_RUN: phase_run(&steps[cur_step], p1, p2); break;
     }
 }
 

@@ -85,95 +85,10 @@ static int anim_slot(const char* name)
     return -1;
 }
 
-/* 0 when there was no memory for the animations. */
-static int load_special_slices(BamFighterState* S, const BamDonorSpecial* def)
+/* Registers the donor's articles (it_8026B3F8) so its moves can spawn
+ * them; there are none when no equipped move needs them (donor_trim.c). */
+static void register_articles(BamFighterState* S, int source)
 {
-    int source = def->internal_kind, m, pass, file, count = ftData_Table_Unk0[source].count;
-    unsigned loaded = 0, total = 0;
-    u8* buf = NULL;
-    Fighter_WaitAnimData* table;
-    if (ftData_Table_Unk0[source].data) return 1;
-    table = Bam_DonorAnimTable(S, source);
-    if (!table) return 0;
-    file = DVDConvertPathToEntrynum(lbFileGetFullName(ftData_803C23E4[source]));
-    if (file < 0) OSPanic(__FILE__, __LINE__, "missing donor animation file");
-    /* Pass 0 sizes every missing animation, pass 1 reads them all into one
-     * block (one heap entry per special instead of one per animation). */
-    for (pass = 0; pass < 2; ++pass) {
-        unsigned at = 0;
-        if (pass == 1) {
-            if (!total) break;
-            if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
-            buf = Bam_SliceAlloc(total);
-            if (!buf) {
-                BAM_NOTE("memory: special %u skipped, no room for its animations\n", def->id);
-                return 0;
-            }
-            S->special_blobs[S->special_blob_count++] = buf;
-        }
-        for (m = def->first_state; m <= def->last_state; ++m) {
-            MotionState* st;
-            Fighter_WaitAnimData* anim;
-            unsigned offset, skip, bytes, k;
-            bool dup = false;
-            if (m < ftCo_MS_Count) continue;
-            st = &def->states[m - ftCo_MS_Count];
-            if (st->anim_id < 0 || st->anim_id >= count) continue;
-            anim = &table[st->anim_id];
-            if (!anim->x8 || anim->x14) continue;
-            if (anim->x8 < 0 || anim->x8 > 0x8000 || anim->x4 < 0) continue;
-            /* The donor's state range spans all four of its specials; read
-             * only this move's animations (a different slot's are skipped). */
-            { int a = anim_slot(anim->x0); if (a >= 0 && a != (int) def->native_slot) continue; }
-            /* States sharing one animation: size it once. */
-            for (k = (unsigned) def->first_state; k < (unsigned) m; ++k)
-                if (k >= ftCo_MS_Count && def->states[k - ftCo_MS_Count].anim_id == st->anim_id) dup = true;
-            if (dup) continue;
-            offset = (unsigned) anim->x4 & ~31U;
-            skip = (unsigned) anim->x4 - offset;
-            bytes = ((unsigned) anim->x8 + skip + 31U) & ~31U;
-            if (pass == 0) { total += bytes; continue; }
-            /* ARAM reads need 32-byte alignment (every PlXxAJ.dat
-             * animation starts on one; checked on the disc). */
-            if (skip && (u32) buf < 0x80000000U) OSPanic(__FILE__, __LINE__, "unaligned ARAM animation");
-            Bam_SliceRead(file, offset, buf + at, bytes);
-            anim->x14 = (u32) (buf + at) + skip;
-            at += bytes;
-            ++loaded;
-        }
-    }
-    BAM_LOG("special_slices id=%u kind=%d anims=%u bytes=%u in %s\n", def->id, source, loaded, total,
-             (u32) buf < 0x80000000U ? "ARAM" : "RAM");
-    return 1;
-}
-/* Everything a donor's moves need, once per fighter: its fighter data,
- * effects and model (load_donor_core), its attribute block, its articles
- * registered with the item system, and its persistent move variables. The
- * articles of every move are registered, whichever slot needs the donor:
- * registering only records where the article data is. */
-int Bam_DonorEnsure(BamFighterState* S, int source)
-{
-    const BamDonorSpecial* donor;
-    if (source < 0 || source >= BAM_DONOR_KINDS) return 0;
-    if (S->loaded_sources[source]) return 1;
-    donor = Bam_DonorSpecial(1 + source * 4);
-    if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
-    /* Out of memory for this source: the slot keeps its native move. */
-    if (!Bam_DonorFits(source)) {
-        BAM_NOTE("memory: donor kind=%u does not fit\n", source);
-        return 0;
-    }
-    {
-        unsigned before = Bam_HeapRoom();
-        if (!load_donor_core(source)) {
-            BAM_NOTE("memory: donor kind=%u ran out while loading\n", source);
-            return 0;
-        }
-        BAM_LOG("donor_cost kind=%u core=%u KB\n", source, (before - Bam_HeapRoom()) / 1024);
-    }
-    if (!gFtDataList[source] || !gFtDataList[source]->ext_attr) return 0;
-    memcpy(bam_match->donor_attrs[source].bytes, gFtDataList[source]->ext_attr, donor->attrs_size);
-    /* Articles: none when no equipped move needs them (donor_trim.c). */
     if (gFtDataList[source]->x48_items) {
         void** items = gFtDataList[source]->x48_items;
         void* attrs = bam_match->donor_attrs[source].bytes;
@@ -291,6 +206,11 @@ int Bam_DonorEnsure(BamFighterState* S, int source)
         it_8026B3F8(items[source == Ft_Kind_Fox ? 2 : 3],
                     source == Ft_Kind_Fox ? It_Kind_Fox_Illusion : It_Kind_Falco_Phantasm);
     }
+}
+
+/* Donor variables its own fighter sets when it is created. */
+static void init_donor_vars(BamFighterState* S, int source)
+{
     if (source == Ft_Kind_Kirby) S->source_vars[source].kb.hat.kind = Ft_Kind_Kirby;
     if (source == Ft_Kind_GameWatch) {
         S->source_vars[source].gw.x222C_judgeVar1 = 1;
@@ -301,6 +221,99 @@ int Bam_DonorEnsure(BamFighterState* S, int source)
         S->source_vars[source].gw.x2240_chefVar1 = 1;
         S->source_vars[source].gw.x2244_chefVar2 = 3;
     }
+}
+
+/* 0 when there was no memory for the animations. */
+static int load_special_slices(BamFighterState* S, const BamDonorSpecial* def)
+{
+    int source = def->internal_kind, m, pass, file, count = ftData_Table_Unk0[source].count;
+    unsigned loaded = 0, total = 0;
+    u8* buf = NULL;
+    Fighter_WaitAnimData* table;
+    if (ftData_Table_Unk0[source].data) return 1;
+    table = Bam_DonorAnimTable(S, source);
+    if (!table) return 0;
+    file = DVDConvertPathToEntrynum(lbFileGetFullName(ftData_803C23E4[source]));
+    if (file < 0) OSPanic(__FILE__, __LINE__, "missing donor animation file");
+    /* Pass 0 sizes every missing animation, pass 1 reads them all into one
+     * block (one heap entry per special instead of one per animation). */
+    for (pass = 0; pass < 2; ++pass) {
+        unsigned at = 0;
+        if (pass == 1) {
+            if (!total) break;
+            if (S->special_blob_count >= BAM_SPECIAL_BLOBS) return 0;
+            buf = Bam_SliceAlloc(total);
+            if (!buf) {
+                BAM_NOTE("memory: special %u skipped, no room for its animations\n", def->id);
+                return 0;
+            }
+            S->special_blobs[S->special_blob_count++] = buf;
+        }
+        for (m = def->first_state; m <= def->last_state; ++m) {
+            MotionState* st;
+            Fighter_WaitAnimData* anim;
+            unsigned offset, skip, bytes, k;
+            bool dup = false;
+            if (m < ftCo_MS_Count) continue;
+            st = &def->states[m - ftCo_MS_Count];
+            if (st->anim_id < 0 || st->anim_id >= count) continue;
+            anim = &table[st->anim_id];
+            if (!anim->x8 || anim->x14) continue;
+            if (anim->x8 < 0 || anim->x8 > 0x8000 || anim->x4 < 0) continue;
+            /* The donor's state range spans all four of its specials; read
+             * only this move's animations (a different slot's are skipped). */
+            { int a = anim_slot(anim->x0); if (a >= 0 && a != (int) def->native_slot) continue; }
+            /* States sharing one animation: size it once. */
+            for (k = (unsigned) def->first_state; k < (unsigned) m; ++k)
+                if (k >= ftCo_MS_Count && def->states[k - ftCo_MS_Count].anim_id == st->anim_id) dup = true;
+            if (dup) continue;
+            offset = (unsigned) anim->x4 & ~31U;
+            skip = (unsigned) anim->x4 - offset;
+            bytes = ((unsigned) anim->x8 + skip + 31U) & ~31U;
+            if (pass == 0) { total += bytes; continue; }
+            /* ARAM reads need 32-byte alignment (every PlXxAJ.dat
+             * animation starts on one; checked on the disc). */
+            if (skip && (u32) buf < 0x80000000U) OSPanic(__FILE__, __LINE__, "unaligned ARAM animation");
+            Bam_SliceRead(file, offset, buf + at, bytes);
+            anim->x14 = (u32) (buf + at) + skip;
+            at += bytes;
+            ++loaded;
+        }
+    }
+    BAM_LOG("special_slices id=%u kind=%d anims=%u bytes=%u in %s\n", def->id, source, loaded, total,
+             (u32) buf < 0x80000000U ? "ARAM" : "RAM");
+    return 1;
+}
+
+/* Everything a donor's moves need, once per fighter: its fighter data,
+ * effects and model (load_donor_core), its attribute block, its articles
+ * registered with the item system, and its persistent move variables. The
+ * articles of every move are registered, whichever slot needs the donor:
+ * registering only records where the article data is. */
+int Bam_DonorEnsure(BamFighterState* S, int source)
+{
+    const BamDonorSpecial* donor;
+    if (source < 0 || source >= BAM_DONOR_KINDS) return 0;
+    if (S->loaded_sources[source]) return 1;
+    donor = Bam_DonorSpecial(1 + source * 4);
+    if (!donor || donor->attrs_size > sizeof(bam_match->donor_attrs[source])) return 0;
+    /* Out of memory for this source: the slot keeps its native move. */
+    if (!Bam_DonorFits(source)) {
+        BAM_NOTE("memory: donor kind=%u does not fit\n", source);
+        return 0;
+    }
+    {
+        unsigned before = Bam_HeapRoom();
+        if (!load_donor_core(source)) {
+            BAM_NOTE("memory: donor kind=%u ran out while loading\n", source);
+            return 0;
+        }
+        BAM_LOG("donor_cost kind=%u core=%u KB\n", source, (before - Bam_HeapRoom()) / 1024);
+    }
+    if (!gFtDataList[source] || !gFtDataList[source]->ext_attr) return 0;
+    memcpy(bam_match->donor_attrs[source].bytes, gFtDataList[source]->ext_attr, donor->attrs_size);
+    register_articles(S, source);
+    init_donor_vars(S, source);
     S->loaded_sources[source] = true;
 #if BAM_DEBUG
     BAM_LOG("donor_preload kind=%u match=%u\n", source, S->match_generation);

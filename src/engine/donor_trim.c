@@ -182,21 +182,129 @@ static void reach(const u8* data, u32 dsize, const u32* rel, u32 nrel, const u32
 #define REACH_KEPT 1
 #define REACH_CUT 2
 
-/* Returns the trimmed ftData, or NULL (then the caller loads it whole). */
+/* One ftData file being trimmed: its data block, sorted pointer locations
+ * and object starts (with what reaches each), and the 32-byte blocks kept. */
+typedef struct Trim {
+    u8* data;
+    u32 dsize, nrel, nstarts, nblk;
+    u32 *rel, *starts, *stack;
+    u8 *mark, *cover;
+    u16* newblk;
+    u32 cut[2];
+    int ncut;
+} Trim;
+
+/* Pointer locations (sorted) and object starts (pointer targets + root). */
+static void find_objects(Trim* t, const HSD_Archive* arc, u32 root_off)
+{
+    u32 i, w = 0;
+    for (i = 0; i < t->nrel; ++i) t->rel[i] = arc->reloc_info[i].offset;
+    sort_u32(t->rel, (int) t->nrel);
+    t->nstarts = 0;
+    for (i = 0; i < t->nrel; ++i) {
+        u32 to = *(u32*) (t->data + t->rel[i]) - (u32) t->data;
+        if (to < t->dsize) t->starts[t->nstarts++] = to;
+    }
+    t->starts[t->nstarts++] = root_off;
+    sort_u32(t->starts, (int) t->nstarts);
+    for (i = 0; i < t->nstarts; ++i)
+        if (w == 0 || t->starts[i] != t->starts[w - 1]) t->starts[w++] = t->starts[i];
+    t->nstarts = w;
+}
+
+/* Marks what the cut parts reach (REACH_CUT) and what everything else
+ * reaches (REACH_KEPT). */
+static void mark_reach(Trim* t, u32 root_off)
+{
+    u32 i, cut_to[2], lo = t->dsize, hi = 0;
+    int nto = 0;
+    memset(t->mark, 0, t->nstarts);
+    for (i = 0; i < (u32) t->ncut; ++i) {
+        u32 to = *(u32*) (t->data + t->cut[i]);
+        if (to >= (u32) t->data && to - (u32) t->data < t->dsize) cut_to[nto++] = to - (u32) t->data;
+    }
+    reach(t->data, t->dsize, t->rel, t->nrel, t->starts, t->nstarts, t->stack, t->mark, REACH_CUT, cut_to, nto,
+          NULL, 0);
+    /* Kept: the root, and every unreferenced object outside the cut parts'
+     * address range (it may be the tail of a script split at a loop
+     * target). Unreferenced objects inside that range are fragments of the
+     * cut parts themselves (checked on the disc: none holds a fighter
+     * script). */
+    reach(t->data, t->dsize, t->rel, t->nrel, t->starts, t->nstarts, t->stack, t->mark, REACH_KEPT, &root_off, 1,
+          t->cut, t->ncut);
+    for (i = 0; i < t->nstarts; ++i)
+        if (t->mark[i] & REACH_CUT) {
+            u32 e = i + 1 < t->nstarts ? t->starts[i + 1] : t->dsize;
+            if (t->starts[i] < lo) lo = t->starts[i];
+            if (e > hi) hi = e;
+        }
+    for (i = 0; i < t->nstarts; ++i)
+        if (!t->mark[i] && (t->starts[i] < lo || t->starts[i] >= hi))
+            reach(t->data, t->dsize, t->rel, t->nrel, t->starts, t->nstarts, t->stack, t->mark, REACH_KEPT,
+                  &t->starts[i], 1, t->cut, t->ncut);
+}
+
+/* A block goes only when every byte of it is in dropped objects: sets
+ * cover[] (1: dropped) and newblk[] (where a kept block lands) and returns
+ * how many blocks are kept. */
+static u32 drop_blocks(Trim* t)
+{
+    u32 i, kept;
+    memset(t->cover, 0, t->nblk);
+    for (i = 0; i < t->nstarts; ++i) {
+        u32 a, e;
+        if (t->mark[i] != REACH_CUT) continue;
+        a = t->starts[i];
+        e = i + 1 < t->nstarts ? t->starts[i + 1] : t->dsize;
+        while (a < e) {
+            u32 b = a / 32, stop = (b + 1) * 32 < e ? (b + 1) * 32 : e;
+            t->cover[b] = (u8) (t->cover[b] + (stop - a));
+            a = stop;
+        }
+    }
+    for (i = 0, kept = 0; i < t->nblk; ++i) {
+        u32 len = (i + 1) * 32 <= t->dsize ? 32 : t->dsize - i * 32;
+        t->cover[i] = t->cover[i] >= len;
+        t->newblk[i] = (u16) kept;
+        if (!t->cover[i]) ++kept;
+    }
+    return kept;
+}
+
+/* Copies the kept blocks to `out` and moves every kept pointer; pointers to
+ * the cut parts or to dropped blocks become NULL. */
+static void copy_kept(const Trim* t, u8* out)
+{
+    u32 i;
+    for (i = 0; i < t->nblk; ++i)
+        if (!t->cover[i]) {
+            u32 n = (i + 1) * 32 <= t->dsize ? 32 : t->dsize - i * 32;
+            memset(out + t->newblk[i] * 32, 0, 32);
+            memcpy(out + t->newblk[i] * 32, t->data + i * 32, n);
+        }
+    for (i = 0; i < t->nrel; ++i) {
+        u32 at = t->rel[i], to;
+        u32* dst;
+        if (t->cover[at / 32]) continue;
+        dst = (u32*) (out + t->newblk[at / 32] * 32 + at % 32);
+        to = *(u32*) (t->data + at) - (u32) t->data;
+        if (at == t->cut[0] || (t->ncut > 1 && at == t->cut[1]) || to >= t->dsize || t->cover[to / 32]) *dst = 0;
+        else *dst = (u32) out + t->newblk[to / 32] * 32 + to % 32;
+    }
+}
+
+/* Returns the trimmed ftData, or NULL (then the caller loads it whole). The
+ * Metal Box model is always cut, the articles when `articles` is 0. */
 static ftData* load_trimmed(int kind, int articles)
 {
     const char* name = ftData_803C1F40[kind].a;
     size_t length = 0, file_size;
-    u8* file = NULL;
-    HSD_Archive* arc = NULL;
-    u32 *rel = NULL, *starts = NULL, *stack = NULL;
-    u8 *mark = NULL, *cover = NULL;
-    u16* newblk = NULL;
-    u8* data;
-    u8* out = NULL;
+    u8* file;
+    HSD_Archive* arc;
+    u8* out;
     ftData* result = NULL;
-    u32 dsize, nrel, nstarts, nblk, i, kept, root_off, cut[2], cut_to[2];
-    int ncut = 0;
+    u32 kept, root_off;
+    Trim t;
 
     file_size = lbFileGetSize(name);
     if (!file_size) return NULL;
@@ -210,108 +318,34 @@ static ftData* load_trimmed(int kind, int articles)
     {
         void* root = HSD_ArchiveGetPublicAddress(arc, ftData_803C1F40[kind].b);
         if (!root) goto done;
-        data = arc->data;
-        root_off = (u32) root - (u32) data;
+        t.data = arc->data;
+        root_off = (u32) root - (u32) t.data;
     }
-    dsize = arc->header.data_size;
-    nrel = arc->header.nb_reloc;
-    nblk = (dsize + 31) / 32;
-    if (nblk >= 0x10000 || root_off + 0x60 > dsize) goto done;
-    cut[ncut++] = root_off + FTDATA_METAL_MODEL;
-    if (!articles) cut[ncut++] = root_off + FTDATA_ARTICLES;
+    t.dsize = arc->header.data_size;
+    t.nrel = arc->header.nb_reloc;
+    t.nblk = (t.dsize + 31) / 32;
+    if (t.nblk >= 0x10000 || root_off + 0x60 > t.dsize) goto done;
+    t.ncut = 0;
+    t.cut[t.ncut++] = root_off + FTDATA_METAL_MODEL;
+    if (!articles) t.cut[t.ncut++] = root_off + FTDATA_ARTICLES;
 
-    rel = temp_alloc(nrel * 4);
-    starts = temp_alloc((nrel + 1) * 4);
-    stack = temp_alloc((nrel + 1) * 4);
-    mark = temp_alloc(nrel + 1);
-    cover = temp_alloc(nblk);
-    newblk = temp_alloc(nblk * 2);
-    if (!rel || !starts || !stack || !mark || !cover || !newblk) goto done;
+    t.rel = temp_alloc(t.nrel * 4);
+    t.starts = temp_alloc((t.nrel + 1) * 4);
+    t.stack = temp_alloc((t.nrel + 1) * 4);
+    t.mark = temp_alloc(t.nrel + 1);
+    t.cover = temp_alloc(t.nblk);
+    t.newblk = temp_alloc(t.nblk * 2);
+    if (!t.rel || !t.starts || !t.stack || !t.mark || !t.cover || !t.newblk) goto done;
 
-    /* Pointer locations (sorted) and object starts (pointer targets + root). */
-    for (i = 0; i < nrel; ++i) rel[i] = arc->reloc_info[i].offset;
-    sort_u32(rel, (int) nrel);
-    nstarts = 0;
-    for (i = 0; i < nrel; ++i) {
-        u32 t = *(u32*) (data + rel[i]) - (u32) data;
-        if (t < dsize) starts[nstarts++] = t;
-    }
-    starts[nstarts++] = root_off;
-    sort_u32(starts, (int) nstarts);
-    {
-        u32 w = 0;
-        for (i = 0; i < nstarts; ++i)
-            if (w == 0 || starts[i] != starts[w - 1]) starts[w++] = starts[i];
-        nstarts = w;
-    }
-    memset(mark, 0, nstarts);
-    /* What the cut parts reach... */
-    {
-        int nto = 0;
-        for (i = 0; i < (u32) ncut; ++i) {
-            u32 t = *(u32*) (data + cut[i]);
-            if (t >= (u32) data && t - (u32) data < dsize) cut_to[nto++] = t - (u32) data;
-        }
-        reach(data, dsize, rel, nrel, starts, nstarts, stack, mark, REACH_CUT, cut_to, nto, NULL, 0);
-    }
-    /* ...and what everything else reaches: the root, and every unreferenced
-     * object outside the cut parts' address range (it may be the tail of a
-     * script split at a loop target). Unreferenced objects inside that
-     * range are fragments of the cut parts themselves (checked on the
-     * disc: none holds a fighter script). */
-    reach(data, dsize, rel, nrel, starts, nstarts, stack, mark, REACH_KEPT, &root_off, 1, cut, ncut);
-    {
-        u32 lo = dsize, hi = 0;
-        for (i = 0; i < nstarts; ++i)
-            if (mark[i] & REACH_CUT) {
-                u32 e = i + 1 < nstarts ? starts[i + 1] : dsize;
-                if (starts[i] < lo) lo = starts[i];
-                if (e > hi) hi = e;
-            }
-        for (i = 0; i < nstarts; ++i)
-            if (!mark[i] && (starts[i] < lo || starts[i] >= hi))
-                reach(data, dsize, rel, nrel, starts, nstarts, stack, mark, REACH_KEPT, &starts[i], 1, cut, ncut);
-    }
-
-    /* A block goes only when every byte of it is in dropped objects. */
-    memset(cover, 0, nblk);
-    for (i = 0; i < nstarts; ++i) {
-        u32 a, e;
-        if (mark[i] != REACH_CUT) continue;
-        a = starts[i];
-        e = i + 1 < nstarts ? starts[i + 1] : dsize;
-        while (a < e) {
-            u32 b = a / 32, stop = (b + 1) * 32 < e ? (b + 1) * 32 : e;
-            cover[b] = (u8) (cover[b] + (stop - a));
-            a = stop;
-        }
-    }
-    for (i = 0, kept = 0; i < nblk; ++i) {
-        u32 len = (i + 1) * 32 <= dsize ? 32 : dsize - i * 32;
-        cover[i] = cover[i] >= len; /* 1: dropped */
-        newblk[i] = (u16) kept;
-        if (!cover[i]) ++kept;
-    }
+    find_objects(&t, arc, root_off);
+    mark_reach(&t, root_off);
+    kept = drop_blocks(&t);
     out = keep_alloc(kept * 32);
     if (!out) goto done;
-    for (i = 0; i < nblk; ++i)
-        if (!cover[i]) {
-            u32 n = (i + 1) * 32 <= dsize ? 32 : dsize - i * 32;
-            memset(out + newblk[i] * 32, 0, 32);
-            memcpy(out + newblk[i] * 32, data + i * 32, n);
-        }
-    for (i = 0; i < nrel; ++i) {
-        u32 at = rel[i], t;
-        u32* dst;
-        if (cover[at / 32]) continue;
-        dst = (u32*) (out + newblk[at / 32] * 32 + at % 32);
-        t = *(u32*) (data + at) - (u32) data;
-        if (at == cut[0] || (ncut > 1 && at == cut[1]) || t >= dsize || cover[t / 32]) *dst = 0; /* the cut parts */
-        else *dst = (u32) out + newblk[t / 32] * 32 + t % 32;
-    }
+    copy_kept(&t, out);
     DCStoreRange(out, kept * 32);
-    result = (ftData*) (out + newblk[root_off / 32] * 32 + root_off % 32);
-    BAM_LOG("donor_data kind=%d %u KB -> %u KB%s in %s\n", kind, (unsigned) (dsize / 1024),
+    result = (ftData*) (out + t.newblk[root_off / 32] * 32 + root_off % 32);
+    BAM_LOG("donor_data kind=%d %u KB -> %u KB%s in %s\n", kind, (unsigned) (t.dsize / 1024),
              (unsigned) (kept * 32 / 1024), articles ? "" : " (no articles)", BamCache_Owns(out) ? "cache" : "heap");
 
 done:
