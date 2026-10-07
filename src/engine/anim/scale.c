@@ -44,8 +44,8 @@ static const float model_scale[] = {
 /* How a borrowed move's own parts are sized on this fighter: its weapons,
  * tails and props (rebuilt bones and the donor's meshes), the articles it
  * holds, and its hitboxes. They follow 70% of the body ratio (ratio^0.7),
- * kept within 0.8x..1.55x of the donor's own size (Marth's sword on Jigglypuff stays
- * near Marth's; Pichu's tail on Bowser grows, not to Bowser size), and the hitboxes stay on
+ * kept within 1.0x..1.55x of the donor's own size (never smaller: Marth's sword
+ * on Jigglypuff is Marth's; Pichu's tail on Bowser grows, not to Bowser size), and the hitboxes stay on
  * the parts that are drawn.
  * Bam_ShownScale: that size on screen, against the donor's own (0 when
  * own and source are the same kind). */
@@ -58,7 +58,7 @@ float Bam_ShownScale(unsigned own, unsigned source)
     shown = (body_size[own] * model_scale[own]) / (body_size[source] * model_scale[source]);
     /* About 70% of the size difference (in log space), then clamped. */
     shown = powf(shown, 0.70f);
-    if (shown < 0.80f) shown = 0.80f;
+    if (shown < 1.00f) shown = 1.00f;
     else if (shown > 1.55f) shown = 1.55f;
     return shown;
 }
