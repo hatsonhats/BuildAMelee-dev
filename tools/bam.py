@@ -10,6 +10,7 @@
   bam.py fingerprint save|diff F  compare the overlay's code across a refactor (layout-independent)
   bam.py edits [FILTER]         show every edit to retail code as a diff (units matching FILTER)
   bam.py gen-tables [OUT]       write the bone tables (build/generated/engine/bone_tables.h/.inc) from your ISO
+  bam.py check                  before a commit: host tests, debug and release builds, space left, fix dependencies
 """
 from __future__ import annotations
 import argparse
@@ -167,6 +168,35 @@ def cmd_edits(args):
     print(f'# {shown} units', file=sys.stderr)
 
 
+def cmd_check(args):
+    """Host tests, then a debug and a release build (the release one is left
+    in build/output), with the space each leaves and the fixes that depend
+    on another edit's text."""
+    import json
+    import unittest
+    from bam.build import Builder
+    suite = unittest.defaultTestLoader.discover(str(ROOT / 'tests'), top_level_dir=str(ROOT / 'tests'))
+    if not unittest.TextTestRunner(verbosity=0).run(suite).wasSuccessful():
+        sys.exit('check: host tests failed')
+    free = {}
+    for name in ('debug', 'release'):
+        p = Project.load(ROOT)
+        if name == 'debug':
+            p.defines['BAM_DEBUG'] = '1'
+        print(f'check: {name} build')
+        r = Builder(p, args.decomp).build()
+        free[name] = (p.overlay_reserve - r.overlay_size) / 1024
+    report = json.loads(r.report.read_text(encoding='utf-8'))
+    deps = report.get('fix_dependencies', [])
+    print(f'check: tests pass; overlay space left {free["release"]:.1f} KB (release), {free["debug"]:.1f} KB (debug)')
+    if deps:
+        print(f'check: {len(deps)} fixes match text another edit wrote (change that edit and they break):')
+        for d in deps:
+            print('  ' + d)
+    if free['release'] < 8:
+        print('check: WARNING: under 8 KB left in a release build (docs/STATUS.md: ways to reclaim space)')
+
+
 def cmd_gen_tables(args):
     from bam.bonetables import generate
     from bam.iso import disc_reader
@@ -213,6 +243,8 @@ def main(argv=None):
     s.set_defaults(fn=cmd_edits); s.add_argument('filter', nargs='?', help='only units whose path contains this')
     s = sub.add_parser('gen-tables', help='write the bone tables from your ISO (the build does this itself)')
     s.set_defaults(fn=cmd_gen_tables); s.add_argument('out', nargs='?')
+    s = sub.add_parser('check', help='host tests, debug and release builds, space left, fix dependencies')
+    s.set_defaults(fn=cmd_check)
     s = sub.add_parser('fetch'); s.set_defaults(fn=cmd_fetch)
     s.add_argument('--jobs', type=int, default=4)
     s.add_argument('--no-baseline', action='store_true', help='skip building/verifying the retail DOL')

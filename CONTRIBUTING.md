@@ -72,7 +72,10 @@ py -3 tools\bam.py fingerprint save before.json
 py -3 tools\bam.py fingerprint diff before.json [--rename Old_=New_]
 ```
 
-Run the host tests too: `python -m unittest discover -s tests`.
+Before committing, `bam.py check` runs the host tests, a debug and a release
+build, and prints the space each leaves and which fixes depend on another
+edit's text. GitHub runs the host tests on every push
+(`.github/workflows/tests.yml`).
 
 ## Cutting a release
 

@@ -109,3 +109,41 @@ def gct_injection_addresses(gct: Path) -> Dict[int, List[str]]:
             continue
         i += 2
     return out
+
+
+def check_collisions(patches, diffs, hooks, syms, ini, gct) -> None:
+    """Refuses a build whose patches land where Slippi's codes inject (`ini`:
+    the Gecko code list, `gct`: the bootloader's codes; either may be None):
+    a patched word, or any word inside a retail function we override (the
+    override skips the whole body)."""
+    from .hooks import Patch
+    from .units import BuildError
+    slip: Dict[int, List[str]] = {}
+    if ini and Path(ini).is_file():
+        slip.update(injection_addresses(Path(ini)))
+    if gct and Path(gct).is_file():
+        for a, names in gct_injection_addresses(Path(gct)).items():
+            slip.setdefault(a, []).extend(names)
+    if not slip:
+        return
+    conflicts = []
+    for pt in patches:
+        if pt.addr in slip:
+            conflicts.append((pt, slip[pt.addr]))
+    for d in diffs:
+        if not d.changed:
+            continue
+        for a in range(d.retail_addr + 4, d.retail_addr + d.size, 4):
+            if a in slip:
+                conflicts.append((Patch(a, 0, f'override:{d.name} (body)'), slip[a]))
+    for h in hooks:
+        if h.kind != 'override':
+            continue
+        fn = syms.by_name.get(h.at.split('+')[0].strip())
+        if fn:
+            for a in range(fn.addr + 4, fn.end, 4):
+                if a in slip:
+                    conflicts.append((Patch(a, 0, f'{h.id} (body of {fn.name})'), slip[a]))
+    if conflicts:
+        msg = '\n'.join(f'  {pt.addr:#010x} {pt.hook} vs Slippi {codes}' for pt, codes in conflicts)
+        raise BuildError('patches collide with Slippi gecko injections:\n' + msg)
