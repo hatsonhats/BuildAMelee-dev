@@ -82,5 +82,6 @@ bool hammer_kind(unsigned kind);
 int parasol_base(Fighter* fp);
 void parasol_display(Fighter* fp, int slot, int pass, MtxPtr vmtx);
 bool sword_kind(unsigned kind);
+bool keeps_own_weapon(unsigned own, unsigned donor, int item);
 HSD_JObj* weapon_model(unsigned slot, int item);
 #endif

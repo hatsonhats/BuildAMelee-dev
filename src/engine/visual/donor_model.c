@@ -419,7 +419,7 @@ unsigned donor_display(Fighter* fp, unsigned slot, int pass, MtxPtr vmtx)
     for (i = 0; i < 8; ++i) {
         if (!(mask & (1U << i))) continue;
         /* A fighter whose own model shows that weapon keeps its own. */
-        if ((item_of[i] == 0 && sword_kind(fp->kind)) || (item_of[i] == 1 && hammer_kind(fp->kind)))
+        if (item_of[i] < WEAPON_ITEMS && keeps_own_weapon(fp->kind, source, item_of[i]))
             mask &= ~(1U << i);
     }
     /* The model copy is only made once something of it shows. */

@@ -123,6 +123,10 @@ typedef struct CssPanelState {
     unsigned stick_hold[4];
     int stick_dir[4];
     BamText hint, shapes, body;
+    /* Slippi reset every SIS text (its direct-code entry and search): our
+     * texts come back once the CSS's texts have settled (css_menu.c). */
+    int sis_lost, sis_still;
+    void* sis_head;
     MenuMem* mem;
     unsigned nquads;
 } CssPanelState;
@@ -140,6 +144,7 @@ int page_of(int r);
 int panel_create(void);
 void panel_destroy(void);
 float text_w(const char* s, float scale);
+int sis_room(unsigned times);
 void ui_create(void);
 void ui_destroy(void);
 #endif

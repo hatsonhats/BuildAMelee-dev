@@ -281,10 +281,12 @@ def strip_functions(text: str, keep, label: str) -> str:
     return out
 
 
-def changed_by_text(original: str, edited: str):
+def changed_by_text(original: str, edited: str, inlined=None):
     """Functions whose definition text differs (or that are new), plus every
     function that calls a changed static/inline helper, iterated to a fixed
-    point. Returns (changed: set, outside_edits: bool) where outside_edits says
+    point. `inlined(caller, callee)`, when given, says whether retail's
+    caller holds its own copy of the callee (no call to it): only then does
+    the caller need recompiling. Returns (changed: set, outside_edits: bool) where outside_edits says
     whether file-scope text outside functions changed too."""
     a, b = function_spans(original), function_spans(edited)
     norm = lambda s: re.sub(r'\s+', ' ', s).strip()  # noqa: E731
@@ -296,12 +298,20 @@ def changed_by_text(original: str, edited: str):
     # get inlined (or are file-local) so the caller must be recompiled too. A
     # changed global function is patched at its own entry, so its callers can
     # keep calling the retail address.
+    uncommented = re.sub(r'/\*.*?\*/|//[^\n]*', ' ', edited, flags=re.S)
+
     def is_local(name):
         s, e = b[name]
         head = edited[s:e]
         head = head[:head.find('{')]
         head = re.sub(r'/\*.*?\*/|//[^\n]*', '', head, flags=re.S).lstrip()
-        return head.startswith('static') or head.startswith('inline')
+        if head.startswith('static') or head.startswith('inline'):
+            return True
+        # Declared static in a prototype, defined without the keyword
+        # (ftCo_AttackLw3.c's decideFighter): still file-local, and retail
+        # inlined it into its callers.
+        return re.search(r'(^|[;}\n])[ \t]*static\b[^;{(]*\b' + re.escape(name) + r'\s*\([^;{]*\)\s*;',
+                         uncommented) is not None
     grew = True
     while grew:
         grew = False
@@ -309,7 +319,8 @@ def changed_by_text(original: str, edited: str):
             if name in changed:
                 continue
             body = edited[s:e]
-            if any(c in b and is_local(c) and re.search(r'\b' + re.escape(c) + r'\s*\(', body) for c in changed):
+            if any(c in b and is_local(c) and re.search(r'\b' + re.escape(c) + r'\s*\(', body) and
+                   (inlined is None or inlined(name, c)) for c in changed):
                 changed.add(name)
                 grew = True
     def strip_funcs(text, spans):

@@ -109,7 +109,7 @@ class UnitSteps:
         keep: Optional[Set[str]] = None
         renames: Dict[str, str] = {}
         if spec.strip_unchanged:
-            changed, _outside = changed_by_text(original, text)
+            changed, _outside = changed_by_text(original, text, self._inlined_in_retail(unit))
             keep = (changed - set(spec.skip_functions)) | set(spec.keep_functions)
             text = strip_functions(text, keep, label)
             # A kept function the unit declares `static` is often referenced
@@ -172,6 +172,36 @@ class UnitSteps:
         ub.keep = keep
         ub.renames = renames if spec.strip_unchanged else {}
         return ub
+
+    def _inlined_in_retail(self, unit: str):
+        """inlined(caller, callee) for one unit: whether retail's caller has
+        no `bl` to the callee, so it carries an inlined copy that an edit to
+        the callee does not reach (ftCo_AttackLw3_IASA holds decideFighter).
+        A function with no retail symbol counts as inlined."""
+        table = {s.name: s for s in self.syms.unit_functions(unit)}
+
+        def inlined(caller: str, callee: str) -> bool:
+            c, f = table.get(caller), table.get(callee)
+            if c is None or f is None:
+                return True
+            dol = self._retail_for_scan()
+            for at in range(c.addr, c.addr + c.size, 4):
+                w = dol.read_u32(at)
+                if w >> 26 == 18 and w & 1:
+                    off = w & 0x3FFFFFC
+                    if off & 0x2000000:
+                        off -= 0x4000000
+                    if at + off == f.addr:
+                        return False
+            return True
+        return inlined
+
+    _retail_cache = None
+
+    def _retail_for_scan(self):
+        if self._retail_cache is None:
+            self._retail_cache = self.retail_dol()
+        return self._retail_cache
 
     def shareable_objects(self, unit: str) -> List[str]:
         """Every named data object of a retail unit that the overlay can bind

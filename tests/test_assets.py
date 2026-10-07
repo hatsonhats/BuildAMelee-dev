@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from bam.hsd import Archive, joint_walk  # noqa: E402
 from bam import bonetables, parts, fingerprint  # noqa: E402
 from bam.project import load_fixes  # noqa: E402
-from bam.transform import line_edits_for, TransformError  # noqa: E402
+from bam.transform import line_edits_for, TransformError, changed_by_text  # noqa: E402
 
 
 def archive(data: bytes, relocs, roots):
@@ -149,6 +149,23 @@ class FixTests(unittest.TestCase):
                 (Path(d) / name).write_text(f'[[fix]]\nid = "{fid}"\nowner = "o"\nfile = "f.c"\nanchor = "a"\n'
                                             'replacement = "b"\n')
             self.assertEqual([f['id'] for f in load_fixes(Path(d))], ['a', 'b'])
+
+
+class ChangedFunctionTests(unittest.TestCase):
+    SRC = ('/* 1 */ static void pick(int x);\n'
+           'void pick(int x)\n{\n    go(x);\n}\n'
+           'void anim(int x)\n{\n    pick(x);\n}\n'
+           'void iasa(int x)\n{\n    pick(x);\n}\n')
+
+    def test_caller_of_static_declared_helper_recompiled(self):
+        edited = self.SRC.replace('go(x)', 'mine(x)')
+        changed, _ = changed_by_text(self.SRC, edited)
+        self.assertEqual(changed, {'pick', 'anim', 'iasa'})
+
+    def test_only_callers_that_inlined_it(self):
+        edited = self.SRC.replace('go(x)', 'mine(x)')
+        changed, _ = changed_by_text(self.SRC, edited, inlined=lambda caller, callee: caller == 'iasa')
+        self.assertEqual(changed, {'pick', 'iasa'})
 
 
 class LineEditTests(unittest.TestCase):

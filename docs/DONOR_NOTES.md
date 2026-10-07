@@ -34,7 +34,7 @@ are made from your ISO:
 | `aerials.c` | Mr. Game & Watch, Link, Young Link | Aerials with their own code (G&W's props, Link's down air) |
 | `anim/wear.c` | Peach | Her dress worn by the borrower (fitted to waist and height) |
 | `visual/donor_model.c` | Mr. Game & Watch | His model and articles take his color, not white |
-| `visual/weapons.c` `sword_kind`, `hammer_kind` | Marth, Roy, Link, Young Link, Ice Climbers | Fighters whose own model already shows the weapon |
+| `visual/weapons.c` `keeps_own_weapon` | Marth, Roy, Link, Young Link, Ice Climbers | Fighters whose own model already shows the weapon in the hand the move swings (Marth/Roy right, Link/Young Link left) |
 | `visual/parasol.c` | Peach | Up special's parasol float on a borrower |
 
 ## Edits to retail code (overrides/fixes)

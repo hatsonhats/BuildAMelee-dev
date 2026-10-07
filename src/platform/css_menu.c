@@ -31,6 +31,8 @@
 #include "css_panel.h"
 #include <bam/retail.h>
 
+extern HSD_Text* HSD_SisLib_804D7978; /* every live SIS text */
+
 /* Port whose build was locked in last: the local player's build online. */
 int bam_css_port = 0;
 CssPanelState css = { 4, -1, { -1, -1, -1, -1 } };
@@ -490,16 +492,33 @@ void BAM_CssFrame(void)
             }
         }
     }
-    /* Slippi's direct-code entry resets all SIS texts while the CSS is still
-     * running. Ours are gone then: forget them (never touch freed texts) and
-     * stay hidden until the CSS is entered again. */
+    /* Slippi's direct-code entry and its search reset all SIS texts while
+     * the CSS is still running. Ours are gone then: forget them (never touch
+     * freed texts) and make them again once Slippi's texts have stayed the
+     * same for two seconds with room to spare (backed out of the search),
+     * so the build line and the panel come back. */
     if (css.ui_ready && !BamText_Alive(&css.hint)) {
         BAM_LOG("css: SIS was reset (code entry); panel hidden\n");
         css.hint.native = css.shapes.native = css.body.native = NULL;
         css.nquads = 0;
         css.open_port = -1;
         css.ui_ready = 0;
+        css.sis_lost = 1;
+        css.sis_still = 0;
+        css.sis_head = HSD_SisLib_804D7978;
         return;
+    }
+    if (css.sis_lost) {
+        if (HSD_SisLib_804D7978 != css.sis_head) {
+            css.sis_head = HSD_SisLib_804D7978;
+            css.sis_still = 0;
+        } else if (++css.sis_still >= 120 && sis_room(2)) {
+            BAM_LOG("css: SIS settled; panel back\n");
+            css.sis_lost = 0;
+            css.ui_tried = 0;
+            ui_create();
+        }
+        if (css.sis_lost) return;
     }
     if (!css.ui_ready) return;
     for (p = 0; p < 4; ++p) {
@@ -536,6 +555,8 @@ void BAM_CssFrame(void)
 void BAM_CssExit(void)
 {
     BAM_LOG("css exit\n");
+    css.sis_lost = 0;
+    css.sis_head = NULL;
     if (css.open_port >= 0) close_panel();
     ui_destroy();
     css.ui_tried = 0;

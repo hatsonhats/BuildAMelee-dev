@@ -83,6 +83,14 @@ Ice Climbers), `special-input`, `state-table-redirect`, `lifecycle-cleanup`,
 
 Prefer a fix for new changes.
 
+## Edited helpers retail inlined
+
+A fix to a small `static` function (ftCo_AttackLw3.c's `decideFighter`)
+does not reach the retail functions that carry their own inlined copy of it
+(`ftCo_AttackLw3_IASA`): they never call it. The build finds those callers
+(no `bl` to the helper in their retail code) and recompiles them too, so an
+edit to a helper applies everywhere it runs.
+
 ## Seeing what changed
 
 `python3 tools/bam.py edits [FILTER]` prints every changed retail file as a

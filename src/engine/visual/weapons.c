@@ -36,12 +36,6 @@
 
 /* 0 Beam Sword, 1 Hammer (common items), 2 Peach's parasol (her article). */
 
-
-
-bool sword_kind(unsigned kind);
-bool hammer_kind(unsigned kind);
-
-
 bool sword_kind(unsigned kind)
 {
     return kind == Ft_Kind_Mars || kind == Ft_Kind_Emblem || kind == Ft_Kind_Link || kind == Ft_Kind_CLink;
@@ -49,6 +43,16 @@ bool sword_kind(unsigned kind)
 bool hammer_kind(unsigned kind)
 {
     return kind == Ft_Kind_Popo || kind == Ft_Kind_Nana;
+}
+/* Whether the borrower's own model already shows the donor's weapon `item`
+ * where the move swings it, so none is drawn: a sword only when both hold
+ * theirs in the same hand (Marth and Roy the right, Link and Young Link the
+ * left; Marth's moves on Link swing the right hand, which is empty). */
+bool keeps_own_weapon(unsigned own, unsigned donor, int item)
+{
+    if (item == 1) return hammer_kind(own);
+    if (item != 0 || !sword_kind(own) || !sword_kind(donor)) return false;
+    return (own == Ft_Kind_Link || own == Ft_Kind_CLink) == (donor == Ft_Kind_Link || donor == Ft_Kind_CLink);
 }
 
 
@@ -145,7 +149,7 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
         item = 0;
         PSMTXCopy(HSD_JObjGetMtxPtr(fp->parts[hand].joint), place);
     }
-    if (item >= WEAPON_ITEMS || (item == 0 && sword_kind(fp->kind)) || (item == 1 && hammer_kind(fp->kind))) return;
+    if (item >= WEAPON_ITEMS || keeps_own_weapon(fp->kind, source, item)) return;
     model = weapon_model((unsigned) slot, item);
     if (!model) return;
     PSMTXConcat(place, bam_visual->weapon_attach[slot][item], place);

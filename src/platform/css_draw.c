@@ -21,6 +21,11 @@ static unsigned sis_free(void)
     return n;
 }
 #define SIS_NEEDED 0x800
+/* Room for `times` the panel's texts. */
+int sis_room(unsigned times)
+{
+    return sis_free() >= SIS_NEEDED * times;
+}
 
 void ui_create(void)
 {
@@ -37,7 +42,8 @@ void ui_create(void)
     /* The block lives in this CSS visit's scene heap: reused only when the
      * panel comes back from Melee's keyboard in the same visit. Any other
      * old pointer is stale (the match rebuilt the heap since). */
-    if (!css.mem || css.kb_state != KB_BACK) css.mem = HSD_MemAlloc(sizeof(MenuMem));
+    if (!css.mem || (css.kb_state != KB_BACK && !css.sis_head)) css.mem = HSD_MemAlloc(sizeof(MenuMem));
+    css.sis_head = NULL;
     if (!css.mem) { BAM_NOTE("css: no memory for the panel\n"); return; }
     css.canvas = HSD_SisLib_803A611C(css.font, NULL, 9, 0x14, 0, 0xF, 0, 0x13);
     BamText_Create(&css.hint, css.font, css.canvas, hint_buf, sizeof(hint_buf));
@@ -179,15 +185,27 @@ static const char* notice_text(void)
     return NULL;
 }
 
+/* "de2ce3" of the build ID "1.3.8-de2ce3" (src/boot/arena.c). */
+static const char* build_hash(void)
+{
+    extern const char bam_build_id[];
+    const char *p, *hash = bam_build_id;
+    for (p = bam_build_id; *p; ++p)
+        if (*p == '-') hash = p + 1;
+    return hash;
+}
+
 void draw_hint(void)
 {
     unsigned p, lines = 0;
     const char* notice;
     if (!css.hint.native) return;
     BamText_Begin(&css.hint);
+    /* The version and build, always (the panel ends above it): two players
+     * need the same build to use their builds online. */
+    BamText_Line(&css.hint, 24, 452 - 16 * lines++, "BuildAMelee v%s  build %s", BAM_VERSION, build_hash());
+    BamText_Style(&css.hint, 0.6f, DIM);
     if (css.open_port < 0) {
-        BamText_Line(&css.hint, 24, 452 - 16 * lines++, "BuildAMelee v%s", BAM_VERSION);
-        BamText_Style(&css.hint, 0.6f, DIM);
         notice = notice_text();
         if (notice) {
             BamText_Line(&css.hint, 24, 452 - 16 * lines++, "%s", notice);
