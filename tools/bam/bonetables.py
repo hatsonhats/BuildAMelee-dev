@@ -727,6 +727,7 @@ def write_include(destination, quats, fingers, parents, prop_data, note):
             arms.append('    { %d, %d, %d, 0, %d, %d, { %s }, { %s }, %d },' % (
                 kind, index[joint], item, lo, hi, ', '.join(str(_s16(v, 256)) for v in grip),
                 ', '.join(str(_s16(v / n, 32767)) for v in (x, y, z, w)), _s16(reach, 256)))
+    assert len(chains) < 255, 'bam_chain_first and the parent field are bytes'
     lines += [f'#define BAM_PROP_COUNT {len(rows)}',
               'static const BamProp bam_prop[BAM_PROP_COUNT + 1] = {'] + rows + ['    { 255, 0, 255, 255, { 0 }, { 0 }, { 0 } },', '};']
     lines += ['/* Each kind\'s rows: bam_prop[bam_prop_first[k]] up to bam_prop_first[k + 1] (rows are by kind). */',

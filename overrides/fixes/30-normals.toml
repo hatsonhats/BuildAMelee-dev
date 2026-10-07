@@ -1,6 +1,6 @@
 # Anchor edits (overrides/README.md): each finds `anchor` in a retail source
 # file of the decomp and replaces it. Applied after the line edits in
-# special_adapters.json, file by file in name order, fix by fix in order.
+# line_edits.json, file by file in name order, fix by fix in order.
 #
 # Borrowed normals (jabs, tilts, smashes, throws): the common attack states
 # run a borrowed move's animation, hitboxes and articles.

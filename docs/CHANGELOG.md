@@ -3,6 +3,18 @@
 What changed in each version, for developers. Players get the release notes in
 `releases/`.
 
+- 1.3.6 (second cleanup, no gameplay change): engine files and headers by
+  job (borrow.c, donor_load.c, catalog.h, borrow.h, ...; one public
+  engine/engine.h) and one set of words (donor, borrower, borrowed move;
+  glossary in CONTRIBUTING.md); match blocks read through their pointers;
+  release log lines as `area: what happened`, explained in docs/LOGS.md;
+  long functions split (Bam_HitboxCreated, Bam_DonorEnsure, load_trimmed);
+  prop/chain lookups scan only the donor's rows; line edits are the
+  `donor-access` rule plus written-out exceptions (overrides/line_edits.json,
+  was special_adapters.json); numbered decomp fields named in
+  src/bam/fields.h; build.py split (units.py); `bam.py check`; CI runs the
+  host tests; every .c opens with what it does, who calls it and its state.
+  Overlay 16.5 -> 19.3 KB free.
 - 1.3.6 (code cleanup, no gameplay change except the two table fixes below):
   the bone tables are generated at build time from the ISO
   (tools/bam/bonetables.py, now in the repo; joint-skip table applied for

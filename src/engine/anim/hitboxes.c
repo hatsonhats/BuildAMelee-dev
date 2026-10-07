@@ -75,9 +75,7 @@ int Bam_QAHitAnchor(Fighter* fp, const HitCapsule* hit, Vec3* pos)
     return from;
 }
 #endif
-/* A move script just made a hitbox (ftAction_8007121C); `bone` is the
- * script's joint, or -1 for a common body part. Offsets of a borrowed move
- * are carried into the borrower's frame. */
+
 /* Offsets and radii fit this fighter's body (Bam_BorrowScale), as the
  * move's weapons and props are drawn: a hitbox stays on the part it belongs
  * to, and keeps its size relative to it (the hitbox size command scales the
@@ -176,7 +174,8 @@ static void body_bone_hit(Fighter* fp, HitCapsule* hit, int bone, unsigned sourc
     hit->b_offset = out;
 }
 
-/* A borrowed move created a hitbox on donor bone `bone` (ftaction.c fix):
+/* A move script just made a hitbox (ftAction_8007121C fix); `bone` is the
+ * script's joint, or -1 for a common body part. A borrowed move's hitbox is
  * sized for this fighter, then placed by what the bone is on the donor. */
 void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
 {

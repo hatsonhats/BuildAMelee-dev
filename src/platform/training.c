@@ -172,7 +172,7 @@ static unsigned fighter_lines(unsigned slot, float y)
     BamText_Style(&info, 0.5f, slot ? 0xFF9A6B : 0xF5C842);
     S = Bam_FighterCtx(fp);
     if (!bam_match || S->fighter != fp) return 1;
-    if (S->active)
+    if (S->active && BamSpecial_Find(S->active->id))
         BamText_Line(&info, 40, y + 15, "borrowed %s (%s)", BamSpecial_Find(S->active->id)->name, who((unsigned) S->active->character));
     else if (S->aerial && S->aerial->slot < 5)
         BamText_Line(&info, 40, y + 15, "borrowed %s (%s)", aerial_slots[S->aerial->slot], who(S->aerial->character));

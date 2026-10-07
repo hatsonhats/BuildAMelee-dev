@@ -101,6 +101,8 @@ def line_edits_for(entry: dict, text: str, label: str) -> List[LineEdit]:
         if rule is None:
             raise TransformError(f'{label}: unknown rule {e["rule"]!r}')
         for at, count in e['lines']:
+            if at < 0 or count < 1 or at + count > len(lines):
+                raise TransformError(f'{label}: rule {e["rule"]} lines {at}+{count} outside the file')
             before = lines[at:at + count]
             after = [rule(l) for l in before]
             if after == before:
