@@ -3,7 +3,7 @@
 What changed in each version, for developers. Players get the release notes in
 `releases/`.
 
-- 1.3.6 (second cleanup, no gameplay change): engine files and headers by
+- 1.3.7 (second cleanup, no gameplay change): engine files and headers by
   job (borrow.c, donor_load.c, catalog.h, borrow.h, ...; one public
   engine/engine.h) and one set of words (donor, borrower, borrowed move;
   glossary in CONTRIBUTING.md); match blocks read through their pointers;

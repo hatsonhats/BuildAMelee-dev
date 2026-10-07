@@ -13,7 +13,7 @@ the problem. The first `[bam]` line says which build they run.
 
 | Line | Meaning |
 |---|---|
-| `boot: overlay 817c9800-81829400, arena top was …, version 1.3.6 build 1.3.6-xxxxxx` | The mod loaded. Two players need the same `build` to exchange builds online. |
+| `boot: overlay 817c9800-81829400, arena top was …, version 1.3.7 build 1.3.7-xxxxxx` | The mod loaded. Two players need the same `build` to exchange builds online. |
 | `boot: FATAL: arena … cannot hold the overlay …` | This Dolphin set up memory differently from Slippi Dolphin; the mod cannot run. Use Slippi Dolphin. |
 
 ## FREEZE
