@@ -3,6 +3,8 @@
 What changed in each version, for developers. Players get the release notes in
 `releases/`.
 
+- 1.3.8: borrowed parts, hitboxes and effects are never smaller than the
+  donor's (Bam_ShownScale floor 0.8 -> 1.0 in src/engine/anim/scale.c).
 - 1.3.7 (second cleanup, no gameplay change): engine files and headers by
   job (borrow.c, donor_load.c, catalog.h, borrow.h, ...; one public
   engine/engine.h) and one set of words (donor, borrower, borrowed move;
