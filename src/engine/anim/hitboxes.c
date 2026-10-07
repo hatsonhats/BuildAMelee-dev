@@ -3,9 +3,9 @@
 static PropHit* hit_record(const HitCapsule* hit)
 {
     unsigned i;
-    if (!bam_anim_scale) return NULL;
-    for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
-        if (prop_hits[i].hit == hit) return &prop_hits[i];
+    if (!bam_anim) return NULL;
+    for (i = 0; i < sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0]); ++i)
+        if (bam_anim->prop_hits[i].hit == hit) return &bam_anim->prop_hits[i];
     return NULL;
 }
 
@@ -103,10 +103,10 @@ void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
         hit->jobj == fp->parts[0].joint) {
         /* A joint of the donor's own skeleton posed from the root: follow
          * that pose every frame (Bam_HitboxRefresh). */
-        for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
-            if (!prop_hits[i].hit) break;
-        if (i == sizeof(prop_hits) / sizeof(prop_hits[0])) return;
-        h = &prop_hits[i];
+        for (i = 0; i < sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0]); ++i)
+            if (!bam_anim->prop_hits[i].hit) break;
+        if (i == sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0])) return;
+        h = &bam_anim->prop_hits[i];
         h->fighter = fp;
         h->hit = hit;
         h->offset = hit->b_offset;
@@ -134,11 +134,11 @@ void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
              * frame, as a prop is (hit_place). */
             int base = fold_base(fp, part), joint = base >= 0 ? own_joint(fp, base) : -1;
             if (joint >= 0 && fp->parts[joint].joint) {
-                for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
-                    if (!prop_hits[i].hit) break;
-                if (i < sizeof(prop_hits) / sizeof(prop_hits[0])) {
+                for (i = 0; i < sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0]); ++i)
+                    if (!bam_anim->prop_hits[i].hit) break;
+                if (i < sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0])) {
                     float bs = Bam_BorrowScale(fp);
-                    h = &prop_hits[i];
+                    h = &bam_anim->prop_hits[i];
                     h->fighter = fp;
                     h->hit = hit;
                     h->offset = hit->b_offset;
@@ -192,10 +192,10 @@ void Bam_HitboxCreated(Fighter* fp, HitCapsule* hit, int bone)
     }
     root = prop_root(fp, prop);
     if (root < 0 || hit->jobj != fp->parts[root].joint) return;
-    for (i = 0; i < sizeof(prop_hits) / sizeof(prop_hits[0]); ++i)
-        if (!prop_hits[i].hit) break;
-    if (i == sizeof(prop_hits) / sizeof(prop_hits[0])) return;
-    h = &prop_hits[i];
+    for (i = 0; i < sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0]); ++i)
+        if (!bam_anim->prop_hits[i].hit) break;
+    if (i == sizeof(bam_anim->prop_hits) / sizeof(bam_anim->prop_hits[0])) return;
+    h = &bam_anim->prop_hits[i];
     h->fighter = fp;
     h->hit = hit;
     h->offset = hit->b_offset;

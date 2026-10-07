@@ -51,7 +51,7 @@ typedef struct DonorModel {
     HSD_PObj* dropped[DONOR_MESHES];
 } DonorModel;
 #define VIS_GROUPS 12
-typedef struct SwordVisualState {
+typedef struct VisualState {
     HSD_JObj* weapons[BAM_FIGHTERS][WEAPON_ITEMS];
     Fighter* weapon_owner[BAM_FIGHTERS];
     DonorModel* donor_models[BAM_FIGHTERS];
@@ -64,19 +64,8 @@ typedef struct SwordVisualState {
     Mtx parasol_rel[BAM_FIGHTERS];
     /* Trimmed donor models loaded this match (Pl<code>Bm.dat). */
     HSD_Joint* part_joint[Ft_Kind_Max];
-} SwordVisualState;
-extern SwordVisualState* bam_sword_visual; /* weapons.c */
-#define donor_models (bam_sword_visual->donor_models)
-#define part_joint (bam_sword_visual->part_joint)
-#define donor_vis (bam_sword_visual->donor_vis)
-#define donor_vis_kind (bam_sword_visual->donor_vis_kind)
-#define parasol_float (bam_sword_visual->parasol_float)
-#define parasol_rel (bam_sword_visual->parasol_rel)
-#define parasol_hit (bam_sword_visual->parasol_hit)
-#define parasol_hit_off (bam_sword_visual->parasol_hit_off)
-#define weapon_attach (bam_sword_visual->weapon_attach)
-#define weapon_owner (bam_sword_visual->weapon_owner)
-#define weapons (bam_sword_visual->weapons)
+} VisualState;
+extern VisualState* bam_visual; /* weapons.c */
 
 /* Index of a build fighter in bam_match->fighters, or -1. */
 static inline int slot_of(const Fighter* fp)

@@ -58,7 +58,7 @@ typedef struct PropHit {
 } PropHit;
 typedef struct PropAnchor { HSD_JObj* jobj; short prop, root; } PropAnchor;
 #define ANCHORS 4
-typedef struct AnimScaleState {
+typedef struct AnimState {
     Scaled scaled[BAM_FIGHTERS * 8];
     unsigned scaled_count;
     RotFix rotfix[BAM_FIGHTERS * ROTFIX_PER_FIGHTER];
@@ -75,24 +75,8 @@ typedef struct AnimScaleState {
     /* The donor body part last asked for that the borrower lacks, and the
      * joint it fell back to + 1 (0: none): Bam_NoteHeldPart. */
     signed char held_part[BAM_FIGHTERS], held_joint[BAM_FIGHTERS];
-} AnimScaleState;
-extern AnimScaleState* bam_anim_scale; /* pose.c */
-#define anchor_next (bam_anim_scale->anchor_next)
-#define held_part (bam_anim_scale->held_part)
-#define held_joint (bam_anim_scale->held_joint)
-#define anchors (bam_anim_scale->anchors)
-#define joint_parent (bam_anim_scale->joint_parent)
-#define last_prop (bam_anim_scale->last_prop)
-#define last_root (bam_anim_scale->last_root)
-#define pose_on (bam_anim_scale->pose_on)
-#define prop_hits (bam_anim_scale->prop_hits)
-#define prop_track_count (bam_anim_scale->prop_track_count)
-#define prop_tracks (bam_anim_scale->prop_tracks)
-#define rotfix (bam_anim_scale->rotfix)
-#define rotfix_hash (bam_anim_scale->rotfix_hash)
-#define rotfix_part (bam_anim_scale->rotfix_part)
-#define scaled (bam_anim_scale->scaled)
-#define scaled_count (bam_anim_scale->scaled_count)
+} AnimState;
+extern AnimState* bam_anim; /* pose.c */
 
 /* Rest hip heights and body bone positions per fighter kind (retarget.c). */
 typedef struct BodyRest {

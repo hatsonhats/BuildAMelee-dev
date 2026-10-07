@@ -53,13 +53,13 @@ static void release_slot(unsigned slot)
 {
     unsigned k;
     for (k = 0; k < WEAPON_ITEMS; ++k) {
-        if (weapons[slot][k]) HSD_JObjRemoveAll(weapons[slot][k]);
-        weapons[slot][k] = NULL;
+        if (bam_visual->weapons[slot][k]) HSD_JObjRemoveAll(bam_visual->weapons[slot][k]);
+        bam_visual->weapons[slot][k] = NULL;
     }
     donor_free(slot);
-    donor_vis_kind[slot] = Ft_Kind_Max;
-    parasol_float[slot] = 0;
-    weapon_owner[slot] = NULL;
+    bam_visual->donor_vis_kind[slot] = Ft_Kind_Max;
+    bam_visual->parasol_float[slot] = 0;
+    bam_visual->weapon_owner[slot] = NULL;
 }
 
 
@@ -84,7 +84,7 @@ static bool attach_rest(HSD_JObj* j, int* id, Mtx parent, Mtx out)
 HSD_JObj* weapon_model(unsigned slot, int item)
 {
     static const ItemKind kinds[WEAPON_ITEMS] = { It_Kind_Sword, It_Kind_Hammer, It_Kind_Peach_Parasol };
-    if (!weapons[slot][item]) {
+    if (!bam_visual->weapons[slot][item]) {
         ItemKind kind = kinds[item];
         Article* article;
         Mtx rest;
@@ -92,13 +92,13 @@ HSD_JObj* weapon_model(unsigned slot, int item)
         if (kind >= It_Kind_Kuriboh) article = it_804D6D38 ? it_804D6D38[kind - It_Kind_Kuriboh] : NULL;
         else article = it_804D6D24 ? it_804D6D24[kind] : NULL;
         if (!article || !article->x10_modelDesc || !article->x10_modelDesc->x0_joint) return NULL;
-        weapons[slot][item] = HSD_JObjLoadJoint(article->x10_modelDesc->x0_joint);
-        PSMTXIdentity(weapon_attach[slot][item]);
+        bam_visual->weapons[slot][item] = HSD_JObjLoadJoint(article->x10_modelDesc->x0_joint);
+        PSMTXIdentity(bam_visual->weapon_attach[slot][item]);
         id = kind >= It_Kind_Kuriboh ? article->x10_modelDesc->x8_bone_attach_id : 0;
-        if (weapons[slot][item] && id > 0 && attach_rest(weapons[slot][item], &id, NULL, rest))
-            PSMTXInverse(rest, weapon_attach[slot][item]);
+        if (bam_visual->weapons[slot][item] && id > 0 && attach_rest(bam_visual->weapons[slot][item], &id, NULL, rest))
+            PSMTXInverse(rest, bam_visual->weapon_attach[slot][item]);
     }
-    return weapons[slot][item];
+    return bam_visual->weapons[slot][item];
 }
 
 
@@ -112,13 +112,13 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     slot = slot_of(fp);
     if (slot < 0) return;
     if (!Bam_IsAbilityState(fp)) {
-        donor_vis_kind[slot] = Ft_Kind_Max;
-        if (parasol_float[slot]) parasol_display(fp, slot, pass, vmtx);
+        bam_visual->donor_vis_kind[slot] = Ft_Kind_Max;
+        if (bam_visual->parasol_float[slot]) parasol_display(fp, slot, pass, vmtx);
         return;
     }
-    if (weapon_owner[slot] != fp) {
+    if (bam_visual->weapon_owner[slot] != fp) {
         release_slot((unsigned) slot);
-        weapon_owner[slot] = fp;
+        bam_visual->weapon_owner[slot] = fp;
     }
     source = Bam_AbilitySourceKind(fp);
     replaced = donor_display(fp, (unsigned) slot, pass, vmtx);
@@ -128,8 +128,8 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
          * even while the donor's own model draws it: unset, the float drew
          * it at no size (invisible). */
         Mtx inv, at;
-        PSMTXConcat(place, weapon_attach[slot][2], at);
-        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv)) PSMTXConcat(inv, at, parasol_rel[slot]);
+        PSMTXConcat(place, bam_visual->weapon_attach[slot][2], at);
+        if (PSMTXInverse(HSD_JObjGetMtxPtr(fp->parts[hand].joint), inv)) PSMTXConcat(inv, at, bam_visual->parasol_rel[slot]);
     }
     if (item >= 0 && (replaced & (1U << item))) return;
     if (item < 0 && (replaced & 1U)) return;
@@ -145,7 +145,7 @@ void Bam_SwordDisplay(HSD_GObj* gobj, int pass, MtxPtr vmtx)
     if (item >= WEAPON_ITEMS || (item == 0 && sword_kind(fp->kind)) || (item == 1 && hammer_kind(fp->kind))) return;
     model = weapon_model((unsigned) slot, item);
     if (!model) return;
-    PSMTXConcat(place, weapon_attach[slot][item], place);
+    PSMTXConcat(place, bam_visual->weapon_attach[slot][item], place);
     HSD_JObjCopyMtx(model, place);
     model->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT;
     HSD_JObjSetMtxDirty(model);
@@ -157,18 +157,18 @@ void Bam_SwordRelease(const Fighter* fp)
 {
     unsigned i;
     for (i = 0; i < BAM_FIGHTERS; ++i)
-        if (weapon_owner[i] == fp || !fp) release_slot(i);
+        if (bam_visual->weapon_owner[i] == fp || !fp) release_slot(i);
 }
 
 #include <sysdolphin/baselib/memory.h>
-SwordVisualState* bam_sword_visual;
+VisualState* bam_visual;
 /* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
 void Bam_SwordVisualMatchBegin(void)
 {
-    bam_sword_visual = HSD_MemAlloc(sizeof(*bam_sword_visual));
-    memset(bam_sword_visual, 0, sizeof(*bam_sword_visual));
+    bam_visual = HSD_MemAlloc(sizeof(*bam_visual));
+    memset(bam_visual, 0, sizeof(*bam_visual));
 }
 void Bam_SwordVisualMatchEnd(void)
 {
-    bam_sword_visual = NULL;
+    bam_visual = NULL;
 }

@@ -109,7 +109,7 @@ void Bam_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
     int slot = slot_of_fighter(fp);
     unsigned i, kind;
     const FighterPartsTable* from;
-    if (!bam_anim_scale || slot < 0 || count <= 0 || !track || joint < 0 || joint > 255) return;
+    if (!bam_anim || slot < 0 || count <= 0 || !track || joint < 0 || joint > 255) return;
     kind = fp->x597_bits;
     if (kind >= BAM_REST_KINDS) return;
     from = ftPartsTable[kind];
@@ -129,16 +129,16 @@ void Bam_PropTrack(Fighter* fp, int joint, FigaTrack* track, int count)
         if (!used) used = body_slot(part) >= 0;
         if (!used) return;
     }
-    for (i = 0; i < prop_track_count[slot]; ++i)
-        if (prop_tracks[slot][i].joint == joint) break;
-    if (i == prop_track_count[slot]) {
+    for (i = 0; i < bam_anim->prop_track_count[slot]; ++i)
+        if (bam_anim->prop_tracks[slot][i].joint == joint) break;
+    if (i == bam_anim->prop_track_count[slot]) {
         if (i >= PROP_TRACKS) return;
-        ++prop_track_count[slot];
+        ++bam_anim->prop_track_count[slot];
     }
-    prop_tracks[slot][i].track = track;
-    prop_tracks[slot][i].count = (unsigned char) count;
-    prop_tracks[slot][i].joint = (unsigned char) joint;
-    prop_tracks[slot][i].kind = (unsigned char) kind;
+    bam_anim->prop_tracks[slot][i].track = track;
+    bam_anim->prop_tracks[slot][i].count = (unsigned char) count;
+    bam_anim->prop_tracks[slot][i].joint = (unsigned char) joint;
+    bam_anim->prop_tracks[slot][i].kind = (unsigned char) kind;
 }
 
 typedef struct PropEval { float v[11]; } PropEval;
@@ -150,8 +150,8 @@ static void prop_store(void* obj, enum_t type, HSD_ObjData* value)
 static void eval_tracks(int slot, unsigned kind, int joint, float frame, PropEval* e)
 {
     unsigned i, k;
-    for (i = 0; slot >= 0 && i < prop_track_count[slot]; ++i) {
-        const PropTrack* pt = &prop_tracks[slot][i];
+    for (i = 0; slot >= 0 && i < bam_anim->prop_track_count[slot]; ++i) {
+        const PropTrack* pt = &bam_anim->prop_tracks[slot][i];
         if (pt->joint != joint || pt->kind != kind) continue;
         for (k = 0; k < pt->count; ++k) {
             HSD_FObj f;
@@ -344,14 +344,14 @@ int Bam_PropJoint(Fighter* fp, int bone)
     root = prop >= 0 ? prop_root(fp, prop) : -1;
     slot = slot_of_fighter(fp);
     if (root >= 0 && slot >= 0) {
-        last_prop[slot] = (short) (prop + 1);
-        last_root[slot] = (short) root;
+        bam_anim->last_prop[slot] = (short) (prop + 1);
+        bam_anim->last_root[slot] = (short) root;
     } else if (prop < 0 && (row = chain_find(Bam_AbilitySourceKind(fp), bone)) >= 0 && fp->parts[0].joint) {
         /* Posed from the root (bam_chain): articles ride on that pose. */
         root = 0;
         if (slot >= 0) {
-            last_prop[slot] = (short) -(row + 1);
-            last_root[slot] = 0;
+            bam_anim->last_prop[slot] = (short) -(row + 1);
+            bam_anim->last_root[slot] = 0;
         }
     }
     return root;
@@ -425,14 +425,14 @@ void prop_reset(const Fighter* fp)
 {
     int slot;
     if (!fp) {
-        memset(prop_track_count, 0, sizeof(prop_track_count));
-        memset(prop_hits, 0, sizeof(prop_hits));
-        memset(anchors, 0, sizeof(anchors));
-        memset(anchor_next, 0, sizeof(anchor_next));
-        memset(last_prop, 0, sizeof(last_prop));
+        memset(bam_anim->prop_track_count, 0, sizeof(bam_anim->prop_track_count));
+        memset(bam_anim->prop_hits, 0, sizeof(bam_anim->prop_hits));
+        memset(bam_anim->anchors, 0, sizeof(bam_anim->anchors));
+        memset(bam_anim->anchor_next, 0, sizeof(bam_anim->anchor_next));
+        memset(bam_anim->last_prop, 0, sizeof(bam_anim->last_prop));
         return;
     }
     slot = slot_of_fighter(fp);
-    if (slot >= 0) prop_track_count[slot] = 0;
+    if (slot >= 0) bam_anim->prop_track_count[slot] = 0;
 }
 

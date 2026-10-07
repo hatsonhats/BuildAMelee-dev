@@ -52,19 +52,19 @@ static void parasol_hit_off_set(Fighter* fp, int slot, int hand, Mtx parasol)
     off.y = 0.003906f * cmd[2].create_hitbox_2.y_offset;
     off.z = 0.003906f * cmd[2].create_hitbox_2.x_offset;
     PSMTXConcat(inv, parasol, rel);
-    PSMTXMultVec(rel, &off, &parasol_hit_off[slot]);
+    PSMTXMultVec(rel, &off, &bam_visual->parasol_hit_off[slot]);
 }
 
 /* The float ends. A state change has already removed the hitbox; closing
  * the parasol (still in the special fall) removes it here. */
 static void parasol_hit_off_clear(Fighter* fp, int slot, int disable)
 {
-    if (parasol_hit[slot] && disable) {
-        HitCapsule* h = &fp->x914[parasol_hit[slot] - 1];
+    if (bam_visual->parasol_hit[slot] && disable) {
+        HitCapsule* h = &fp->x914[bam_visual->parasol_hit[slot] - 1];
         int hand = parasol_base(fp);
         if (hand >= 0 && h->jobj == fp->parts[hand].joint) h->state = HitCapsule_Disabled;
     }
-    parasol_hit[slot] = 0;
+    bam_visual->parasol_hit[slot] = 0;
 }
 
 /* Every frame (BAM_OnFrame), part of the simulation: whether the next
@@ -76,13 +76,13 @@ void Bam_ParasolTrack(Fighter* fp)
     if (slot < 0) return;
     if (Bam_IsAbilityState(fp)) {
         if (Bam_PropWeaponMtx(fp, w) != 2 || (hand = parasol_base(fp)) < 0) return;
-        parasol_float[slot] = 1;
+        bam_visual->parasol_float[slot] = 1;
         parasol_hit_off_set(fp, slot, hand, w);
         return;
     }
-    if (parasol_float[slot] && (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air)) {
+    if (bam_visual->parasol_float[slot] && (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air)) {
         parasol_hit_off_clear(fp, slot, 0);
-        parasol_float[slot] = 0;
+        bam_visual->parasol_float[slot] = 0;
     }
 }
 
@@ -100,7 +100,7 @@ bool Bam_ParasolOpen(HSD_GObj* gobj)
         Bam_AbilitySourceKind(fp) != Ft_Kind_Peach)
         return false;
     da = fp->dat_attrs;
-    parasol_float[slot] = 1;
+    bam_visual->parasol_float[slot] = 1;
     ftCo_80096900(gobj, 0, 1, false, da->x70, da->x74);
     return true;
 }
@@ -110,11 +110,11 @@ bool Bam_ParasolFloat(HSD_GObj* gobj)
 {
     Fighter* fp = GET_FIGHTER(gobj);
     int slot = slot_of(fp), hand;
-    if (slot < 0 || !parasol_float[slot]) return false;
+    if (slot < 0 || !bam_visual->parasol_float[slot]) return false;
     if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air ||
         fp->input.lstick[0].y <= p_ftCommonData->close_parasol_threshold) {
         parasol_hit_off_clear(fp, slot, fp->motion_id == ftCo_MS_FallSpecial);
-        parasol_float[slot] = 0;
+        bam_visual->parasol_float[slot] = 0;
         if (fp->motion_id == ftCo_MS_FallSpecial && fp->ground_or_air == GA_Air &&
             fp->input.lstick[0].y <= -p_ftCommonData->x88 && !fp->fall_fast) {
             /* Closing it with a tap down drops into a fast fall at once
@@ -126,7 +126,7 @@ bool Bam_ParasolFloat(HSD_GObj* gobj)
         }
         return false;
     }
-    if (!parasol_hit[slot] && (hand = parasol_base(fp)) >= 0) {
+    if (!bam_visual->parasol_hit[slot] && (hand = parasol_base(fp)) >= 0) {
         union CmdUnion* cmd = parasol_hit_cmd();
         if (cmd) {
             CommandInfo ci;
@@ -136,8 +136,8 @@ bool Bam_ParasolFloat(HSD_GObj* gobj)
             ftAction_8007121C(gobj, &ci);
             h = &fp->x914[cmd->create_hitbox_0.id];
             h->jobj = fp->parts[hand].joint;
-            h->b_offset = parasol_hit_off[slot];
-            parasol_hit[slot] = (unsigned char) (cmd->create_hitbox_0.id + 1);
+            h->b_offset = bam_visual->parasol_hit_off[slot];
+            bam_visual->parasol_hit[slot] = (unsigned char) (cmd->create_hitbox_0.id + 1);
             BAM_LOG("parasol hit id=%d off=(%.2f,%.2f,%.2f)\n", (int) cmd->create_hitbox_0.id,
                     h->b_offset.x, h->b_offset.y, h->b_offset.z);
         }
@@ -152,7 +152,7 @@ void parasol_display(Fighter* fp, int slot, int pass, MtxPtr vmtx)
     if (fp->motion_id != ftCo_MS_FallSpecial || fp->ground_or_air != GA_Air || hand < 0) return;
     model = weapon_model((unsigned) slot, 2);
     if (!model) return;
-    PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[hand].joint), parasol_rel[slot], place);
+    PSMTXConcat(HSD_JObjGetMtxPtr(fp->parts[hand].joint), bam_visual->parasol_rel[slot], place);
     HSD_JObjCopyMtx(model, place);
     model->flags |= JOBJ_USER_DEF_MTX | JOBJ_MTX_INDEP_PARENT | JOBJ_MTX_INDEP_SRT;
     HSD_JObjSetMtxDirty(model);

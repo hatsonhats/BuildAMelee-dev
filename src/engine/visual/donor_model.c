@@ -36,8 +36,8 @@ static const VisDonor* vis_donor(unsigned kind, int group)
 /* The donor's current variant of `group` for this borrower (-1 none). */
 static int vis_get(int slot, unsigned kind, int group)
 {
-    if (donor_vis_kind[slot] != kind || group < 0 || group >= VIS_GROUPS) return -1;
-    return donor_vis[slot][group];
+    if (bam_visual->donor_vis_kind[slot] != kind || group < 0 || group >= VIS_GROUPS) return -1;
+    return bam_visual->donor_vis[slot][group];
 }
 /* ftParts_80074B0C / ftParts_80074A4C: a borrowed move switching one of the
  * donor's model-part groups. True when it was kept here. */
@@ -59,11 +59,11 @@ bool Bam_VisSet(HSD_GObj* gobj, int group, int val)
     }
     slot = slot_of(fp);
     if (slot < 0) return false;
-    if (donor_vis_kind[slot] != source) {
-        memset(donor_vis[slot], 0xFF, sizeof(donor_vis[slot]));
-        donor_vis_kind[slot] = (unsigned char) source;
+    if (bam_visual->donor_vis_kind[slot] != source) {
+        memset(bam_visual->donor_vis[slot], 0xFF, sizeof(bam_visual->donor_vis[slot]));
+        bam_visual->donor_vis_kind[slot] = (unsigned char) source;
     }
-    donor_vis[slot][group] = (signed char) val;
+    bam_visual->donor_vis[slot][group] = (signed char) val;
     /* Diagnostics: Mr. Game & Watch's box, key and horn not showing. */
     BAM_LOG("vis_set kind=%u group=%d variant=%d frame=%d\n", source, group, val, (int) fp->cur_anim_frame);
     return true;
@@ -98,10 +98,10 @@ static void donor_release(DonorModel* m)
 }
 void donor_free(unsigned slot)
 {
-    if (!donor_models[slot]) return;
-    donor_release(donor_models[slot]);
-    OSFreeToHeap(HSD_GetHeap(), donor_models[slot]);
-    donor_models[slot] = NULL;
+    if (!bam_visual->donor_models[slot]) return;
+    donor_release(bam_visual->donor_models[slot]);
+    OSFreeToHeap(HSD_GetHeap(), bam_visual->donor_models[slot]);
+    bam_visual->donor_models[slot] = NULL;
 }
 /* The `index`th DObj as the fighter numbers them, or NULL. */
 static HSD_DObj* dobj_at(DonorModel* m, unsigned index)
@@ -182,7 +182,7 @@ int Bam_DonorItemColor(HSD_GObj* gobj, void* dst, int outline)
 
 static DonorModel* donor_model(unsigned slot, unsigned kind)
 {
-    DonorModel* m = donor_models[slot];
+    DonorModel* m = bam_visual->donor_models[slot];
     unsigned char groups[DONOR_MESHES];
     unsigned short wanted[DONOR_MESHES], pobjs[DONOR_MESHES];
     unsigned count, i, d, k;
@@ -194,13 +194,13 @@ static DonorModel* donor_model(unsigned slot, unsigned kind)
         m = OSAllocFromHeap(HSD_GetHeap(), sizeof(DonorModel));
         if (!m) return NULL;
         memset(m, 0, sizeof(*m));
-        donor_models[slot] = m;
+        bam_visual->donor_models[slot] = m;
     }
     donor_release(m);
     m->kind = kind;
     if ((!count && !vis_donor(kind, -1)) || kind >= Ft_Kind_Max) return NULL;
     desc = CostumeListsForeachCharacter[kind].costume_list[0].joint;
-    if (!desc) desc = part_joint[kind];
+    if (!desc) desc = bam_visual->part_joint[kind];
     if (!desc) {
         BAM_LOG("donor_model kind=%u not loaded\n", kind);
         return NULL;
@@ -332,7 +332,7 @@ static int parts_load(unsigned kind, const Fighter_CostumeStrings* cs)
         BAM_NOTE("donor parts kind=%u: %s has no %s\n", kind, name, cs->joint_name);
         return 0;
     }
-    part_joint[kind] = joint;
+    bam_visual->part_joint[kind] = joint;
     BAM_LOG("donor_parts_load kind=%u %u KB\n", kind, size / 1024);
     return 1;
 }
@@ -347,7 +347,7 @@ void Bam_DonorModelsLoad(void)
         model_wanted[kind] = 0;
         if (CostumeListsForeachCharacter[kind].costume_list[0].joint) continue;
         if (!ftData_803C2360[kind] || !ftData_803C2360[kind][0].dat_filename) continue;
-        if (bam_sword_visual && parts_load(kind, &ftData_803C2360[kind][0])) continue;
+        if (bam_visual && parts_load(kind, &ftData_803C2360[kind][0])) continue;
         if (model_into_cache(kind, &ftData_803C2360[kind][0])) continue;
         size = (unsigned) lbFileGetSize(ftData_803C2360[kind][0].dat_filename);
         room = Bam_HeapRoom();
@@ -444,8 +444,8 @@ bool Bam_BodyHidden(HSD_GObj* gobj)
     if (!fp || !Bam_IsAbilityState(fp)) return false;
     source = Bam_AbilitySourceKind(fp);
     slot = slot_of(fp);
-    if (slot < 0 || source == fp->kind || !donor_models[slot] || donor_models[slot]->kind != source ||
-        !donor_models[slot]->root)
+    if (slot < 0 || source == fp->kind || !bam_visual->donor_models[slot] || bam_visual->donor_models[slot]->kind != source ||
+        !bam_visual->donor_models[slot]->root)
         return false;
     for (i = 0; i < sizeof(vis_donors) / sizeof(vis_donors[0]); ++i)
         if (vis_donors[i].kind == source && vis_donors[i].hide_body &&
@@ -461,7 +461,7 @@ bool Bam_BodyHidden(HSD_GObj* gobj)
 void Bam_VisReset(const Fighter* fp)
 {
     int slot;
-    if (!bam_sword_visual || !bam_match) return;
+    if (!bam_visual || !bam_match) return;
     slot = slot_of(fp);
-    if (slot >= 0) donor_vis_kind[slot] = Ft_Kind_Max;
+    if (slot >= 0) bam_visual->donor_vis_kind[slot] = Ft_Kind_Max;
 }

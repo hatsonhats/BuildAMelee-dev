@@ -49,7 +49,7 @@ static void pose_pass(Fighter* fp);
 /* After the fighter's animation step (ftAnim_8006EBA4). */
 void Bam_AnimPostStep(Fighter* fp)
 {
-    if (!bam_anim_scale) return;
+    if (!bam_anim) return;
     pose_pass(fp);
     anchors_follow(fp);
 }
@@ -62,7 +62,7 @@ static void pose_pass(Fighter* fp)
     const FighterPartsTable* own;
     int slot = slot_of_fighter(fp);
     unsigned n, j, source;
-    if (slot < 0 || !pose_on[slot] || fp->x8A4_animBlendFrames != 0.0f) return;
+    if (slot < 0 || !bam_anim->pose_on[slot] || fp->x8A4_animBlendFrames != 0.0f) return;
     source = fp->x597_bits;
     if (!prop_active(fp, source) || source >= BAM_REST_KINDS || fp->kind >= BAM_REST_KINDS) return;
     if (bam_part_parent[source][4] == 0xFF) return; /* No hierarchy data. */
@@ -71,7 +71,7 @@ static void pose_pass(Fighter* fp)
     memset(d.done, 0, sizeof(d.done));
     for (j = 0; j < n; ++j) {
         HSD_JObj* jobj = fp->parts[j].joint;
-        unsigned pj = joint_parent[slot][j];
+        unsigned pj = bam_anim->joint_parent[slot][j];
         int part = own->joint_to_part[j];
         Quat parent = pj < j ? act[pj] : identity;
         RotFix* e;
@@ -222,15 +222,15 @@ void Bam_DonorPose(Fighter* fp, HSD_JObj* const* jobjs, const unsigned char* par
     }
 }
 
-AnimScaleState* bam_anim_scale;
+AnimState* bam_anim;
 /* Called from Bam_MatchBegin / Bam_MatchEnd (bam_fighter.c). */
 void Bam_AnimScaleMatchBegin(void)
 {
-    bam_anim_scale = HSD_MemAlloc(sizeof(*bam_anim_scale));
-    memset(bam_anim_scale, 0, sizeof(*bam_anim_scale));
+    bam_anim = HSD_MemAlloc(sizeof(*bam_anim));
+    memset(bam_anim, 0, sizeof(*bam_anim));
 }
 void Bam_AnimScaleMatchEnd(void)
 {
-    bam_anim_scale = NULL;
+    bam_anim = NULL;
 }
 

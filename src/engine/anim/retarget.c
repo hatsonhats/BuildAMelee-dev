@@ -57,8 +57,8 @@ const BodyRest body_rest[BODY_KINDS] = {
 static void forget(const Fighter* fp)
 {
     unsigned i = 0;
-    while (i < scaled_count)
-        if (scaled[i].fighter == fp) scaled[i] = scaled[--scaled_count];
+    while (i < bam_anim->scaled_count)
+        if (bam_anim->scaled[i].fighter == fp) bam_anim->scaled[i] = bam_anim->scaled[--bam_anim->scaled_count];
         else ++i;
 }
 
@@ -111,19 +111,19 @@ static unsigned rotfix_slot(HSD_JObj* jobj) { return ((unsigned) jobj >> 4) & (R
 static void rotfix_rehash(void)
 {
     unsigned i;
-    memset(rotfix_hash, 0, sizeof(rotfix_hash));
-    for (i = 0; i < sizeof(rotfix) / sizeof(rotfix[0]); ++i) {
+    memset(bam_anim->rotfix_hash, 0, sizeof(bam_anim->rotfix_hash));
+    for (i = 0; i < sizeof(bam_anim->rotfix) / sizeof(bam_anim->rotfix[0]); ++i) {
         unsigned h;
-        if (!rotfix[i].jobj) continue;
-        for (h = rotfix_slot(rotfix[i].jobj); rotfix_hash[h]; h = (h + 1) & (ROTFIX_HASH - 1)) {}
-        rotfix_hash[h] = (unsigned short) (i + 1);
+        if (!bam_anim->rotfix[i].jobj) continue;
+        for (h = rotfix_slot(bam_anim->rotfix[i].jobj); bam_anim->rotfix_hash[h]; h = (h + 1) & (ROTFIX_HASH - 1)) {}
+        bam_anim->rotfix_hash[h] = (unsigned short) (i + 1);
     }
 }
 RotFix* rotfix_find(HSD_JObj* jobj)
 {
     unsigned h;
-    for (h = rotfix_slot(jobj); rotfix_hash[h]; h = (h + 1) & (ROTFIX_HASH - 1))
-        if (rotfix[rotfix_hash[h] - 1].jobj == jobj) return &rotfix[rotfix_hash[h] - 1];
+    for (h = rotfix_slot(jobj); bam_anim->rotfix_hash[h]; h = (h + 1) & (ROTFIX_HASH - 1))
+        if (bam_anim->rotfix[bam_anim->rotfix_hash[h] - 1].jobj == jobj) return &bam_anim->rotfix[bam_anim->rotfix_hash[h] - 1];
     return NULL;
 }
 /* The recipient's own joint for a body part, or -1. Not ftParts_GetBoneIndex:
@@ -166,24 +166,24 @@ static void build_parents(Fighter* fp, unsigned slot)
     if (n > POSE_JOINTS) n = POSE_JOINTS;
     for (i = 0; i < n; ++i) {
         HSD_JObj* parent = fp->parts[i].joint ? HSD_JObjGetParent(fp->parts[i].joint) : NULL;
-        joint_parent[slot][i] = 0xFF;
+        bam_anim->joint_parent[slot][i] = 0xFF;
         for (k = 0; parent && k < i; ++k)
-            if (fp->parts[k].joint == parent) { joint_parent[slot][i] = (unsigned char) k; break; }
+            if (fp->parts[k].joint == parent) { bam_anim->joint_parent[slot][i] = (unsigned char) k; break; }
     }
 }
 static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, int first_part, int borrowed)
 {
     unsigned i, k;
-    RotFix* block = &rotfix[slot * ROTFIX_PER_FIGHTER];
-    unsigned char* parts = &rotfix_part[slot * ROTFIX_PER_FIGHTER];
+    RotFix* block = &bam_anim->rotfix[slot * ROTFIX_PER_FIGHTER];
+    unsigned char* parts = &bam_anim->rotfix_part[slot * ROTFIX_PER_FIGHTER];
     /* Entries from the part this animation starts at are replaced. */
     for (i = 0; i < ROTFIX_PER_FIGHTER; ++i)
         if (block[i].jobj && parts[i] >= (unsigned) first_part) block[i].jobj = NULL;
-    if (first_part == 0) pose_on[slot] = 0;
+    if (first_part == 0) bam_anim->pose_on[slot] = 0;
     if (borrowed) {
         if (first_part == 0) {
             build_parents(fp, slot);
-            pose_on[slot] = 1;
+            bam_anim->pose_on[slot] = 1;
         }
         for (i = 0; i < BAM_REST_PARTS; ++i) {
             int part = bam_rest_part[i], joint, parent;
@@ -236,7 +236,7 @@ static void rotate_retarget(Fighter* fp, unsigned slot, unsigned source_kind, in
 static void rotfix_apply(RotFix* e)
 {
     float out[3];
-    Quat local = q_mul(mid_quat(e->kind, rotfix_part[e - rotfix]), q_euler(e->donor));
+    Quat local = q_mul(mid_quat(e->kind, bam_anim->rotfix_part[e - bam_anim->rotfix]), q_euler(e->donor));
     if (e->nfold) local = q_mul(fold_quat(e), local);
     q_to_euler(q_mul(q_mul(e->a, local), e->b), out);
     HSD_JObjSetRotationX(e->jobj, out[0]);
@@ -248,7 +248,7 @@ void Bam_AnimRotate(HSD_JObj* jobj, int axis, float value)
 {
     /* Every animated joint goes through here, menus included, and the
      * per-match state only exists during a match. */
-    RotFix* e = bam_anim_scale ? rotfix_find(jobj) : NULL;
+    RotFix* e = bam_anim ? rotfix_find(jobj) : NULL;
     if (!e) {
         if (axis == 0) HSD_JObjSetRotationX(jobj, value);
         else if (axis == 1) HSD_JObjSetRotationY(jobj, value);
@@ -266,7 +266,7 @@ void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
     const BodyRest *own, *donor;
     float ratio;
     unsigned i, k;
-    if (!fp || !bam_anim_scale) return;
+    if (!fp || !bam_anim) return;
     if (first_part == 0) prop_reset(fp);
     S = Bam_FighterCtx(fp);
     if (S && S->fighter == fp) {
@@ -298,8 +298,8 @@ void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
         jobjs[1] = fp->parts[joint].x4_jobj2;
         for (k = 0; k < 2; ++k) {
             Scaled* s;
-            if (!jobjs[k] || (k && jobjs[1] == jobjs[0]) || scaled_count >= sizeof(scaled) / sizeof(scaled[0])) continue;
-            s = &scaled[scaled_count++];
+            if (!jobjs[k] || (k && jobjs[1] == jobjs[0]) || bam_anim->scaled_count >= sizeof(bam_anim->scaled) / sizeof(bam_anim->scaled[0])) continue;
+            s = &bam_anim->scaled[bam_anim->scaled_count++];
             s->fighter = fp;
             s->jobj = jobjs[k];
             memcpy(s->own, own->pos[i], sizeof(s->own));
@@ -317,8 +317,8 @@ void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
          * move's size. */
         int joint = part_joint_raw(fp, FtPart_TransN2);
         if (joint != FTPART_INVALID && joint >= 0 && fp->parts[joint].joint &&
-            scaled_count < sizeof(scaled) / sizeof(scaled[0])) {
-            Scaled* s = &scaled[scaled_count++];
+            bam_anim->scaled_count < sizeof(bam_anim->scaled) / sizeof(bam_anim->scaled[0])) {
+            Scaled* s = &bam_anim->scaled[bam_anim->scaled_count++];
             memset(s, 0, sizeof(*s));
             s->fighter = fp;
             s->jobj = fp->parts[joint].joint;
@@ -330,10 +330,10 @@ void Bam_AnimRetarget(Fighter* fp, unsigned source_kind, int first_part)
 float Bam_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 {
     unsigned i;
-    if (!bam_anim_scale) return value; /* outside a match (menus) */
-    for (i = 0; i < scaled_count; ++i)
-        if (scaled[i].jobj == jobj) {
-            const Scaled* e = &scaled[i];
+    if (!bam_anim) return value; /* outside a match (menus) */
+    for (i = 0; i < bam_anim->scaled_count; ++i)
+        if (bam_anim->scaled[i].jobj == jobj) {
+            const Scaled* e = &bam_anim->scaled[i];
             float d = value - e->donor[axis], move = d * e->ratio;
             if (e->lift && axis == 1 && d > 0.0f) {
                 /* A lift (Jigglypuff's dash attack and up smash hop half
@@ -354,9 +354,9 @@ float Bam_AnimTranslate(HSD_JObj* jobj, int axis, float value)
 
 void Bam_AnimScaleReset(void)
 {
-    if (!bam_anim_scale) return;
-    scaled_count = 0;
-    memset(rotfix, 0, sizeof(rotfix));
+    if (!bam_anim) return;
+    bam_anim->scaled_count = 0;
+    memset(bam_anim->rotfix, 0, sizeof(bam_anim->rotfix));
     rotfix_rehash();
     prop_reset(NULL);
 }

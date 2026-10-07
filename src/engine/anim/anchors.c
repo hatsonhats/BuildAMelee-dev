@@ -112,10 +112,10 @@ static HSD_JObj* part_joint(Fighter* fp, int part)
  * next is held in the frame of the part asked for. */
 void Bam_NoteHeldPart(Fighter* fp, int part, int joint)
 {
-    int slot = bam_anim_scale ? slot_of_fighter(fp) : -1;
+    int slot = bam_anim ? slot_of_fighter(fp) : -1;
     if (slot < 0) return;
-    held_part[slot] = (signed char) part;
-    held_joint[slot] = (signed char) (joint + 1);
+    bam_anim->held_part[slot] = (signed char) part;
+    bam_anim->held_joint[slot] = (signed char) (joint + 1);
 }
 
 HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
@@ -126,10 +126,10 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
     if (slot < 0 || part < 0 || (unsigned) part >= ftPartsTable[fp->kind]->parts_num ||
         !prop_active(fp, Bam_AbilitySourceKind(fp)))
         return part_joint(fp, part);
-    if (last_root[slot] == part && last_prop[slot] > 0 && last_prop[slot] <= BAM_PROP_COUNT)
-        prop = last_prop[slot] - 1;
-    else if (last_root[slot] == part && last_prop[slot] < 0 && -last_prop[slot] <= BAM_CHAIN_COUNT)
-        prop = -2 - (-last_prop[slot] - 1);
+    if (bam_anim->last_root[slot] == part && bam_anim->last_prop[slot] > 0 && bam_anim->last_prop[slot] <= BAM_PROP_COUNT)
+        prop = bam_anim->last_prop[slot] - 1;
+    else if (bam_anim->last_root[slot] == part && bam_anim->last_prop[slot] < 0 && -bam_anim->last_prop[slot] <= BAM_CHAIN_COUNT)
+        prop = -2 - (-bam_anim->last_prop[slot] - 1);
     else {
         /* An article held by a donor body part posed through the donor's
          * own skeleton (Mr. Game & Watch's hand: his Judge sign, turtle,
@@ -137,9 +137,9 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
          * borrower's own hand it faced along the wrong axis (seen edge-on). */
         unsigned source = Bam_AbilitySourceKind(fp);
         int ftpart = ftPartsTable[fp->kind]->joint_to_part[part], row;
-        if (held_joint[slot] == part + 1) {
-            ftpart = held_part[slot];
-            held_joint[slot] = 0;
+        if (bam_anim->held_joint[slot] == part + 1) {
+            ftpart = bam_anim->held_part[slot];
+            bam_anim->held_joint[slot] = 0;
         }
         if (source < Ft_Kind_Max && ftpart != FTPART_INVALID && (unsigned) ftpart < ftPartsTable[source]->parts_num) {
             int joint = ftPartsTable[source]->part_to_joint[ftpart];
@@ -147,18 +147,18 @@ HSD_JObj* Bam_ItemAnchor(HSD_GObj* gobj, int part)
         }
     }
     for (i = 0; i < ANCHORS; ++i)
-        if (anchors[slot][i].jobj && anchors[slot][i].prop == prop && anchors[slot][i].root == part) break;
+        if (bam_anim->anchors[slot][i].jobj && bam_anim->anchors[slot][i].prop == prop && bam_anim->anchors[slot][i].root == part) break;
     if (i == ANCHORS) {
-        i = anchor_next[slot]++ % ANCHORS;
-        if (!anchors[slot][i].jobj) anchors[slot][i].jobj = HSD_JObjAlloc();
-        if (!anchors[slot][i].jobj) return part_joint(fp, part);
-        anchors[slot][i].prop = (short) prop;
-        anchors[slot][i].root = (short) part;
+        i = bam_anim->anchor_next[slot]++ % ANCHORS;
+        if (!bam_anim->anchors[slot][i].jobj) bam_anim->anchors[slot][i].jobj = HSD_JObjAlloc();
+        if (!bam_anim->anchors[slot][i].jobj) return part_joint(fp, part);
+        bam_anim->anchors[slot][i].prop = (short) prop;
+        bam_anim->anchors[slot][i].root = (short) part;
         BAM_LOG("item_anchor donor=%u joint=%d part=%d prop=%d\n", (unsigned) Bam_AbilitySourceKind(fp), part,
                 (int) ftPartsTable[fp->kind]->joint_to_part[part], prop);
     }
-    anchor_place(fp, &anchors[slot][i]);
-    return anchors[slot][i].jobj;
+    anchor_place(fp, &bam_anim->anchors[slot][i]);
+    return bam_anim->anchors[slot][i].jobj;
 }
 
 /* The joint an absorb, reflect or shield bubble rides on (ftcoll.c platform
@@ -184,5 +184,5 @@ void anchors_follow(Fighter* fp)
     unsigned i;
     if (slot < 0) return;
     for (i = 0; i < ANCHORS; ++i)
-        if (anchors[slot][i].jobj) anchor_place(fp, &anchors[slot][i]);
+        if (bam_anim->anchors[slot][i].jobj) anchor_place(fp, &bam_anim->anchors[slot][i]);
 }

@@ -10,7 +10,6 @@ typedef struct RestSleepState {
     Fighter* sleepers[BAM_FIGHTERS];
 } RestSleepState;
 static RestSleepState* bam_rest_sleep;
-#define sleepers (bam_rest_sleep->sleepers)
 
 
 /* Borrowed Rest: once Jigglypuff's animation has her lying asleep, the
@@ -39,8 +38,8 @@ bool Bam_RestSleep(Fighter_GObj* gobj)
      * borrower's animations. */
     Fighter_ChangeMotionState(gobj, ftCo_MS_DamageSong, Ft_MF_None, 0, 1, 0, NULL);
     ftCommon_InitGrab(fp, 0, remaining * p_ftCommonData->x63C);
-    for (i = 0; i < BAM_FIGHTERS; ++i) if (sleepers[i] == fp) return true;
-    for (i = 0; i < BAM_FIGHTERS; ++i) if (!sleepers[i]) { sleepers[i] = fp; break; }
+    for (i = 0; i < BAM_FIGHTERS; ++i) if (bam_rest_sleep->sleepers[i] == fp) return true;
+    for (i = 0; i < BAM_FIGHTERS; ++i) if (!bam_rest_sleep->sleepers[i]) { bam_rest_sleep->sleepers[i] = fp; break; }
     return true;
 }
 
@@ -48,7 +47,7 @@ bool Bam_RestSleep(Fighter_GObj* gobj)
 bool Bam_RestSleeping(Fighter* fp)
 {
     unsigned i;
-    for (i = 0; i < BAM_FIGHTERS; ++i) if (fp && sleepers[i] == fp) return true;
+    for (i = 0; i < BAM_FIGHTERS; ++i) if (fp && bam_rest_sleep->sleepers[i] == fp) return true;
     return false;
 }
 
@@ -56,7 +55,7 @@ bool Bam_RestSleeping(Fighter* fp)
 void Bam_RestSleepClear(Fighter* fp)
 {
     unsigned i;
-    for (i = 0; i < BAM_FIGHTERS; ++i) if (sleepers[i] == fp) sleepers[i] = NULL;
+    for (i = 0; i < BAM_FIGHTERS; ++i) if (bam_rest_sleep->sleepers[i] == fp) bam_rest_sleep->sleepers[i] = NULL;
 }
 
 #include <sysdolphin/baselib/memory.h>
