@@ -1,0 +1,2716 @@
+{
+ "schema": 2,
+ "upstream": "11749c9ccbaf73bfc28a569650dfec5e18665a74",
+ "files": {
+  "src/melee/ft/fighter.c": {
+   "base_sha256": "99771a58832031aae23b819ff436054954a5a1b53ac1a52cd134760aaa71a8cb",
+   "edits": [
+    {
+     "owner": "lifecycle-cleanup",
+     "symbol": "void Fighter_UnkInitReset_80067C98(Fighter* fp)",
+     "line": 233,
+     "before": [],
+     "after": [
+      "    Bam_BorrowEnd(fp);"
+     ]
+    },
+    {
+     "owner": "donor-preload",
+     "symbol": "Fighter_GObj* Fighter_Create(struct plAllocInfo* input)",
+     "line": 933,
+     "before": [],
+     "after": [
+      "    BamFighter_Created(fp);"
+     ]
+    },
+    {
+     "owner": "state-table-redirect",
+     "symbol": "void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,",
+     "line": 950,
+     "before": [],
+     "after": [
+      "    new_motion_state = Bam_DonorMotionState(fp, msid);",
+      "    if (new_motion_state != NULL && Bam_DonorKind(fp) != fp->kind) {",
+      "        flags |= Ft_MF_SkipMatAnim | Ft_MF_SkipModelPartVis |",
+      "                 Ft_MF_SkipModelFlags;",
+      "    }",
+      ""
+     ]
+    },
+    {
+     "owner": "state-table-redirect",
+     "symbol": "void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,",
+     "line": 1180,
+     "before": [
+      "    if (msid >= fp->x18) {"
+     ],
+     "after": [
+      "    if (new_motion_state != NULL) {",
+      "        /* Per-fighter source ability; global character tables stay intact. */",
+      "    } else if (msid >= fp->x18) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void Fighter_ChangeMotionState(Fighter_GObj* gobj, FtMotionId msid,",
+     "line": 1258,
+     "before": [
+      "            ftCo_8009E7B4(fp, unk_byte_ptr);"
+     ],
+     "after": [
+      "            if (Bam_InBorrowedMove(fp) &&",
+      "                Bam_DonorKind(fp) != fp->kind) {",
+      "            } else {",
+      "                ftCo_8009E7B4(fp, unk_byte_ptr);",
+      "            }"
+     ]
+    },
+    {
+     "owner": "lifecycle-cleanup",
+     "symbol": "void Fighter_Unload_8006DABC(void* user_data)",
+     "line": 3097,
+     "before": [],
+     "after": [
+      "    Bam_BorrowFighterDestroyed(fp);",
+      ""
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftaction.c": {
+   "base_sha256": "037adb5d8a0f37264f6b321e4dd6a60dd2c925d02c716de2aed7477ff80214e4",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80071028(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 243,
+     "before": [
+      "                bone = fp->ft_data->x8->x12;"
+     ],
+     "after": [
+      "                bone = Bam_DonorData(fp)->x8->x12;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80071028(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 270,
+     "before": [],
+     "after": [
+      "            if (Bam_InBorrowedMove(fp) && bone < 0x8D) {",
+      "                if (use_common_bone_id)",
+      "                    bone = ftParts_GetBoneIndex(fp, bone);",
+      "                else",
+      "                    bone = Bam_DonorBoneJoint(fp, bone);",
+      "                use_common_bone_id = 0;",
+      "            }"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_8007121C(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 317,
+     "before": [
+      "            hitbox->jobj = fp->parts[idx].joint;"
+     ],
+     "after": [
+      "            hitbox->jobj = fp->parts[Bam_DonorBoneJoint(fp, idx)].joint;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80071CCC(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 668,
+     "before": [
+      "    FtSFX* sfx = fp->ft_data->x4C_sfx;"
+     ],
+     "after": [
+      "    FtSFX* sfx = Bam_DonorData(fp)->x4C_sfx;"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftAction_80071D40(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 685,
+     "before": [
+      "    ftParts_80074B0C(gobj, cmd->u->set_dobj_flags.idx,",
+      "                     cmd->u->set_dobj_flags.value);"
+     ],
+     "after": [
+      "    Fighter* fp = GET_FIGHTER(gobj);",
+      "    if (!Bam_InBorrowedMove(fp) ||",
+      "        Bam_DonorKind(fp) == fp->kind) {",
+      "        ftParts_80074B0C(gobj, cmd->u->set_dobj_flags.idx,",
+      "                         cmd->u->set_dobj_flags.value);",
+      "    } else {",
+      "        /* The donor's model-part groups: kept for its model drawn on",
+      "         * this fighter (sword_visual.c), not this fighter's meshes. */",
+      "        extern bool Bam_VisSet(HSD_GObj* gobj, int group, int val);",
+      "        Bam_VisSet(gobj, cmd->u->set_dobj_flags.idx, cmd->u->set_dobj_flags.value);",
+      "    }"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftAction_800727C8(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 990,
+     "before": [
+      "    ftAnim_ApplyPartAnim(gobj, cmd->u->part_anim.unk1, cmd->u->part_anim.unk2,",
+      "                         cmd->u->part_anim.unk3);"
+     ],
+     "after": [
+      "    Fighter* fp = GET_FIGHTER(gobj);",
+      "    if (!Bam_InBorrowedMove(fp) ||",
+      "        Bam_DonorKind(fp) == fp->kind)",
+      "    {",
+      "        ftAnim_ApplyPartAnim(gobj, cmd->u->part_anim.unk1,",
+      "                             cmd->u->part_anim.unk2,",
+      "                             cmd->u->part_anim.unk3);",
+      "    } else {",
+      "    }"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftAction_8007283C(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 997,
+     "before": [
+      "    ftAnim_ApplyPartAnim(gobj, cmd->u->part_anim.unk1, cmd->u->part_anim.unk2,",
+      "                         0.0f);"
+     ],
+     "after": [
+      "    Fighter* fp = GET_FIGHTER(gobj);",
+      "    if (!Bam_InBorrowedMove(fp) ||",
+      "        Bam_DonorKind(fp) == fp->kind)",
+      "    {",
+      "        ftAnim_ApplyPartAnim(gobj, cmd->u->part_anim.unk1,",
+      "                             cmd->u->part_anim.unk2, 0.0f);",
+      "    } else {",
+      "    }"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftAction_80072894(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 1004,
+     "before": [],
+     "after": [
+      "    Fighter* fp = GET_FIGHTER(gobj);",
+      "",
+      "    /*",
+      "     * Subaction event 0x2A drives native parasol article animation. The",
+      "     * borrowed Peach move already carries its gameplay state, movement,",
+      "     * hitboxes, and attached article separately. Running this native visual",
+      "     * controller on a non-Peach borrower still assumes Peach fighter/item",
+      "     * integration and hangs after the script reaches 0x2A.",
+      "     *",
+      "     * Keep native Peach untouched; for cross-character borrowed Peach moves,",
+      "     * skip only this visual article-animation event.",
+      "     */",
+      "    /* Also after the borrowed state ended (the fall keeps the script). */",
+      "    if (fp->kind != Ft_Kind_Peach &&",
+      "        ((Bam_InBorrowedMove(fp) && Bam_DonorKind(fp) == Ft_Kind_Peach) ||",
+      "         ftGetParasolStatus(gobj) == -1))",
+      "    {",
+      "        NEXT_CMD(cmd);",
+      "        return;",
+      "    }",
+      ""
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80072CD8(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 1172,
+     "before": [
+      "                part = fp->ft_data->x8->x13;"
+     ],
+     "after": [
+      "                part = Bam_DonorData(fp)->x8->x13;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80072CD8(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 1174,
+     "before": [
+      "                part = fp->ft_data->x8->x14;"
+     ],
+     "after": [
+      "                part = Bam_DonorData(fp)->x8->x14;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftAction_80073118(Fighter_GObj* gobj, CommandInfo* cmd)",
+     "line": 1296,
+     "before": [],
+     "after": [
+      "    if (Bam_InBorrowedMove(GET_FIGHTER(gobj)))",
+      "        idx = Bam_DonorBoneJoint(GET_FIGHTER(gobj), idx);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftafterimage.c": {
+   "base_sha256": "9dc7a0314a37b2fab0d68e26c46da0a53eb5958a711fa75a43dc73d7c004366d",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline itSword_UnkBytes* ftCo_800C2600_get_params(Fighter* fp)",
+     "line": 29,
+     "before": [
+      "    itSword_UnkBytes* params;"
+     ],
+     "after": [
+      "    itSword_UnkBytes* params = NULL;",
+      "    FighterKind kind = fp->kind;",
+      "",
+      "    if (Bam_InBorrowedMove(fp))",
+      "        kind = Bam_DonorKind(fp);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "static inline itSword_UnkBytes* ftCo_800C2600_get_params(Fighter* fp)",
+     "line": 41,
+     "before": [
+      "        switch (fp->kind) {"
+     ],
+     "after": [
+      "        switch (kind) {"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2600(Fighter_GObj* gobj, u32 arg1)",
+     "line": 115,
+     "before": [],
+     "after": [
+      "    if (params == NULL) {",
+      "        fp->x2100 = -1;",
+      "        return;",
+      "    }"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 383,
+     "before": [],
+     "after": [
+      "    FighterKind kind;"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 386,
+     "before": [],
+     "after": [
+      "    kind = fp->kind;",
+      "    if (Bam_InBorrowedMove(fp))",
+      "        kind = Bam_DonorKind(fp);",
+      ""
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 425,
+     "before": [
+      "            /// @bug Undefined behavior if the fighter doesn't have a sword!",
+      "            break;"
+     ],
+     "after": [
+      "            /*",
+      "             * Upstream intentionally has undefined behavior here because native",
+      "             * gameplay only enables this path for fighters with sword data.",
+      "             * Borrowed subactions can enable it on any borrower, so disable",
+      "             * the trail instead of using an uninitialized attrs pointer.",
+      "             */",
+      "            fp->x2100 = -1;",
+      "            return;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 440,
+     "before": [
+      "            break;"
+     ],
+     "after": [
+      "            fp->x2100 = -1;",
+      "            return;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 445,
+     "before": [
+      "        jobj = fp->parts[attrs->x14].joint;"
+     ],
+     "after": [
+      "        if (Bam_InBorrowedMove(fp))",
+      "            jobj = fp->parts[Bam_DonorBoneJoint(fp, attrs->x14)].joint;",
+      "        else",
+      "            jobj = fp->parts[attrs->x14].joint;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftCo_800C2FD8(Fighter_GObj* gobj)",
+     "line": 447,
+     "before": [],
+     "after": [
+      "",
+      "    if (jobj == NULL) {",
+      "        fp->x2100 = -1;",
+      "        return;",
+      "    }",
+      ""
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftanim.c": {
+   "base_sha256": "453c88e776b281812895ffd8fa95150e50506099b7db7b5509d69d75b255c9cb",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftAnim_800704F0(Fighter_GObj* gobj, int tobj_idx, float frame)",
+     "line": 1062,
+     "before": [],
+     "after": [
+      "    /* Texture indices describe the source costume, unlike retargetable bone",
+      "     * animations. Yoshi's mouth/eye tracks are not Samus's texture slots. */",
+      "    if (Bam_InBorrowedMove(fp) && Bam_DonorKind(fp) != fp->kind)",
+      "        return;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftcoll.c": {
+   "base_sha256": "708629a8c29c6085f657b8cbc828526768029deed38f1e7a845c68e84192a267",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftColl_8007B128(Fighter_GObj* fighter_gobj, int bone_id,",
+     "line": 3115,
+     "before": [],
+     "after": [
+      "",
+      "    if (Bam_InBorrowedMove(fp))",
+      "        bone_id = Bam_DonorBoneJoint(fp, bone_id);"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftColl_8007B128(Fighter_GObj* fighter_gobj, int bone_id,",
+     "line": 3127,
+     "before": [],
+     "after": [
+      "    if (Bam_InBorrowedMove(fp)) {",
+      "        /* The source fighter can have anatomy the borrower simply lacks. */",
+      "        return;",
+      "    }",
+      ""
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftColl_8007B1B8(Fighter_GObj* gobj, ShieldDesc* shield, HSD_GObjEvent cb)",
+     "line": 3141,
+     "before": [
+      "    fp->shield_hit.bone = fp->parts[shield->bone].joint;"
+     ],
+     "after": [
+      "    fp->shield_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, shield->bone)].joint;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftColl_CreateReflectHit(Fighter_GObj* gobj, ReflectDesc* reflect,",
+     "line": 3157,
+     "before": [
+      "    fp->reflect_hit.bone = fp->parts[reflect->x0_bone_id].joint;"
+     ],
+     "after": [
+      "    fp->reflect_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, reflect->x0_bone_id)].joint;"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftColl_CreateAbsorbHit(Fighter_GObj* gobj, AbsorbDesc* absorb)",
+     "line": 3167,
+     "before": [
+      "    fp->absorb_hit.bone = fp->parts[absorb->x0_bone_id].joint;"
+     ],
+     "after": [
+      "    fp->absorb_hit.bone = fp->parts[Bam_DonorBoneJoint(fp, absorb->x0_bone_id)].joint;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftcommon.c": {
+   "base_sha256": "d853b84afbba155db3da41d51aee2c49cf34c3219ff64bb4eaecbf13349c4700",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftCommon_8007E83C(HSD_GObj* gobj, s32 arg1, float div)",
+     "line": 1088,
+     "before": [],
+     "after": [
+      "    /* A borrowed Peach up special leaves the fighter in a fall whose",
+      "     * script still drives her parasol after the borrowed state ended:",
+      "     * without a parasol in hand, skip (only Peach keeps the check). */",
+      "    if ((Bam_InBorrowedMove(fp) || fp->kind != Ft_Kind_Peach) &&",
+      "        ftGetParasolStatus(gobj) == FtParasol_None)",
+      "    {",
+      "        return;",
+      "    }",
+      ""
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftCommon_8007EFC8(HSD_GObj* gobj, void (*arg1)(HSD_GObj*))",
+     "line": 1261,
+     "before": [],
+     "after": [
+      "    if (Bam_BorrowedTransform(gobj, arg1)) return;"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftCommon_8007EFC8(HSD_GObj* gobj, void (*arg1)(HSD_GObj*))",
+     "line": 1390,
+     "before": [],
+     "after": [
+      "    Bam_BorrowTransformed(src, dst);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftlib.c": {
+   "base_sha256": "5251ea8552762285d99599dda9bf60c59520ef65d8fb162da3cc0afe8cdde2c8",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftLib_8008770C(HSD_GObj* gobj, void* dst)",
+     "line": 1027,
+     "before": [
+      "    if (ftLib_GetKind(gobj) == Ft_Kind_GameWatch) {"
+     ],
+     "after": [
+      "    if (Bam_DonorKind(GET_FIGHTER(gobj)) == Ft_Kind_GameWatch) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftLib_80087744(HSD_GObj* gobj, void* dst)",
+     "line": 1036,
+     "before": [
+      "    if (ftLib_GetKind(gobj) == Ft_Kind_GameWatch) {"
+     ],
+     "after": [
+      "    if (Bam_DonorKind(GET_FIGHTER(gobj)) == Ft_Kind_GameWatch) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/ftparts.c": {
+   "base_sha256": "6f69f236088cda67be92407a7492c4f91a3aa3541e3012d22f737f49d6300a98",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "Fighter_Part ftParts_GetBoneIndex(Fighter* fp, Fighter_Part part)",
+     "line": 696,
+     "before": [
+      "    return ftPartsTable[fp->kind]->part_to_joint[part];"
+     ],
+     "after": [
+      "    FighterPartsTable* table = ftPartsTable[fp->kind];",
+      "    Fighter_Part joint = table->part_to_joint[part];",
+      "",
+      "    if (Bam_InBorrowedMove(fp) &&",
+      "        (joint == FTPART_INVALID || joint >= table->parts_num ||",
+      "         fp->parts[joint].joint == NULL))",
+      "    {",
+      "        /* Nearest body part the borrower has; never the floor root. */",
+      "        joint = Bam_FallbackJoint(fp, part);",
+      "    }",
+      "",
+      "    return joint;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCaptain/ftcaptainspecialn.c": {
+   "base_sha256": "b72d20df3b69076d8d908ae7bc18703477e6ac46e8a215a0b5fd2fbdb6cf472d",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline void ftCaptain_SpecialN_CreateWindEffect(HSD_GObj* gobj)",
+     "line": 37,
+     "before": [
+      "    FighterKind kind = ftLib_GetKind(gobj);"
+     ],
+     "after": [
+      "    FighterKind kind = Bam_DonorKind(fp);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "static inline void doPhys(HSD_GObj* gobj)",
+     "line": 156,
+     "before": [
+      "                efSync_Spawn(1167, gobj, fp->parts[FtPart_TopN].joint,",
+      "                             fp->parts[57].joint);"
+     ],
+     "after": [
+      "                efSync_Spawn(1167, gobj, fp->parts[Bam_DonorBoneJoint(fp, FtPart_TopN)].joint,",
+      "                             fp->parts[Bam_DonorBoneJoint(fp, 57)].joint);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "static inline void doPhys(HSD_GObj* gobj)",
+     "line": 160,
+     "before": [
+      "                efSync_Spawn(1291, gobj, fp->parts[FtPart_TopN].joint,",
+      "                             fp->parts[78].joint);"
+     ],
+     "after": [
+      "                efSync_Spawn(1291, gobj, fp->parts[Bam_DonorBoneJoint(fp, FtPart_TopN)].joint,",
+      "                             fp->parts[Bam_DonorBoneJoint(fp, 78)].joint);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCaptain/ftcaptainspecials.c": {
+   "base_sha256": "e14a661ecd4dc98b5a9de172477d0ea1e727ff37104a40aef39984733b70e97c",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[219,1], [225,1], [262,1], [268,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[30,2], [64,2], [69,2], [75,1], [97,2], [102,2], [109,1], [221,1], [227,1], [264,1], [270,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftCa_SpecialS_Enter(HSD_GObj* gobj)",
+     "line": 62,
+     "before": [
+      "    switch (ftLib_GetKind(gobj)) {"
+     ],
+     "after": [
+      "    switch (Bam_DonorKind(fp)) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline void setupAirStart(HSD_GObj* gobj)",
+     "line": 95,
+     "before": [
+      "    switch (ftLib_GetKind(gobj)) {"
+     ],
+     "after": [
+      "    switch (Bam_DonorKind(fp)) {"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftCa_SpecialS_Anim(HSD_GObj* gobj)",
+     "line": 216,
+     "before": [
+      "    if (!fp->u.ca.during_specials) {",
+      "        switch (ftLib_GetKind(gobj)) {"
+     ],
+     "after": [
+      "    if (!Bam_DonorVars(fp, Ft_Kind_Captain)->ca.during_specials) {",
+      "        switch (Bam_DonorKind(fp)) {"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftCa_SpecialAirS_Anim(HSD_GObj* gobj)",
+     "line": 259,
+     "before": [
+      "    if (!fp->u.ca.during_specials) {",
+      "        switch (ftLib_GetKind(gobj)) {"
+     ],
+     "after": [
+      "    if (!Bam_DonorVars(fp, Ft_Kind_Captain)->ca.during_specials) {",
+      "        switch (Bam_DonorKind(fp)) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCommon/ftCo_09F7.c": {
+   "base_sha256": "5ccc56c93fdd9426d0937b9e947cfa2cc8befcc7426a2b42a3e55a8838c45a53",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "block_2:",
+     "line": 74,
+     "before": [
+      "    part = fp->ft_data->x54[fp->x2220_b0];"
+     ],
+     "after": [
+      "    part = Bam_DonorBoneJoint(fp, Bam_DonorData(fp)->x54[fp->x2220_b0]);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "block_5:",
+     "line": 86,
+     "before": [
+      "    part = fp->ft_data->x8->x10;"
+     ],
+     "after": [
+      "    part = Bam_DonorBoneJoint(fp, Bam_DonorData(fp)->x8->x10);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "block_7:",
+     "line": 90,
+     "before": [],
+     "after": [
+      "        part = Bam_DonorBoneJoint(fp, part);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "block_12:",
+     "line": 145,
+     "before": [
+      "        f32* attrs = &fp->ft_data->x0->x168;"
+     ],
+     "after": [
+      "        f32* attrs = &Bam_DonorData(fp)->x0->x168;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCommon/ftCo_Attack100.c": {
+   "base_sha256": "a1016887c4da7736fb1f7d402797000bdafa2f22347afdba491fd20857738aff",
+   "edits": [
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_800D6824(Fighter_GObj* gobj)",
+     "line": 50,
+     "before": [
+      "        ftData_SpecialN[fp->kind](gobj);"
+     ],
+     "after": [
+      "        if (!Bam_TrySpecial(gobj, BAM_SPECIAL_NEUTRAL, false))",
+      "            ftData_SpecialN[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_800D68C0(Fighter_GObj* gobj)",
+     "line": 73,
+     "before": [
+      "        ftData_SpecialLw[fp->kind](gobj);"
+     ],
+     "after": [
+      "        if (!Bam_TrySpecial(gobj, BAM_SPECIAL_DOWN, false))",
+      "            ftData_SpecialLw[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_Attack100_CheckInput(Fighter_GObj* gobj)",
+     "line": 96,
+     "before": [
+      "        ftData_SpecialHi[fp->kind](gobj);"
+     ],
+     "after": [
+      "        if (!Bam_TrySpecial(gobj, BAM_SPECIAL_UP, false))",
+      "            ftData_SpecialHi[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_800D69C4(Fighter_GObj* gobj)",
+     "line": 109,
+     "before": [
+      "        ftData_SpecialAirHi[fp->kind](gobj);"
+     ],
+     "after": [
+      "        if (!Bam_TrySpecial(gobj, BAM_SPECIAL_UP, true))",
+      "            ftData_SpecialAirHi[fp->kind](gobj);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCommon/ftCo_SpecialAir.c": {
+   "base_sha256": "0614080f387c590e671aeb6ba5614fd4bcf45ee9f5abbe78373a42f8cd884356",
+   "edits": [
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)",
+     "line": 18,
+     "before": [
+      "            ftData_SpecialAirHi[fp->kind](gobj);"
+     ],
+     "after": [
+      "            if (!Bam_TrySpecial(gobj, BAM_SPECIAL_UP, true))",
+      "                ftData_SpecialAirHi[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)",
+     "line": 26,
+     "before": [
+      "            ftData_SpecialAirLw[fp->kind](gobj);"
+     ],
+     "after": [
+      "            if (!Bam_TrySpecial(gobj, BAM_SPECIAL_DOWN, true))",
+      "                ftData_SpecialAirLw[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)",
+     "line": 38,
+     "before": [
+      "            ftData_SpecialAirS[fp->kind](gobj);"
+     ],
+     "after": [
+      "            if (!Bam_TrySpecial(gobj, BAM_SPECIAL_SIDE, true))",
+      "                ftData_SpecialAirS[fp->kind](gobj);"
+     ]
+    },
+    {
+     "owner": "special-input",
+     "symbol": "bool ftCo_SpecialAir_CheckInput(Fighter_GObj* gobj)",
+     "line": 51,
+     "before": [
+      "        ftData_SpecialAirN[fp->kind](gobj);"
+     ],
+     "after": [
+      "        if (!Bam_TrySpecial(gobj, BAM_SPECIAL_NEUTRAL, true))",
+      "            ftData_SpecialAirN[fp->kind](gobj);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftCommon/ftCo_SpecialS.c": {
+   "base_sha256": "12017f07e9a473f5d0dbef26354c43730ba94ac024a168174d00ff01bd46930e",
+   "edits": [
+    {
+     "owner": "special-input",
+     "symbol": "static void doEnter(Fighter_GObj* gobj)",
+     "line": 47,
+     "before": [
+      "    ftData_SpecialS[fp->kind](gobj);"
+     ],
+     "after": [
+      "    if (!Bam_TrySpecial(gobj, BAM_SPECIAL_SIDE, false))",
+      "        ftData_SpecialS[fp->kind](gobj);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftDonkey/ftdonkeyspecialhi.c": {
+   "base_sha256": "5aa900d7b56ede063c8c9bd5ebf28740c09d223aaf5df9e9afc868ce36f14966",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[48,1], [64,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftDonkey/ftdonkeyspeciallw.c": {
+   "base_sha256": "eda89202f14e3175a97ce4ce297f16aa46bedbfa69a30aa6397f910e02bb2e4b",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[99,1], [167,1], [178,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftDonkey/ftdonkeyspecialn.c": {
+   "base_sha256": "7cde107e5d0b43c4ac6a6fbedadb913be645263773179d98e900bda30eda5324",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[153,1], [156,1], [204,1], [207,1], [274,1], [277,1], [325,1], [328,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[51,1], [55,2], [79,1], [83,2], [122,2], [126,1], [186,1], [221,1], [241,2], [245,1], [301,1], [333,1], [354,2], [384,2], [563,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftFox/ftfoxspeciallw.c": {
+   "base_sha256": "a9cbd4516229e6548affa326a991783db8a8059ee018e9214e73a7da8bf20a1b",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[39,1], [53,1], [66,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftFox/ftfoxspecialn.c": {
+   "base_sha256": "c235764e99eaf2eb29d586538537e461436ea99bc11858c442cda9c9c4f35257",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[130,2], [140,3], [171,1], [220,1], [223,1], [272,2], [275,1], [290,1], [314,1], [319,1], [367,2], [376,1], [380,1], [382,1], [558,1], [564,1], [570,1], [572,1], [579,1], [583,1], [587,1], [615,1], [655,2], [671,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftFx_Throw_Anim(HSD_GObj* gobj)",
+     "line": 554,
+     "before": [
+      "    s32 ftKind = ftGetKind(fp);"
+     ],
+     "after": [
+      "    s32 ftKind = Bam_DonorKind(fp);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftFox/ftfoxspecials.c": {
+   "base_sha256": "bedabc820e5a59fbad154b0a0ed2f40052ca9e0ff7242c89c3c377c6459a0077",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[34,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline void ftFox_SpecialS_CreateGhostItem(HSD_GObj* gobj)",
+     "line": 253,
+     "before": [
+      "        if (fp->kind == Ft_Kind_Fox) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) == Ft_Kind_Fox) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftGameWatch/ftgamewatch.c": {
+   "base_sha256": "836626fe34ba1bf245b8e60c35c423e540e47b41a054978cbd5f26660f8a6cf5",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftGw_Init_8014A7F4(HSD_GObj* gobj, ItemModStruct* item_mod)",
+     "line": 633,
+     "before": [],
+     "after": [
+      "    int costume = fp->x619_costume_id;"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftGw_Init_8014A7F4(HSD_GObj* gobj, ItemModStruct* item_mod)",
+     "line": 634,
+     "before": [
+      "    item_mod->x0_unk = gawAttrs->x4_GAMEWATCH_COLOR[fp->x619_costume_id];"
+     ],
+     "after": [
+      "    if (Bam_InBorrowedMove(fp) && fp->kind != Ft_Kind_GameWatch)",
+      "        costume &= 3;",
+      "",
+      "    item_mod->x0_unk = gawAttrs->x4_GAMEWATCH_COLOR[costume];"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftGameWatch/ftgamewatchspecialhi.c": {
+   "base_sha256": "ea66f094c7efdb65f6f8ef15184431a18374b0c4e390bc0e6f1d8e9a8d5f7090",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[39,2], [45,1], [77,1], [87,2], [98,2], [108,2]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftGw_SpecialHi_ItemRescueSetup(HSD_GObj* gobj)",
+     "line": 42,
+     "before": [
+      "        rescueGObj = it_802C8038(gobj, &sp10, FtPart_TopN,"
+     ],
+     "after": [
+      "        rescueGObj = it_802C8038(",
+      "            gobj, &sp10, Bam_DonorBoneJoint(fp, FtPart_TopN),"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftGameWatch/ftgamewatchspeciallw.c": {
+   "base_sha256": "f96fae2fe9653ae430f9ebb676606069842e4540c6b115ecc92027ad5db34b9e",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[34,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[28,1], [36,1], [39,1], [55,1], [65,2], [76,2], [86,2], [112,1], [152,1], [170,1], [456,1], [477,1], [547,2], [550,1], [677,1], [685,2], [711,1], [720,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftGameWatch/ftgamewatchspecialn.c": {
+   "base_sha256": "3e0a06a7440e135373d14cc58d010703c8beaa14f053edf7aba82ffbc445cc44",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[60,2], [72,2], [75,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftGameWatch/ftgamewatchspecials.c": {
+   "base_sha256": "f635af265aba069ae1d56edfd106cca5371c22e0a386ce610a148eb2f937484e",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[38,1], [41,2], [51,1], [68,1], [79,2], [90,2], [99,2], [135,2], [159,2], [186,1], [206,1], [270,2], [311,1], [337,1], [353,1], [357,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirby.c": {
+   "base_sha256": "21f7ea17c0885efd5893936078671a02e8af9aedf90c7fa7778fb459ef18f685",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkMtxFunc0(Fighter_GObj* gobj, int arg1, Mtx mtx)",
+     "line": 2816,
+     "before": [],
+     "after": [
+      "    union Fighter_FighterVars* vars =",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkMtxFunc0(Fighter_GObj* gobj, int arg1, Mtx mtx)",
+     "line": 2817,
+     "before": [
+      "    if (fp->u.kb.hat.jobj == NULL) {"
+     ],
+     "after": [
+      "    if (vars->kb.hat.jobj == NULL) {"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkMtxFunc0(Fighter_GObj* gobj, int arg1, Mtx mtx)",
+     "line": 2826,
+     "before": [
+      "        HSD_JObj* jobj = fp->u.kb.hat.jobj;",
+      "        HSD_JObjCopyMtx(fp->u.kb.hat.jobj, bone_mtx);"
+     ],
+     "after": [
+      "        HSD_JObj* jobj = vars->kb.hat.jobj;",
+      "        HSD_JObjCopyMtx(vars->kb.hat.jobj, bone_mtx);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkMtxFunc0(Fighter_GObj* gobj, int arg1, Mtx mtx)",
+     "line": 2831,
+     "before": [
+      "        HSD_JObjDispAll(fp->u.kb.hat.jobj, mtx, HSD_GObj_80390EB8(arg1), 0);"
+     ],
+     "after": [
+      "        HSD_JObjDispAll(vars->kb.hat.jobj, mtx, HSD_GObj_80390EB8(arg1), 0);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "HSD_JObj* ftKb_Init_UnkMotionStates6(Fighter_GObj* gobj)",
+     "line": 2839,
+     "before": [],
+     "after": [
+      "    union Fighter_FighterVars* vars =",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "HSD_JObj* ftKb_Init_UnkMotionStates6(Fighter_GObj* gobj)",
+     "line": 2840,
+     "before": [
+      "    if (fp->u.kb.hat.jobj) {",
+      "        return fp->u.kb.hat.jobj;"
+     ],
+     "after": [
+      "    if (vars->kb.hat.jobj) {",
+      "        return vars->kb.hat.jobj;"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3161,
+     "before": [
+      "    if (fp->u.kb.hat.x14.data != NULL) {"
+     ],
+     "after": [
+      "    union Fighter_FighterVars* vars =",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby);",
+      "",
+      "    if (vars->kb.hat.x14.data != NULL) {"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3163,
+     "before": [
+      "            if (fp->u.kb.hat.jobj != NULL) {",
+      "                ftParts_80074CA0(&fp->u.kb.hat.x24, arg1, &fp->u.kb.hat.x14);"
+     ],
+     "after": [
+      "            if (vars->kb.hat.jobj != NULL) {",
+      "                ftParts_80074CA0(&vars->kb.hat.x24, arg1, &vars->kb.hat.x14);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3176,
+     "before": [
+      "                    ftParts_80074D7C(&fp->u.kb.hat.x24, arg1,",
+      "                                     &fp->u.kb.hat.x14);"
+     ],
+     "after": [
+      "                    ftParts_80074D7C(&vars->kb.hat.x24, arg1,",
+      "                                     &vars->kb.hat.x14);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3182,
+     "before": [
+      "                if (*fp->u.kb.hat.x1C.data != NULL) {"
+     ],
+     "after": [
+      "                if (*vars->kb.hat.x1C.data != NULL) {"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3184,
+     "before": [
+      "                    ftParts_80074CA0(&fp->u.kb.hat.x24, arg1,",
+      "                                     &fp->u.kb.hat.x1C);"
+     ],
+     "after": [
+      "                    ftParts_80074CA0(&vars->kb.hat.x24, arg1,",
+      "                                     &vars->kb.hat.x1C);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3189,
+     "before": [
+      "                ftParts_80074CA0(&fp->u.kb.hat.x24, arg1, &fp->u.kb.hat.x14);"
+     ],
+     "after": [
+      "                ftParts_80074CA0(&vars->kb.hat.x24, arg1, &vars->kb.hat.x14);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3192,
+     "before": [
+      "            if (fp->u.kb.hat.jobj == NULL && arg1 == 2) {",
+      "                ftParts_80074D7C(&fp->u.kb.hat.x24, arg1, &fp->u.kb.hat.x1C);"
+     ],
+     "after": [
+      "            if (vars->kb.hat.jobj == NULL && arg1 == 2) {",
+      "                ftParts_80074D7C(&vars->kb.hat.x24, arg1, &vars->kb.hat.x1C);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_UnkIntBoolFunc0(Fighter* fp, int arg1, bool arg2)",
+     "line": 3196,
+     "before": [
+      "            ftParts_80074D7C(&fp->u.kb.hat.x24, arg1, &fp->u.kb.hat.x14);"
+     ],
+     "after": [
+      "            ftParts_80074D7C(&vars->kb.hat.x24, arg1, &vars->kb.hat.x14);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_Init_UnkCallbackPairs0_0(Fighter_GObj* gobj)",
+     "line": 3204,
+     "before": [
+      "    if (fp->u.kb.hat.x14.data != NULL && fp->u.kb.hat.jobj == NULL) {",
+      "        ftAnim_800705E0(&fp->u.kb.x44);"
+     ],
+     "after": [
+      "    union Fighter_FighterVars* vars =",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby);",
+      "",
+      "    if (vars->kb.hat.x14.data != NULL && vars->kb.hat.jobj == NULL) {",
+      "        ftAnim_800705E0(&vars->kb.x44);"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_Init_UnkCallbackPairs0_1(Fighter_GObj* gobj, int arg1, float arg2)",
+     "line": 3212,
+     "before": [
+      "    if (fp->u.kb.hat.x14.data != NULL && fp->u.kb.hat.jobj == NULL) {",
+      "        ftAnim_80070458(fp, &fp->u.kb.x44, arg1, arg2);"
+     ],
+     "after": [
+      "    union Fighter_FighterVars* vars =",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby);",
+      "",
+      "    if (vars->kb.hat.x14.data != NULL && vars->kb.hat.jobj == NULL) {",
+      "        ftAnim_80070458(fp, &vars->kb.x44, arg1, arg2);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialcaptain.c": {
+   "base_sha256": "662ef36eb0c4be9812b139145d4e9d0a26975f930d8f18ec7cf17bf9871d556d",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[32,1], [49,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialdonkey.c": {
+   "base_sha256": "730c8554d519c1445f2b8b8920aa4d81bf1268b33363e9b8867d926845060a69",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[39,1], [43,2], [72,1], [76,2], [605,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialfox.c": {
+   "base_sha256": "79dc8af2afa53ee7137307b804b0279da8829714567c1c1b5281a0c9ce72c5b3",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[58,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[78,1], [94,1], [146,1], [197,2], [209,3], [239,1], [248,1], [261,1], [280,1], [316,1], [329,1], [344,1], [373,1], [386,1], [725,1], [739,2], [750,3]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftKb_SpecialNFx_800FDC00(Fighter_GObj* gobj, Vec3* vec)",
+     "line": 42,
+     "before": [
+      "            lb_8000B1CC(fp->parts[44].joint, &offset, vec);"
+     ],
+     "after": [
+      "            lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 44)].joint, &offset, vec);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialgamewatch.c": {
+   "base_sha256": "2390b41dd96bfc0b113f111377239cc4cda26789923cab783cb37b785638eb69",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[71,1], [81,1], [83,1], [104,1], [106,1], [119,1], [125,2], [134,2], [142,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialhi.c": {
+   "base_sha256": "e5450236cf97023f674b270e56eac5d62627e67c5622f4eaa701200429197c15",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void fn_800F21E8(Fighter_GObj* gobj)",
+     "line": 45,
+     "before": [
+      "        lb_8000B1CC(fp->parts[0].joint, NULL, &pos);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 0)].joint, NULL, &pos);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialiceclimber.c": {
+   "base_sha256": "353a8c91bcbe69c9a7e433f47f83a7a02caa78aa54a2fdee8e142311aef95a2b",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[32,2], [41,2], [45,2], [59,1], [81,2], [84,2], [87,1], [184,2], [188,1], [196,2], [203,2]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void fn_801090D4(Fighter_GObj* gobj)",
+     "line": 182,
+     "before": [
+      "        lb_8000B1CC(fp->parts[0].joint, NULL, &pos);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 0)].joint, NULL, &pos);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialkoopa.c": {
+   "base_sha256": "29e6fdf47c0de4b9735e19615a2dd89199c62b4a50bf71f5f703f43758d8136c",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[96,3], [100,3]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspeciallink.c": {
+   "base_sha256": "a85b5dc62d4699aa84f1d5b6cd9e1ec54a8461da8b4ffa494b31c143f762b537",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[22,2], [58,2], [68,2], [86,2], [96,2], [107,1], [177,1], [181,2], [192,1], [212,1], [222,1], [232,1], [244,3], [254,3], [285,1], [326,1], [341,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftKb_SpecialNLk800FB6DC(Fighter_GObj* gobj)",
+     "line": 217,
+     "before": [
+      "        lb_8000B1CC(fp->parts[44].joint, NULL, &pos1);",
+      "        lb_8000B1CC(fp->parts[39].joint, NULL, &pos2);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 44)].joint, NULL, &pos1);",
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 39)].joint, NULL, &pos2);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspeciallw.c": {
+   "base_sha256": "e85ed3c51032efdc654c11682112e331df2d23d8fad78a0e954604a5b6ab6423",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[369,1], [399,1], [514,1], [536,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[120,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialmario.c": {
+   "base_sha256": "b8e3ce926147c7e6bbfa1bb578eb456f454e89bf5dac9a7aed6644154e60dd4a",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[37,1], [83,1], [89,2], [110,1], [115,1], [186,1], [208,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialmars.c": {
+   "base_sha256": "71f450af3f75fc3dfcc45d6432b584e062e0fd8093d8f35e37cb6a5df192891c",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[33,1], [35,1], [39,1], [41,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[31,1], [67,1], [92,1], [108,1], [130,1], [150,1], [251,1], [270,1], [566,1], [570,1], [584,1], [588,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialmewtwo.c": {
+   "base_sha256": "3de2167002079f5706bbfae00e69215fed47b4223e143a16bcaf34c183ea0eeb",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[223,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[43,1], [46,1], [111,2], [121,1], [135,3], [142,1], [145,1], [166,3], [173,1], [176,1], [179,1], [194,1], [201,1], [215,1], [229,1], [234,1], [240,1], [325,1], [343,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialn.c": {
+   "base_sha256": "5ab0feedfcf78c9d06e790148557c4bc70b1a227e24531f82d37c63401472755",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[728,1], [747,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[274,2], [277,1], [289,1], [342,1], [345,1], [347,3], [369,5], [393,1], [404,1], [416,1], [427,1], [465,1], [1011,2], [1066,2], [1149,2], [1164,2], [1278,1], [1311,2], [1422,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_SpecialN_800F5BA4(Fighter* fp)",
+     "line": 232,
+     "before": [
+      "    if ((s32) fp->kind == Ft_Kind_Kirby &&",
+      "        (s32) fp->u.kb.hat.kind != Ft_Kind_Kirby && !fp->u.kb.hat.x8_b0 &&"
+     ],
+     "after": [
+      "    if ((s32) Bam_DonorKind(fp) == Ft_Kind_Kirby &&",
+      "        (s32) Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby && !Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.hat.x8_b0 &&"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_SpecialN_800F5C34(Fighter* fp)",
+     "line": 245,
+     "before": [
+      "    if ((s32) fp->kind == Ft_Kind_Kirby &&",
+      "        (s32) fp->u.kb.hat.kind != Ft_Kind_Kirby && !fp->u.kb.hat.x8_b0 &&"
+     ],
+     "after": [
+      "    if ((s32) Bam_DonorKind(fp) == Ft_Kind_Kirby &&",
+      "        (s32) Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.hat.kind != Ft_Kind_Kirby && !Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.hat.x8_b0 &&"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftKb_SpecialN_800F9090(HSD_GObj* gobj)",
+     "line": 1773,
+     "before": [
+      "    if (fp->target_item_gobj != NULL && fp->kind == Ft_Kind_Kirby &&",
+      "        fp->u.kb.hat.kind == Ft_Kind_Kirby)"
+     ],
+     "after": [
+      "    if (fp->target_item_gobj != NULL && Bam_DonorKind(fp) == Ft_Kind_Kirby &&",
+      "        Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.hat.kind == Ft_Kind_Kirby)"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialness.c": {
+   "base_sha256": "a3ece0ebdf18b00ede0bd8d93580c451ab384a877246618cffeb391d50934381",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[27,2], [34,1], [61,1], [78,1], [102,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialpeach.c": {
+   "base_sha256": "2871038d17f20d97d117816010018e460431b02d45b3d7d3947e62f3a2bc1752",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[55,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[35,2], [38,1], [67,1], [73,2], [82,2], [90,2], [238,1], [262,1], [270,1], [359,1], [367,1], [389,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialpikachu.c": {
+   "base_sha256": "ffcc70b58cf0e16d4e8813b7704b9bbe5f5626737b2e36d36cd0827a2c7febee",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[27,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialpurin.c": {
+   "base_sha256": "00a34b3b2fbcf0936cc3da75d2363c1acde6be19ca9273bf73f410a2d65a6b7f",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[46,3], [52,1], [60,1], [217,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecials.c": {
+   "base_sha256": "f4879537f49cab9207c6bd40985649ca0ba54adbe3d006cad82ed6b430d75b3a",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[44,1], [66,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[52,1], [55,1], [68,1], [70,1], [72,1], [91,3], [113,1], [115,1], [155,3], [168,3], [172,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "HSD_Joint* ftKb_SpecialN_800F5898(Fighter_GObj* gobj)",
+     "line": 208,
+     "before": [
+      "    ftData* ca = fp->ft_data;"
+     ],
+     "after": [
+      "    ftData* ca = Bam_DonorData(fp);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialsamus.c": {
+   "base_sha256": "7509fe20e0bca823ed7033fea00883d904512ca1fd5594c4871dc2433d863584",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[188,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[44,1], [48,1], [107,3], [118,1], [135,2], [147,1], [156,1], [171,2], [182,1], [191,2], [198,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialseak.c": {
+   "base_sha256": "5793772b065c7ec389f1704d1a7a2458ad26406afc2b237ba695c13d834fbbf9",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[38,1], [50,1], [60,2], [63,1], [83,1], [87,1], [103,2], [126,2], [472,1], [498,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialyoshi.c": {
+   "base_sha256": "6132acf8c4fbcd83b0654c9eb004346dd807d7cfc672fdce99d75bad62a0fada",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[129,1], [132,3], [145,1], [148,1], [166,1], [169,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftKirby/ftkirbyspecialzelda.c": {
+   "base_sha256": "632fe95a51f0c8379cc01350a3cb2acf9588524464a0a391fcc13f00891c0360",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void fn_80105AB0(Fighter_GObj* gobj)",
+     "line": 59,
+     "before": [
+      "        efSync_Spawn(0x4B7, gobj, fp->parts[1].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(0x4B7, gobj, fp->parts[Bam_DonorBoneJoint(fp, 1)].joint);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftKoopa/ftkoopaspecialn.c": {
+   "base_sha256": "988e729f704b115fdcf0c5a7bdb0ea43549fea684c79ebad8e8f8c1be61b9e51",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[69,1], [76,1], [104,3], [108,3], [261,3], [265,3], [303,3], [307,3]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftKp_SpecialLw_80134ACC(Fighter_GObj* gobj)",
+     "line": 64,
+     "before": [
+      "    lb_8000B1CC(fp->parts[48].joint, NULL, &v);"
+     ],
+     "after": [
+      "    lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 48)].joint, NULL, &v);"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftKp_SpecialLw_80134ACC(Fighter_GObj* gobj)",
+     "line": 78,
+     "before": [
+      "            if (fp->kind == Ft_Kind_Koopa) {"
+     ],
+     "after": [
+      "            if (Bam_DonorKind(fp) == Ft_Kind_Koopa) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftKp_SpecialLw_80134ACC(Fighter_GObj* gobj)",
+     "line": 84,
+     "before": [
+      "            if (fp->kind == Ft_Kind_Koopa) {"
+     ],
+     "after": [
+      "            if (Bam_DonorKind(fp) == Ft_Kind_Koopa) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftKp_SpecialLw_80134ACC(Fighter_GObj* gobj)",
+     "line": 89,
+     "before": [
+      "        } else if (fp->kind == Ft_Kind_Koopa) {"
+     ],
+     "after": [
+      "        } else if (Bam_DonorKind(fp) == Ft_Kind_Koopa) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftLink/ftlinkspecialhi.c": {
+   "base_sha256": "5485a94b3f1e07a632932aedf17870b1e2a0f4a876087e1d4c8c5896e688d8fc",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[33,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "static void onAccessory4(HSD_GObj* gobj)",
+     "line": 30,
+     "before": [
+      "    if (fp->kind == Ft_Kind_Link) {",
+      "        jobj1 = fp->parts[FtPart_L2ndNa].joint;"
+     ],
+     "after": [
+      "    if (Bam_DonorKind(fp) == Ft_Kind_Link) {",
+      "        jobj1 = fp->parts[Bam_DonorBoneJoint(fp, FtPart_L2ndNa)].joint;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftLink/ftlinkspecialn.c": {
+   "base_sha256": "200447b2cb9734dafbf5a13eaccd4923cda9ca51aca77cb05efe6eb91ff6ba63",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[50,1], [70,3], [85,3], [118,3], [129,3], [143,1], [151,1], [171,1], [181,1], [216,2], [238,2], [506,1], [516,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftLink/ftlinkspecials.c": {
+   "base_sha256": "9c8f6648f9863d5630f4a9e66ddad01777f602d492ea8dc4bb4bd61d85329e4d",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[53,1], [55,1], [107,2], [115,4], [181,1], [183,1], [189,2], [194,2], [207,1], [225,1], [261,2], [324,2], [343,2], [397,2], [427,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftLuigi/ftluigispeciallw.c": {
+   "base_sha256": "cf10bf661d5cdfa1383b85b613220286da3d48dcd272acaa60e2e51376370ef1",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[102,1], [135,1], [214,1], [294,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftLuigi/ftluigispecials.c": {
+   "base_sha256": "a96ba8f2179c751dacb265e7dbf5c31b7d10bf613bc52776336ee563ae8b6089",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[449,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftMario/ftmariospeciallw.c": {
+   "base_sha256": "4b7fd59b41a2acc5ca8ec3ad0def213a06c02cd053ef9e85e5552edf4600a70d",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[101,1], [138,1], [216,1], [290,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftMario/ftmariospecialn.c": {
+   "base_sha256": "7aef8788e528f0725a10105a932ca5dbeda13e678bc43bb5e9c16e097b050a60",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[30,2], [45,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftMr_SpecialN_ItemFireSpawn(HSD_GObj* gobj)",
+     "line": 118,
+     "before": [
+      "        if (fp->kind == Ft_Kind_Mario) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) == Ft_Kind_Mario) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftMario/ftmariospecials.c": {
+   "base_sha256": "5debee8b49c87cfe5c47acdf3c21e2da2b65cd0968826f916418072b042a25c6",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[26,1], [56,1], [59,1], [69,1], [78,2], [87,2], [95,2], [228,2], [296,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftMars/ftmarsspecialn.c": {
+   "base_sha256": "c854690cd53eb85878fae5cda22a69bae061f27514585c80b6130a0e2d099433",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline void doStartAnim(HSD_GObj* gobj, HSD_GObjEvent cb)",
+     "line": 62,
+     "before": [
+      "            if (fp->kind == Ft_Kind_Mars) {"
+     ],
+     "after": [
+      "            if (Bam_DonorKind(fp) == Ft_Kind_Mars) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftMars/ftmarsspecials.c": {
+   "base_sha256": "2fe3a5d1e1ecf0dd2f575e6f73d577459c6bd2ad7e12f45d58c0a47bf4795ae0",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[55,2], [165,1], [262,1], [403,1], [538,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftMewtwo/ftmewtwospeciallw.c": {
+   "base_sha256": "f2fa7a5813c7f08b9677581e250e52639be306293637791513060100cf836f08",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[219,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[58,1], [78,1], [151,1], [224,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftMewtwo/ftmewtwospecialn.c": {
+   "base_sha256": "a27cd1fa1ffc7bbb0a2bbf4adfea43a690de716acc769d06a4d47f1c7ac2f81a",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[219,1], [479,1], [518,1], [571,1], [646,1], [715,1], [1146,2]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[49,1], [53,1], [123,1], [125,1], [137,2], [150,3], [156,1], [158,1], [162,1], [191,3], [197,1], [199,1], [203,1], [206,1], [232,1], [239,1], [268,1], [278,2], [282,1], [290,2], [301,1], [303,1], [308,1], [330,2], [404,1], [442,1], [475,1], [484,1], [488,1], [493,1], [512,1], [523,1], [527,1], [559,2], [567,1], [588,1], [597,3], [642,1], [651,1], [655,1], [661,1], [702,2], [710,1], [732,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "static inline void ftMewtwo_SpecialN_LaunchShadowBall(HSD_GObj* gobj)",
+     "line": 1142,
+     "before": [
+      "    if (ftGetKind(fp) == Ft_Kind_Mewtwo) {"
+     ],
+     "after": [
+      "    if (Bam_DonorKind(fp) == Ft_Kind_Mewtwo) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftMewtwo/ftmewtwospecials.c": {
+   "base_sha256": "28bde1bfa71a9a9ab3f38aea319b41d696525155f4071ce8c3dc956c226e60c9",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[114,1], [116,1], [240,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftNana/ftnanaspecialhi.c": {
+   "base_sha256": "32a2e2247b3b58a78c07113bc9afe85131d11b7b5ba32908de7f35c82b165b6a",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[81,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftNess/ftnessspecialhi.c": {
+   "base_sha256": "c9378ca3cbb3723a349a29132ebea4042877b01ad56b9d298958fcdfa3c61e53",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[673,1], [843,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[94,1], [133,1], [141,1], [144,1], [146,1], [155,1], [184,2], [200,1], [220,3], [237,1], [255,1], [257,1], [563,1], [648,1], [658,1], [675,1], [697,1], [703,1], [722,1], [725,1], [730,1], [746,1], [774,2], [797,1], [819,1], [828,1], [845,1], [863,1], [871,1], [891,1], [895,1], [924,1], [941,1], [984,1], [1430,1], [1586,1], [1752,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftNess/ftnessspeciallw.c": {
+   "base_sha256": "2ea85d0d16932c90f9220a7c259cc77927e2361edb6ca07d7547e7683a917419",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[100,1], [134,1], [769,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftNess/ftnessspecialn.c": {
+   "base_sha256": "ecdd8ab02d486652d5b6125df65ffa2cda86d63c754ffe7b6c79e80b9fdb44e4",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[104,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[36,1], [63,2], [86,3], [101,1], [146,1], [180,1], [218,1], [224,1], [242,2], [247,1], [267,1], [313,1], [319,1], [333,2], [338,1], [415,2], [469,2]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftNs_PKFlash_Init(HSD_GObj* gobj)",
+     "line": 111,
+     "before": [
+      "            fighter_data2->u.ns.pkflash_gobj = flash_GObj;"
+     ],
+     "after": [
+      "                    Bam_DonorVars(fighter_data2, Ft_Kind_Ness)->ns.pkflash_gobj = flash_GObj;"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftNess/ftnessspecials.c": {
+   "base_sha256": "103fec97fb9c4b37201c8a8dd986fd4d9e251f4675d6be991264776cfb635db7",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[45,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftPeach/ftpeachspecialhi.c": {
+   "base_sha256": "d6c81e6cd27c6791c846b260fa7d048ba78bf7a29382df7f7c59d5f9503b746d",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[42,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[40,1], [46,1], [69,1], [73,1], [76,1], [90,2], [99,2]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPe_SpecialHi_8011D424(HSD_GObj* gobj)",
+     "line": 38,
+     "before": [],
+     "after": [
+      "",
+      "    /*",
+      "     * Peach's parasol item has its own per-frame owner/controller path.",
+      "     * Cross-character borrowed Up-B can finish all fighter-script work and",
+      "     * still stall in that Peach-owned article runtime.",
+      "     *",
+      "     * Keep the source move's movement, collision, and fighter hitboxes, but do",
+      "     * not create Peach's attached parasol item for a non-Peach borrower.",
+      "     */",
+      "    if (Bam_InBorrowedMove(fp) &&",
+      "        Bam_DonorKind(fp) == Ft_Kind_Peach &&",
+      "        fp->kind != Ft_Kind_Peach)",
+      "    {",
+      "        if (fp->mv.pe.specialhi.kind == It_Kind_Capsule)",
+      "            fp->mv.pe.specialhi.kind = It_Kind_Peach_Parasol;",
+      "",
+      "        fp->accessory4_cb = NULL;",
+      "        fp->pre_hitlag_cb = NULL;",
+      "        fp->post_hitlag_cb = NULL;",
+      "        return;",
+      "    }"
+     ]
+    },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void ftPe_SpecialHi_8011D424(HSD_GObj* gobj)",
+     "line": 52,
+     "before": [
+      "            fp->u.pe.parasol_gobj_0 =",
+      "                it_802BDA64(gobj, &pos, FtPart_109, fp->facing_dir);",
+      "            fp->item_gobj = fp->u.pe.parasol_gobj_0;",
+      "            if (fp->u.pe.parasol_gobj_0 != NULL) {"
+     ],
+     "after": [
+      "            Bam_DonorVars(fp, Ft_Kind_Peach)->pe.parasol_gobj_0 =",
+      "                it_802BDA64(gobj, &pos, Bam_DonorBoneJoint(fp, FtPart_109), fp->facing_dir);",
+      "            fp->item_gobj = Bam_DonorVars(fp, Ft_Kind_Peach)->pe.parasol_gobj_0;",
+      "            if (Bam_DonorVars(fp, Ft_Kind_Peach)->pe.parasol_gobj_0 != NULL) {"
+     ]
+    },
+    {
+     "owner": "state-table-redirect",
+     "symbol": "void ftPe_SpecialHiStart_Anim(HSD_GObj* gobj)",
+     "line": 205,
+     "before": [],
+     "after": [
+      "",
+      "        /*",
+      "         * Native Peach transitions from Up-B into ItemParasolOpen. That common",
+      "         * state owns a parasol-specific fighter script (including event 0x2A)",
+      "         * and assumes a real Peach/Parasol owner relationship.",
+      "         *",
+      "         * On a borrowed non-Peach move, Bam_DonorMotionState() correctly",
+      "         * tears down the source swap when we leave Peach's special-state range.",
+      "         * Entering ItemParasolOpen after that teardown leaves the borrower",
+      "         * running parasol-only script/data and hangs. Bypass the parasol state",
+      "         * entirely and enter the ordinary borrower-safe special-fall state.",
+      "         */",
+      "        if (Bam_InBorrowedMove(fp) &&",
+      "            Bam_DonorKind(fp) == Ft_Kind_Peach &&",
+      "            fp->kind != Ft_Kind_Peach)",
+      "        {",
+      "            ftCo_80096900(gobj, 0, 1, false, da->x70, da->x74);",
+      "            return;",
+      "        }",
+      ""
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPeach/ftpeachspeciallw.c": {
+   "base_sha256": "c7b5c148daf2bb895df0c1aae1f4e5e87235e035c0c70d0b928175c925add4cf",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[119,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[63,2], [71,1], [77,1], [100,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftPeach/ftpeachspecialn.c": {
+   "base_sha256": "d46f09db0b56f6d80c41b54321570a7a1f6328022d7b67bead8bb367385d870a",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[87,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[73,2], [105,1], [113,2], [122,2], [130,2], [224,2], [257,1], [290,1], [360,1], [368,1], [389,2]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void onAccessory4(HSD_GObj* gobj)",
+     "line": 69,
+     "before": [
+      "        lb_8000B1CC(fp->parts[FtPart_109].joint, NULL, &pos);",
+      "        fp->u.pe.toad_gobj = it_802BDE18(gobj, &pos, FtPart_109,"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, FtPart_109)].joint, NULL, &pos);",
+      "        Bam_DonorVars(fp, Ft_Kind_Peach)->pe.toad_gobj = it_802BDE18(gobj, &pos, Bam_DonorBoneJoint(fp, FtPart_109),"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPeach/ftpeachspecials.c": {
+   "base_sha256": "3f1cee21d9759b98669fa9594e9f60e93efa4a333fee3bacb06342786d1cd93e",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[342,1], [361,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftPikachu/ftpikachuspecialhi.c": {
+   "base_sha256": "e12aa39e6af1ad603540614cc472f41fb97f52a0cdf98acdcc779638dfa60d30",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPk_SpecialHiStart1_Anim(HSD_GObj* gobj)",
+     "line": 183,
+     "before": [
+      "        if (fp->kind != Ft_Kind_Pichu) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) != Ft_Kind_Pichu) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPk_SpecialHiStart1_Anim(HSD_GObj* gobj)",
+     "line": 193,
+     "before": [
+      "        if (fp->kind != Ft_Kind_Pichu) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) != Ft_Kind_Pichu) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPk_SpecialAirHiStart1_Anim(HSD_GObj* gobj)",
+     "line": 222,
+     "before": [
+      "        if (fp->kind != Ft_Kind_Pichu) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) != Ft_Kind_Pichu) {"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPk_SpecialAirHiStart1_Anim(HSD_GObj* gobj)",
+     "line": 232,
+     "before": [
+      "        if (fp->kind != Ft_Kind_Pichu) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) != Ft_Kind_Pichu) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPopo/ftpopospecialhi.c": {
+   "base_sha256": "24d99fbb1dd75b5fa7f347556d619d933f2fa877a1d7bcb5bea52358ef2499be",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[132,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[93,1], [109,1], [116,1], [134,3], [145,1], [153,2], [174,4], [198,4], [318,1], [347,1], [498,1], [532,1], [798,1], [836,1]]
+  },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialS_80120E68(Fighter_GObj* gobj)",
+     "line": 58,
+     "before": [
+      "    Fighter_GObj* gobj2 = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "    Fighter_GObj* gobj2 = Bam_ClimberPartner(fp);"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline bool checkNanaInRange(Fighter_GObj* gobj)",
+     "line": 208,
+     "before": [
+      "    Fighter_GObj* nana_gobj = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "    Fighter_GObj* nana_gobj = Bam_ClimberPartner(fp);"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialHiStart_0_Phys(Fighter_GObj* gobj)",
+     "line": 307,
+     "before": [
+      "            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "            Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialAirHiStart_0_Phys(Fighter_GObj* gobj)",
+     "line": 336,
+     "before": [
+      "            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "            Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialHiThrow_0_Anim(Fighter_GObj* gobj)",
+     "line": 412,
+     "before": [
+      "                    Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "                    Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialAirHiThrow_0_Anim(Fighter_GObj* gobj)",
+     "line": 450,
+     "before": [
+      "                    Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "                    Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialHiThrow_0_Phys(Fighter_GObj* gobj)",
+     "line": 487,
+     "before": [
+      "            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "            Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialAirHiThrow_0_Phys(Fighter_GObj* gobj)",
+     "line": 521,
+     "before": [
+      "            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "            Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialHiThrow2_Phys(Fighter_GObj* gobj)",
+     "line": 787,
+     "before": [
+      "            Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "            Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline void ftPp_SpecialAirHiThrow2_Phys_inline(Fighter_GObj* gobj,",
+     "line": 805,
+     "before": [
+      "        Player_GetEntityAtIndex(GET_FIGHTER(gobj)->player_id, 1);"
+     ],
+     "after": [
+      "        Bam_ClimberPartner(GET_FIGHTER(gobj));"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPopo/ftpopospeciallw.c": {
+   "base_sha256": "5ce41efaa768f8e32a50c46ee86c45fe767fa965bd069b138fac58852f6a335b",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[182,1], [192,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[24,1], [27,1], [69,1], [72,1], [86,1], [89,1], [194,1]]
+  },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void fn_80122D2C(Fighter_GObj* gobj)",
+     "line": 197,
+     "before": [
+      "        if (fp->kind == Ft_Kind_Popo) {"
+     ],
+     "after": [
+      "        if (Bam_DonorKind(fp) == Ft_Kind_Popo) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPopo/ftpopospecialn.c": {
+   "base_sha256": "20970383e0e5cd8d02d632dd199c68a387ee8d2f1e324c5da37643c4c6aacb02",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[123,2], [126,2], [132,2], [141,2], [162,2], [166,1], [172,2]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftPp_SpecialN_8011F500(Fighter_GObj* gobj)",
+     "line": 160,
+     "before": [
+      "        lb_8000B1CC(fp->parts[0].joint, NULL, &pos);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 0)].joint, NULL, &pos);"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftPp_SpecialN_8011F500(Fighter_GObj* gobj)",
+     "line": 175,
+     "before": [
+      "            if (fp->kind == Ft_Kind_Popo) {"
+     ],
+     "after": [
+      "            if (Bam_DonorKind(fp) == Ft_Kind_Popo) {"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPopo/ftpopospecials.c": {
+   "base_sha256": "18b334034a7f66a062759ce9c948ce83fce5a979e691a2a89811ab00adb611d1",
+   "edits": [
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline void inlineA2(Fighter_GObj* gobj)",
+     "line": 134,
+     "before": [
+      "    if (ftNn_Init_80123954(Player_GetEntityAtIndex(fp->player_id, 1),"
+     ],
+     "after": [
+      "    if (ftNn_Init_80123954(Bam_ClimberPartner(fp),"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline void inlineA2(Fighter_GObj* gobj)",
+     "line": 143,
+     "before": [
+      "        fp->x1A5C = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "        fp->x1A5C = Bam_ClimberPartner(fp);"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline void inlineB0(Fighter_GObj* gobj)",
+     "line": 177,
+     "before": [
+      "    if (ftNn_Init_80123954(Player_GetEntityAtIndex(fp->player_id, 1),"
+     ],
+     "after": [
+      "    if (ftNn_Init_80123954(Bam_ClimberPartner(fp),"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "static inline void inlineB0(Fighter_GObj* gobj)",
+     "line": 187,
+     "before": [
+      "        fp->x1A5C = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "        fp->x1A5C = Bam_ClimberPartner(fp);"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialS2_Anim(Fighter_GObj* gobj)",
+     "line": 245,
+     "before": [
+      "    Fighter_GObj* nn_gobj = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "    Fighter_GObj* nn_gobj = Bam_ClimberPartner(fp);"
+     ]
+    },
+    {
+     "owner": "transform-subfighter",
+     "symbol": "void ftPp_SpecialAirS2_Anim(Fighter_GObj* gobj)",
+     "line": 289,
+     "before": [
+      "    Fighter_GObj* temp_r30 = Player_GetEntityAtIndex(fp->player_id, 1);"
+     ],
+     "after": [
+      "    Fighter_GObj* temp_r30 = Bam_ClimberPartner(fp);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftPurin/ftpurinspecialn.c": {
+   "base_sha256": "06d8eed9b70ac10b22e02c0c0f85ce5a87cd0156b015db713b328b2ba9a10e5c",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[611,1], [620,1], [624,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[69,1], [226,1], [261,3], [267,1], [575,1], [1278,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftPurin/ftpurinspecials.c": {
+   "base_sha256": "38a8d738850a791e37a9d58b81bc0b330b3c55615eb22ac066424bfb2fde2b1e",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[96,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSamus/ftsamusspecialhi.c": {
+   "base_sha256": "ca25d92800a3869375fffbfdb5fc287300e2e189c8ee14a65994476437034dd1",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[39,2], [57,2], [65,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSamus/ftsamusspeciallw0.c": {
+   "base_sha256": "1b7fd7b2dd9cc33186d4cd01be8b1cba8d8118e93e7630888b5e7a2910b53297",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[271,1], [275,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSamus/ftsamusspeciallw1.c": {
+   "base_sha256": "cc173cebcbce14109e9ba2dd1cd72c3cd1790527b90596adfda76acfab3a9e90",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[34,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSamus/ftsamusspecialn.c": {
+   "base_sha256": "98e53e1d9e442e4c1fd943632349b6f5aaa767aa849b8ff190e35894cb8ff367",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[82,1], [113,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[38,1], [48,2], [62,1], [77,1], [86,1], [90,1], [108,1], [121,2], [127,1], [178,1], [209,2], [221,2], [224,1], [409,1], [421,2]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSamus/ftsamusspecials.c": {
+   "base_sha256": "c34c4e264558ef85714eac08dd540be066ad0e5a122832ad88f1451212c14c69",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[170,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSeak/ftseakspecialhi.c": {
+   "base_sha256": "a1bce956aa0d562cbe6a6308262717247682e1c206b4040abdd9f93ca9321b1a",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[65,1], [75,1], [88,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSeak/ftseakspeciallw.c": {
+   "base_sha256": "624bf92fce04120efb92d510651ede4eeb24ae069334f1d6d8617d994badb3ab",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[28,1], [39,1], [76,1], [100,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSeak/ftseakspecialn.c": {
+   "base_sha256": "a46282f0600dbd08abc03c8b89237c4e1f0be819d2e61288180866958a533ab8",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[34,3], [56,1], [64,1], [81,2], [104,1], [124,1], [126,2], [137,1], [155,1], [167,1], [186,1], [188,2], [201,1], [226,1], [368,1], [414,1], [428,1], [455,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftSeak/ftseakspecials.c": {
+   "base_sha256": "e013b8f44906c17e57b62beb6f75a9dcfe3f35bad1235fbfc56c1d9eb634ce1a",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[822,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[135,2], [147,2], [152,1], [168,1], [170,1], [180,1], [205,2], [231,1], [330,1], [346,2], [351,2], [396,1], [407,1], [411,1], [417,1], [426,2], [435,2], [472,1], [477,3], [481,3], [487,3], [518,3], [522,1], [542,1], [553,1], [645,1], [665,1], [800,1], [846,1], [873,1], [884,1], [912,1], [919,1], [977,1], [997,1], [1020,1], [1044,1], [1061,1], [1076,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftSk_SpecialS_80110610(HSD_GObj* gobj, s32 arg1, float arg2)",
+     "line": 85,
+     "before": [
+      "    UNK_T* items = fp->ft_data->x48_items;"
+     ],
+     "after": [
+      "    UNK_T* items = Bam_DonorData(fp)->x48_items;"
+     ]
+    },
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftSk_SpecialS_80110610(HSD_GObj* gobj, s32 arg1, float arg2)",
+     "line": 99,
+     "before": [],
+     "after": [
+      "    if (Bam_InBorrowedMove(fp) &&",
+      "        Bam_DonorKind(fp) == Ft_Kind_Seak &&",
+      "        fp->kind != Ft_Kind_Seak)",
+      "    {",
+      "        return;",
+      "    }",
+      ""
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftYoshi/ftyoshi.c": {
+   "base_sha256": "b05f0dd971368c35524f906a9ea1e7d86823e6fb2843beefa4a76c1b26dd9f64",
+   "edits": [
+    {
+     "owner": "donor-compatibility",
+     "symbol": "void ftYs_Init_8012B918(HSD_GObj* gobj)",
+     "line": 434,
+     "before": [],
+     "after": [
+      "    /* Egg shell material nodes exist only on Yoshi's native model. */",
+      "    if (fp->kind != Ft_Kind_Yoshi) return;",
+      ""
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftYoshi/ftyoshispecialhi.c": {
+   "base_sha256": "8430cd3477b3ea0995e3586099e74583091b5eb105959f8bcc0577b64be6d2d6",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[29,1], [101,1], [113,1], [116,1], [126,2], [129,1], [142,1], [160,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "symbol": "void fn_8012E110(Fighter_GObj* gobj)",
+     "line": 95,
+     "before": [
+      "        lb_8000B1CC(fp->parts[31].joint, NULL, &sp30);",
+      "        fp->x1984_heldItemSpec = fp->u.ys.x2238 =",
+      "            it_802B2A10(gobj, &sp30, 0x1F, fp->facing_dir);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 31)].joint, NULL, &sp30);",
+      "        fp->x1984_heldItemSpec = Bam_DonorVars(fp, Ft_Kind_Yoshi)->ys.x2238 =",
+      "            it_802B2A10(gobj, &sp30, Bam_DonorBoneJoint(fp, 0x1F), fp->facing_dir);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftYoshi/ftyoshispeciallw.c": {
+   "base_sha256": "e797b4fe461f5262111898095426418673bb0c48067cccb732ba00f7841302de",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[33,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftYoshi/ftyoshispecialn.c": {
+   "base_sha256": "d9be7d56870d6b43a7e2bd4dc18cbdb5fb2f2b0c5d6ac40a3b86fa403702840f",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "symbol": "HSD_Joint* ftYs_SpecialN_8012CDD4(Fighter_GObj* gobj)",
+     "line": 124,
+     "before": [
+      "    ftData* ca = fp->ft_data;"
+     ],
+     "after": [
+      "    ftData* ca = Bam_DonorData(fp);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftYoshi/ftyoshispecials.c": {
+   "base_sha256": "d915a1d3fb161e8977e67511f3067b1a2842b299e0d3a38e4606166195a4548d",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[115,1], [131,1], [133,1], [135,1], [139,1], [152,3], [158,1], [194,1], [316,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void fn_8012EDE8(Fighter_GObj* gobj)",
+     "line": 211,
+     "before": [
+      "        lb_8000B1CC(fp->parts[4].joint, NULL, &v);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 4)].joint, NULL, &v);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftYs_SpecialAirSEnd_Anim(Fighter_GObj* gobj)",
+     "line": 583,
+     "before": [
+      "        lb_8000B1CC(fp->parts[4].joint, NULL, &sp2C);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 4)].joint, NULL, &sp2C);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftYs_SpecialAirSLanding_Anim(Fighter_GObj* gobj)",
+     "line": 719,
+     "before": [
+      "        lb_8000B1CC(fp->parts[4].joint, NULL, &sp30);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 4)].joint, NULL, &sp30);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftZelda/ftzeldaspecialhi.c": {
+   "base_sha256": "c58bcc33a20c57fdcf303789017039bdd60341c617b01ce4f4af6bf7961d4ec9",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[43,1], [63,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftZelda/ftzeldaspeciallw.c": {
+   "base_sha256": "43d64ab999addf05d32094700e11ab7dec8379495adfe23f4612ca6009b08f49",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[49,1], [86,1]]
+  },
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[333,1], [347,1], [369,2], [383,3]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialLw_8013ADB4(HSD_GObj* gobj)",
+     "line": 33,
+     "before": [
+      "        efSync_Spawn(1276, gobj, fp->parts[104].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(1276, gobj, fp->parts[Bam_DonorBoneJoint(fp, 104)].joint);"
+     ]
+    }
+   ]
+  },
+  "src/melee/ft/kinds/ftZelda/ftzeldaspecialn.c": {
+   "base_sha256": "a82a4a1c62c6ebfdb53f8a9a85dd147583d3da32ba27c149750df98a842b67c5",
+   "edits": [
+    {
+     "owner": "bone-animation-data",
+     "rule": "donor-access",
+     "lines": [[26,1], [40,1]]
+  }
+   ]
+  },
+  "src/melee/ft/kinds/ftZelda/ftzeldaspecials.c": {
+   "base_sha256": "b580476a79c0e6d96e576da0a04abdcbc55e131056ecc666d1392ded14e3423d",
+   "edits": [
+    {
+     "owner": "donor-variable-bank",
+     "rule": "donor-access",
+     "lines": [[48,1], [76,1], [99,1], [109,1], [142,1], [152,1], [169,1], [177,1], [180,1], [203,1], [227,1], [237,1], [269,1], [279,1], [296,1], [303,1], [306,1], [330,1]]
+  },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialSStart_Anim(HSD_GObj* gobj)",
+     "line": 101,
+     "before": [
+      "        lb_8000B1CC(fp->parts[89].joint, NULL, &sp24);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 89)].joint, NULL, &sp24);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialSStart_Anim(HSD_GObj* gobj)",
+     "line": 115,
+     "before": [
+      "        efSync_Spawn(1275, gobj, fp->parts[76].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(1275, gobj, fp->parts[Bam_DonorBoneJoint(fp, 76)].joint);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)",
+     "line": 144,
+     "before": [
+      "        lb_8000B1CC(fp->parts[89].joint, NULL, &sp20);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 89)].joint, NULL, &sp20);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialSLoop_Anim(HSD_GObj* gobj)",
+     "line": 158,
+     "before": [
+      "        efSync_Spawn(1275, gobj, fp->parts[76].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(1275, gobj, fp->parts[Bam_DonorBoneJoint(fp, 76)].joint);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialAirSStart_Anim(HSD_GObj* gobj)",
+     "line": 229,
+     "before": [
+      "        lb_8000B1CC(fp->parts[89].joint, NULL, &sp24);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 89)].joint, NULL, &sp24);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialAirSStart_Anim(HSD_GObj* gobj)",
+     "line": 243,
+     "before": [
+      "        efSync_Spawn(1275, gobj, fp->parts[76].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(1275, gobj, fp->parts[Bam_DonorBoneJoint(fp, 76)].joint);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialAirSLoop_Anim(HSD_GObj* gobj)",
+     "line": 271,
+     "before": [
+      "        lb_8000B1CC(fp->parts[89].joint, NULL, &sp20);"
+     ],
+     "after": [
+      "        lb_8000B1CC(fp->parts[Bam_DonorBoneJoint(fp, 89)].joint, NULL, &sp20);"
+     ]
+    },
+    {
+     "owner": "bone-animation-data",
+     "symbol": "void ftZd_SpecialAirSLoop_Anim(HSD_GObj* gobj)",
+     "line": 285,
+     "before": [
+      "        efSync_Spawn(1275, gobj, fp->parts[76].joint);"
+     ],
+     "after": [
+      "        efSync_Spawn(1275, gobj, fp->parts[Bam_DonorBoneJoint(fp, 76)].joint);"
+     ]
+    }
+   ]
+  }
+ }
+}

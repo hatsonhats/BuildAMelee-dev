@@ -143,7 +143,7 @@ def cmd_edits(args):
     """Unified diff of each overridden retail unit: line edits and fixes applied."""
     import difflib
     from bam.build import Builder
-    from bam.transform import apply_line_edits, apply_anchor_edits, LineEdit, AnchorEdit
+    from bam.transform import apply_line_edits, apply_anchor_edits, line_edits_for, AnchorEdit
     import json
     p = Project.load(ROOT)
     b = Builder(p, args.decomp)
@@ -156,7 +156,7 @@ def cmd_edits(args):
         if spec.line_edits:
             entry = json.loads((ROOT / spec.line_edits).read_text(encoding='utf-8'))['files']
             entry = entry.get('src/' + spec.unit) or entry.get(spec.unit)
-            text = apply_line_edits(text, [LineEdit(e['line'], e['before'], e['after']) for e in entry['edits']], spec.unit)
+            text = apply_line_edits(text, line_edits_for(entry, text, spec.unit), spec.unit)
         if spec.anchor_edits:
             text = apply_anchor_edits(text, [AnchorEdit(e['anchor'], e['replacement'], e.get('occurrences', 1), e.get('id', ''))
                                              for e in spec.anchor_edits], spec.unit)

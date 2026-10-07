@@ -2,8 +2,9 @@
 
 Two kinds of edit are supported, both pinned to the decomp revision:
 
-* line edits  (special_adapters.json): {line, before[], after[]} against a
-  base file whose sha256 is checked first.
+* line edits  (line_edits.json): {line, before[], after[]} against a base
+  file whose sha256 is checked first, or {rule, lines: [[line, count], ...]}
+  for lines rewritten by one of the RULES below.
 * anchor edits (TOML): {anchor, replacement, occurrences=1}.
 
 Additionally, `externize` turns top-level *definitions* of named objects into
@@ -58,6 +59,54 @@ def apply_line_edits(text: str, edits: Sequence[LineEdit], label: str) -> str:
     for e in sorted(edits, key=lambda e: e.line, reverse=True):
         lines[e.line:e.line + len(e.before)] = e.after
     return '\n'.join(lines) + '\n'
+
+
+# ---- rules --------------------------------------------------------------------
+# A rule rewrites the listed lines of the pinned file by a fixed pattern, so
+# the hundreds of mechanical edits of the borrowed-move engine read as one
+# rule and a list of lines. Edits that do anything else are written out.
+
+# Fighter_FighterVars union members (fp->u.XX) and the kind that owns each.
+DONOR_VARS = {
+    'ca': 'Captain', 'dk': 'Donkey', 'fx': 'Fox', 'gw': 'GameWatch', 'kb': 'Kirby', 'kp': 'Koopa',
+    'lg': 'Luigi', 'lk': 'Link', 'mr': 'Mario', 'ms': 'Mars', 'mt': 'Mewtwo', 'ns': 'Ness',
+    'pe': 'Peach', 'pp': 'Popo', 'pr': 'Purin', 'sk': 'Seak', 'ss': 'Samus', 'ys': 'Yoshi', 'zd': 'Zelda',
+}
+
+
+def _donor_access(line: str) -> str:
+    """`fp->u.kb.x` -> `Bam_DonorVars(fp, Ft_Kind_Kirby)->kb.x` (the donor's
+    variables, not the borrower's), and `fp->parts[FtPart_X]` ->
+    `fp->parts[Bam_DonorBoneJoint(fp, FtPart_X)]` (the borrower's bone for
+    the donor's body part)."""
+    line = re.sub(r'\b(\w+)->u\.(\w+)\.',
+                  lambda m: f'Bam_DonorVars({m[1]}, Ft_Kind_{DONOR_VARS[m[2]]})->{m[2]}.' if m[2] in DONOR_VARS else m[0],
+                  line)
+    return re.sub(r'\b(\w+)->parts\[(FtPart_\w+)\]', r'\1->parts[Bam_DonorBoneJoint(\1, \2)]', line)
+
+
+RULES = {'donor-access': _donor_access}
+
+
+def line_edits_for(entry: dict, text: str, label: str) -> List[LineEdit]:
+    """The line edits of one file's manifest entry, rules expanded against
+    `text` (the pinned file)."""
+    lines = text.splitlines()
+    out = []
+    for e in entry['edits']:
+        if 'rule' not in e:
+            out.append(LineEdit(e['line'], e['before'], e['after']))
+            continue
+        rule = RULES.get(e['rule'])
+        if rule is None:
+            raise TransformError(f'{label}: unknown rule {e["rule"]!r}')
+        for at, count in e['lines']:
+            before = lines[at:at + count]
+            after = [rule(l) for l in before]
+            if after == before:
+                raise TransformError(f'{label}: rule {e["rule"]} changes nothing at line {at}')
+            out.append(LineEdit(at, before, after))
+    return out
 
 
 def apply_anchor_edits(text: str, edits: Sequence[AnchorEdit], label: str) -> str:

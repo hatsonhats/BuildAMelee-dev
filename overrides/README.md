@@ -7,7 +7,7 @@ and retail code is changed in one of three ways. Pick the first that works.
 |---|---|---|
 | Run our code at a point in a retail function, or replace a whole function | **Hook** | `[[hook]]` in `project.toml` |
 | Change a few lines inside a retail function | **Fix** (anchor edit) | `overrides/fixes/*.toml` |
-| The borrowed-move engine's large mechanical rewrite of fighter code | **Line edits** | `overrides/special_adapters.json` |
+| The borrowed-move engine's large mechanical rewrite of fighter code | **Line edits** | `overrides/line_edits.json` |
 
 ## Hooks (`project.toml`)
 
@@ -56,14 +56,32 @@ lists these under `fix_dependencies` in `build/output/build-report.json` and
 counts them in its output. Keep the anchor on the edited text when there is
 no other choice, and say so in the fix's `reason`.
 
-## Line edits (`overrides/special_adapters.json`)
+## Line edits (`overrides/line_edits.json`)
 
 839 edits across 96 fighter, item and effect files, made when the
-borrowed-move engine was written: mostly giving a borrower the donor's
-variables (`donor-variable-bank`), bones and animation data. Each file entry
-pins the decomp source's SHA-256, so a decomp update that touches one of these
-files stops the build instead of producing a wrong edit. Prefer a fix for new
-changes; this file is not meant to be edited by hand.
+borrowed-move engine was written. Each file entry pins the decomp source's
+SHA-256, so a decomp update that touches one of these files stops the build
+instead of producing a wrong edit.
+
+Most of them are one mechanical rewrite, written as a **rule** and the lines
+it applies to (`[line, count]`, 0-based):
+
+```json
+{ "owner": "donor-variable-bank", "rule": "donor-access", "lines": [[30, 2], [75, 1]] }
+```
+
+`donor-access` (`tools/bam/transform.py` `RULES`) turns `fp->u.ca.x` into
+`Bam_DonorVars(fp, Ft_Kind_Captain)->ca.x` (the donor's variables, not the
+borrower's) and `fp->parts[FtPart_X]` into
+`fp->parts[Bam_DonorBoneJoint(fp, FtPart_X)]` (the borrower's bone for the
+donor's body part). Every other edit is written out as `line`, `before[]`
+and `after[]`, with the function it is in (`symbol`). Owners:
+`donor-variable-bank` (donor variables), `bone-animation-data` (bones and
+animation data), `donor-compatibility`, `transform-subfighter` (Zelda/Sheik,
+Ice Climbers), `special-input`, `state-table-redirect`, `lifecycle-cleanup`,
+`donor-preload`.
+
+Prefer a fix for new changes.
 
 ## Seeing what changed
 

@@ -16,7 +16,7 @@ def _int(v: Any) -> int:
 @dataclass
 class OverrideSpec:
     unit: str                               # e.g. melee/ft/fighter.c
-    line_edits: Optional[str] = None        # path to a special_adapters-style json (shared)
+    line_edits: Optional[str] = None        # path to a line_edits.json-style manifest (shared)
     anchor_edits: List[Dict[str, Any]] = field(default_factory=list)
     externize: Optional[List[str]] = None   # None = automatic
     keep_const_copies: bool = True

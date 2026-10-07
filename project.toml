@@ -305,7 +305,7 @@ note = "garbage joint pointers from borrowed moves: log caller, treat as none"
 # ---- borrowed-move engine: edits to retail units (overrides/README.md) -------
 
 [[override_set]]
-line_edits = "overrides/special_adapters.json"
+line_edits = "overrides/line_edits.json"
 anchor_edits = "overrides/fixes"
 owners = ["platform/specials", "platform/aerials", "platform/training"]
 strip_unchanged = true

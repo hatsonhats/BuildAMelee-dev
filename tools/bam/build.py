@@ -16,7 +16,7 @@ from .hooks import Hook, Trampolines, build_patches, Patch
 from .project import Project, OverrideSpec
 from .symbols import SymbolTable, parse_symbols, parse_splits, Symbol
 from .toolchain import Toolchain, parse_map, ToolError
-from .transform import (apply_anchor_edits, apply_line_edits, externize, check_sha256,
+from .transform import (apply_anchor_edits, apply_line_edits, line_edits_for, externize, check_sha256,
                         LineEdit, AnchorEdit, TransformError, changed_by_text, strip_functions)
 
 MUTABLE_SECTIONS = {'.bss', '.sbss', '.sdata', '.data'}
@@ -291,8 +291,7 @@ class Builder:
             if entry is None:
                 raise BuildError(f'{spec.line_edits} has no entry for {unit}')
             check_sha256(text, entry['base_sha256'], label)
-            edits = [LineEdit(e['line'], e['before'], e['after']) for e in entry['edits']]
-            text = apply_line_edits(text, edits, label)
+            text = apply_line_edits(text, line_edits_for(entry, text, label), label)
         if spec.anchor_edits:
             self.note_fix_dependencies(unit, original, text, spec.anchor_edits)
             text = apply_anchor_edits(text, [AnchorEdit(e['anchor'], e['replacement'], e.get('occurrences', 1), e.get('id', ''))

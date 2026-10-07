@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from bam.hsd import Archive, joint_walk  # noqa: E402
 from bam import bonetables, parts, fingerprint  # noqa: E402
 from bam.project import load_fixes  # noqa: E402
+from bam.transform import line_edits_for, TransformError  # noqa: E402
 
 
 def archive(data: bytes, relocs, roots):
@@ -148,6 +149,21 @@ class FixTests(unittest.TestCase):
                 (Path(d) / name).write_text(f'[[fix]]\nid = "{fid}"\nowner = "o"\nfile = "f.c"\nanchor = "a"\n'
                                             'replacement = "b"\n')
             self.assertEqual([f['id'] for f in load_fixes(Path(d))], ['a', 'b'])
+
+
+class LineEditTests(unittest.TestCase):
+    def test_rule_expands_against_the_file(self):
+        text = 'a\n    fp->u.kp.x2230 -= 1;\n    j = fp->parts[FtPart_HeadN].joint;\n'
+        entry = {'edits': [{'owner': 'o', 'rule': 'donor-access', 'lines': [[1, 2]]},
+                           {'owner': 'o', 'line': 0, 'before': ['a'], 'after': ['b']}]}
+        edits = sorted(line_edits_for(entry, text, 't'), key=lambda e: e.line)
+        self.assertEqual(edits[0].after, ['b'])
+        self.assertEqual(edits[1].after, ['    Bam_DonorVars(fp, Ft_Kind_Koopa)->kp.x2230 -= 1;',
+                                          '    j = fp->parts[Bam_DonorBoneJoint(fp, FtPart_HeadN)].joint;'])
+
+    def test_rule_that_changes_nothing_refused(self):
+        with self.assertRaises(TransformError):
+            line_edits_for({'edits': [{'owner': 'o', 'rule': 'donor-access', 'lines': [[0, 1]]}]}, 'a\n', 't')
 
 
 if __name__ == '__main__':
