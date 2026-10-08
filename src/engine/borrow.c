@@ -456,8 +456,17 @@ bool Bam_TrySpecial(Fighter_GObj* gobj, BamSpecialSlot slot, bool airborne)
     Fighter* fp = GET_FIGHTER(gobj);
     if (!install_special(fp, slot)) return false;
     {
-    BamFighterState* const S = Bam_FighterCtx(fp);
-    (airborne ? S->active->air_enter : S->active->ground_enter)(gobj);
+        BamFighterState* const S = Bam_FighterCtx(fp);
+        const BamDonorSpecial* def = S->active;
+        (airborne ? def->air_enter : def->ground_enter)(gobj);
+        /* A special that did not start (Peach's down special in the air, or
+         * holding another item: her code does nothing then) leaves the
+         * fighter in its own state; the donor's variables, attributes and
+         * animations must not stay installed under it. */
+        if (S->active == def && (fp->motion_id < def->first_state || fp->motion_id > def->last_state)) {
+            BAM_LOG("special id=%u did not start (motion %d)\n", def->id, (int) fp->motion_id);
+            Bam_BorrowEnd(fp);
+        }
     }
     return true;
 }
