@@ -10,6 +10,8 @@ What changed in each version, for developers. Players get the release notes in
   and his own down tilt); a sword is skipped only when the borrower holds
   its own in the same hand (keeps_own_weapon); CSS texts come back after
   Slippi's SIS reset; the CSS always shows the version and build hash.
+  A borrowed special whose enter did not start one of its states ends the
+  borrow (Bam_TrySpecial).
 - 1.3.7 (second cleanup, no gameplay change): engine files and headers by
   job (borrow.c, donor_load.c, catalog.h, borrow.h, ...; one public
   engine/engine.h) and one set of words (donor, borrower, borrowed move;
