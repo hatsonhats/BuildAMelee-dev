@@ -9,6 +9,7 @@
 ## Character select
 - The BuildAMelee version and build are always shown in the bottom left, even with the build menu open. Two players need the same build to use their builds online.
 - Starting a Slippi search and backing out no longer makes the build menu disappear.
+- The build menu stays out of the way while you type a direct connect code: Z fills in a recent code again.
 
 ## Known issues
 - Ice Climbers borrowing Ganondorf's or Bowser's side special do not grab.

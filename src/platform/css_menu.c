@@ -470,6 +470,19 @@ void BAM_CssFrame(void)
         }
         return;
     }
+    /* Another screen is up over the CSS: Slippi's direct-code entry is
+     * Melee's name keyboard (sub-screen 4), whose buttons are its own (Z
+     * fills in a recent code). Close the panel, hide our texts and take no
+     * input until it is gone. */
+    if (BAM_CSS_SUBSCREEN != 0 && css.kb_state != KB_BACK) {
+        if (css.open_port >= 0) close_panel();
+        if (css.ui_ready && BamText_Alive(&css.hint)) {
+            BamText_Begin(&css.hint);
+            BamText_End(&css.hint);
+        }
+        css.sis_still = 0;
+        return;
+    }
     /* Back from the keyboard: the CSS rebuilt itself and our texts went with
      * it. Make them again and reopen the panel on the code. */
     if (css.kb_state == KB_BACK) {
@@ -494,9 +507,9 @@ void BAM_CssFrame(void)
     }
     /* Slippi's direct-code entry and its search reset all SIS texts while
      * the CSS is still running. Ours are gone then: forget them (never touch
-     * freed texts) and make them again once Slippi's texts have stayed the
-     * same for two seconds with room to spare (backed out of the search),
-     * so the build line and the panel come back. */
+     * freed texts) and make them again once the keyboard is gone and
+     * Slippi's texts have stayed the same for a second with room to spare
+     * (backed out of the search), so the build line and the panel come back. */
     if (css.ui_ready && !BamText_Alive(&css.hint)) {
         BAM_LOG("css: SIS was reset (code entry); panel hidden\n");
         css.hint.native = css.shapes.native = css.body.native = NULL;
@@ -512,7 +525,7 @@ void BAM_CssFrame(void)
         if (HSD_SisLib_804D7978 != css.sis_head) {
             css.sis_head = HSD_SisLib_804D7978;
             css.sis_still = 0;
-        } else if (++css.sis_still >= 120 && sis_room(2)) {
+        } else if (++css.sis_still >= 60 && sis_room(2)) {
             BAM_LOG("css: SIS settled; panel back\n");
             css.sis_lost = 0;
             css.ui_tried = 0;
