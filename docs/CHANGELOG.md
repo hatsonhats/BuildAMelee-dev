@@ -5,6 +5,11 @@ What changed in each version, for developers. Players get the release notes in
 
 - 1.3.8: borrowed parts, hitboxes and effects are never smaller than the
   donor's (Bam_ShownScale floor 0.8 -> 1.0 in src/engine/anim/scale.c).
+  The build recompiles retail callers that inlined an edited static helper
+  (ftCo_AttackLw3's decideFighter: Mr. Game & Watch alternated a borrowed
+  and his own down tilt); a sword is skipped only when the borrower holds
+  its own in the same hand (keeps_own_weapon); CSS texts come back after
+  Slippi's SIS reset; the CSS always shows the version and build hash.
 - 1.3.7 (second cleanup, no gameplay change): engine files and headers by
   job (borrow.c, donor_load.c, catalog.h, borrow.h, ...; one public
   engine/engine.h) and one set of words (donor, borrower, borrowed move;
